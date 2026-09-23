@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.data/
+tests/e2e/artifacts/
+*.log
+.DS_Store
+.clasprc.json
+dist-prod/

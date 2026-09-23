@@ -1,0 +1,140 @@
+/* Footer: deep Aegean blue, oversized wordmark. */
+
+.site-footer {
+  background: var(--aegean-deep);
+  color: #fff;
+  padding-top: clamp(3.5rem, 8vw, 6rem);
+  overflow: hidden;
+}
+
+.site-footer a {
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.footer-grid {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .footer-grid {
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr;
+  }
+}
+
+.footer-grid h2 {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-stretch: var(--stretch-ui);
+  color: var(--gold);
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.footer-grid p,
+.footer-grid li {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.footer-grid ul {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.footer-lead {
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: 800;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  line-height: 1;
+  max-width: 16ch;
+  color: #fff !important;
+}
+
+.footer-phone {
+  display: inline-block;
+  font-weight: 900;
+  font-stretch: 70%;
+  font-size: clamp(1.8rem, 3.4vw, 2.4rem);
+  line-height: 1;
+  margin-top: 0.4rem;
+}
+
+.hours-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.hours-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.35rem;
+}
+
+.hours-list dt {
+  font-weight: 700;
+}
+
+.hours-list dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.hours-list .is-closed dd {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.footer-wordmark {
+  margin-top: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: clamp(4.5rem, 24vw, 22rem);
+  line-height: 0.74;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+  user-select: none;
+  transform: translateY(0.06em);
+}
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding-block: 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: var(--fs-small);
+  color: rgba(255, 255, 255, 0.7);
+  position: relative;
+  z-index: 1;
+  background: var(--aegean-deep);
+}
+
+.social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.social svg {
+  width: 20px;
+  height: 20px;
+}

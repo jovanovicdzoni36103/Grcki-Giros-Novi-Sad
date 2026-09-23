@@ -1,0 +1,118 @@
+/* Grčki Giros — design tokens. PDF palette (Mediterranean blue, warm gold, dark text) on a warm paper white. */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-core.woff2') format('woff2');
+  font-weight: 400 900;
+  font-stretch: 62% 100%;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201E, U+2022, U+2026, U+2032-2033, U+20AC, U+2212;
+}
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-sr.woff2') format('woff2');
+  font-weight: 400 900;
+  font-stretch: 62% 100%;
+  font-display: swap;
+  unicode-range: U+0106-0107, U+010C-010D, U+0110-0111, U+0160-0161, U+017D-017E;
+}
+
+/* Metric-matched fallback so the swap does not shift layout. */
+@font-face {
+  font-family: 'Archivo Fallback';
+  src: local('Arial Narrow'), local('ArialNarrow'), local('Arial');
+  size-adjust: 96%;
+  ascent-override: 92%;
+  descent-override: 24%;
+}
+
+:root {
+  /* Color */
+  --paper: #faf7f0;
+  --paper-2: #f3eee2;
+  --cream: #f2ebdd;
+  --surface: #ffffff;
+  --ink: #16202e;
+  --ink-2: #4a5261;
+  --ink-3: #737a86;
+  --line: #e6e0d2;
+  --line-strong: #d6cdb8;
+  --aegean: #1b4f8c;
+  --aegean-deep: #123a6b;
+  --aegean-ink: #0d2a4f;
+  --sky: #e3ebf6;
+  --gold: #f5a623;
+  --gold-deep: #de8c0c;
+  --gold-tint: #fdf0d8;
+  --tomato: #d1432b;
+  --tomato-tint: #fbe4df;
+  --olive: #4c7a3a;
+  --olive-tint: #e5eedd;
+  --focus: #1b4f8c;
+
+  /* Type */
+  --font: 'Archivo', 'Archivo Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --fs-display: clamp(3.4rem, 13vw, 11rem);
+  --fs-h1: clamp(2.9rem, 9vw, 7rem);
+  --fs-h2: clamp(2.3rem, 6.4vw, 5rem);
+  --fs-h3: clamp(1.4rem, 2.4vw, 1.9rem);
+  --fs-h4: 1.2rem;
+  --fs-lead: clamp(1.1rem, 1.5vw, 1.35rem);
+  --fs-body: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --fs-small: 0.875rem;
+  --fs-micro: 0.75rem;
+  --stretch-display: 62%;
+  --stretch-title: 70%;
+  --stretch-ui: 88%;
+
+  /* Space & shape */
+  --gutter: clamp(1rem, 4vw, 3rem);
+  --max: 1440px;
+  --max-text: 38rem;
+  --section: clamp(4.5rem, 11vw, 9.5rem);
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --radius-l: 22px;
+  --arch: 999px 999px var(--radius-m) var(--radius-m);
+  --pill: 999px;
+  --header-h: 64px;
+  --tap: 48px;
+
+  /* Elevation (flat brand: borders over shadows, shadows only for floating layers) */
+  --shadow-float: 0 18px 50px -18px rgba(22, 32, 46, 0.35), 0 2px 6px rgba(22, 32, 46, 0.08);
+  --shadow-sheet: 0 -12px 40px -10px rgba(22, 32, 46, 0.28);
+
+  /* Motion — JB reference: 500 ms outQuart as the base, inOutQuart for panels */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --t-fast: 180ms;
+  --t-base: 320ms;
+  --t-slow: 500ms;
+  --t-slower: 900ms;
+
+  --z-header: 50;
+  --z-bar: 55;
+  --z-drawer: 70;
+  --z-sheet: 80;
+  --z-toast: 90;
+  --z-nav: 60;
+
+  color-scheme: light;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 1ms;
+    --t-base: 1ms;
+    --t-slow: 1ms;
+    --t-slower: 1ms;
+  }
+}

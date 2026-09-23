@@ -1,0 +1,244 @@
+/* Reset, typography, accessibility primitives. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 64px);
+  scroll-behavior: smooth;
+}
+
+/* Reduced motion: no transitions at all (a 1 ms transition would still delay visibility: visible,
+   and focus() into a just-opened dialog would silently fail). Every animation's resting state is visible. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  font-stretch: 100%;
+  font-weight: 420;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: lining-nums;
+  overflow-x: clip;
+}
+
+body.is-locked {
+  overflow: hidden;
+}
+
+img,
+svg,
+picture,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+ul,
+ol,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.on-dark :focus-visible,
+.on-blue :focus-visible {
+  outline-color: var(--gold);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 200;
+  padding: 12px 18px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--pill);
+  font-weight: 800;
+  transform: translateY(-160%);
+  transition: transform var(--t-base) var(--ease-out);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Type utilities */
+.display,
+.h1,
+.h2,
+.h3 {
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.88;
+}
+
+.display {
+  font-size: var(--fs-display);
+  font-stretch: var(--stretch-display);
+  letter-spacing: -0.015em;
+}
+
+.h1 {
+  font-size: var(--fs-h1);
+  font-stretch: var(--stretch-display);
+}
+
+.h2 {
+  font-size: var(--fs-h2);
+  font-stretch: var(--stretch-display);
+}
+
+.h3 {
+  font-size: var(--fs-h3);
+  font-stretch: var(--stretch-title);
+  line-height: 0.95;
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-width: var(--max-text);
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-stretch: var(--stretch-ui);
+}
+
+.kicker::before {
+  content: '';
+  width: 1.6em;
+  height: 2px;
+  background: currentColor;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.small {
+  font-size: var(--fs-small);
+}
+
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.accent {
+  color: var(--aegean);
+}
+
+.nowrap {
+  white-space: nowrap;
+}

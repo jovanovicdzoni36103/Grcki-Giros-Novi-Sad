@@ -1,0 +1,412 @@
+/* Chips, segmented control, quantity stepper, form fields, toggles. All touch targets ≥ 44 px. */
+
+.chip {
+  --chip-bg: var(--surface);
+  --chip-fg: var(--ink);
+  --chip-ring: var(--line-strong);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 44px;
+  padding: 0 1.05em;
+  border-radius: var(--pill);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  box-shadow: inset 0 0 0 1.5px var(--chip-ring);
+  font-weight: 700;
+  font-stretch: var(--stretch-ui);
+  font-size: 0.92rem;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chip svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.chip[aria-pressed='true'],
+.chip[aria-selected='true'],
+.chip.is-active,
+input:checked + .chip {
+  --chip-bg: var(--ink);
+  --chip-fg: #fff;
+  --chip-ring: var(--ink);
+}
+
+input:focus-visible + .chip {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.chip--price small {
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.chip-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chips--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  scroll-padding-inline: var(--gutter);
+}
+
+.chips--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chips--scroll > * {
+  scroll-snap-align: start;
+  flex: none;
+}
+
+/* Segmented control (Dostava | Preuzimanje) */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-l);
+  background: var(--paper-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.segmented__option {
+  position: relative;
+}
+
+/* The radio stays in the accessibility tree and keyboard order; the label is what receives the tap. */
+.segmented__option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.segmented__option label {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  min-height: 60px;
+  padding: 0.55rem 0.9rem;
+  border-radius: calc(var(--radius-l) - 4px);
+  cursor: pointer;
+  transition: background-color var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+}
+
+.segmented__title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 850;
+  font-stretch: var(--stretch-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.9rem;
+}
+
+.segmented__title svg {
+  width: 20px;
+  height: 20px;
+}
+
+.segmented__meta {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.segmented__option input:checked + label {
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--line), 0 6px 18px -10px rgba(22, 32, 46, 0.45), inset 0 0 0 2px var(--ink);
+}
+
+.segmented__option input:focus-visible + label {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.segmented__option input:disabled + label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Quantity stepper */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--pill);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  background: var(--surface);
+}
+
+.qty button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.qty button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.qty output {
+  min-width: 1.8em;
+  text-align: center;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.qty--lg button {
+  width: 52px;
+  height: 52px;
+}
+
+/* Forms */
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-weight: 750;
+  font-size: 0.9rem;
+  font-stretch: var(--stretch-ui);
+}
+
+.field__label .optional {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font-size: 1rem; /* ≥16px: no iOS zoom */
+  transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.input:hover {
+  border-color: var(--ink-3);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--aegean);
+  box-shadow: 0 0 0 4px rgba(27, 79, 140, 0.16);
+}
+
+textarea.input {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316202E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 20px;
+  padding-right: 2.8rem;
+}
+
+.field.has-error .input {
+  border-color: var(--tomato);
+  box-shadow: 0 0 0 4px rgba(209, 67, 43, 0.12);
+}
+
+.field__error {
+  display: none;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--tomato);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.field.has-error .field__error {
+  display: flex;
+}
+
+.field__hint {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 7.5rem;
+  gap: 0.75rem;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.check input {
+  appearance: none;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border-radius: 7px;
+  border: 2px solid var(--ink);
+  background: var(--surface) center / 16px no-repeat;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out);
+}
+
+.check input:checked {
+  background-color: var(--ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
+}
+
+/* Switch (panel and pomfrit toggle) */
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 56px;
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  flex: none;
+  width: 54px;
+  height: 32px;
+  border-radius: var(--pill);
+  background: var(--line-strong);
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+  transition: background-color var(--t-base) var(--ease-out);
+}
+
+.switch input::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform var(--t-base) var(--ease-spring);
+}
+
+.switch input:checked {
+  background: var(--olive);
+}
+
+.switch input:checked::after {
+  transform: translateX(22px);
+}
+
+/* Tags on products */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.6em;
+  border-radius: var(--pill);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-stretch: var(--stretch-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  background: var(--paper-2);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tag svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.tag--spicy {
+  background: var(--tomato-tint);
+  color: #a2311d;
+}
+
+.tag--vegetarian {
+  background: var(--olive-tint);
+  color: #365a29;
+}
+
+.tag--popular,
+.tag--promo {
+  background: var(--gold-tint);
+  color: #8a5300;
+}
+
+.tag--new {
+  background: var(--sky);
+  color: var(--aegean-deep);
+}
+
+.tag--recommended {
+  background: var(--aegean);
+  color: #fff;
+}
+
+.tag--value,
+.tag--family {
+  background: var(--ink);
+  color: #fff;
+}

@@ -1,0 +1,138 @@
+/**
+ * Grčki Giros — contact form and job applications.
+ */
+
+var CV_MAX_BYTES = 4 * 1024 * 1024;
+var CV_TYPES = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'image/jpeg': 'jpg',
+  'image/png': 'png'
+};
+
+function fieldError_(errors) {
+  var field = Object.keys(errors)[0];
+  return apiError_('VALIDATION', errors[field], { field: field, fields: errors });
+}
+
+function submitContact_(payload, ctx) {
+  var p = payload || {};
+  checkBot_(p.meta);
+  if (p.requestId && validRequestId_(p.requestId)) {
+    var prior = idempotencyGet_('contact:' + p.requestId);
+    if (prior) return prior;
+  }
+  var v = GG_Validation.validateContactForm(p);
+  if (!v.ok) throw fieldError_(v.errors);
+  if (!hitRateLimit_('contact:' + (v.value.phone || v.value.email), 3, 600) || !hitRateLimit_('contact:global', 15, 600)) {
+    throw apiError_('RATE_LIMITED', 'Primili smo više poruka zaredom. Pokušajte ponovo kasnije ili nas pozovite.');
+  }
+  appendObjects_(SHEETS.CONTACT, [
+    { Timestamp: now_(), Name: v.value.name, Phone: v.value.phone, Email: v.value.email, Topic: v.value.topic, Message: v.value.message, Status: 'NEW', 'Request ID': p.requestId || '' }
+  ]);
+  var settings = getSettings_();
+  var html = simpleCard_('Nova poruka sa sajta', [
+    ['Ime', esc_(v.value.name)],
+    ['Telefon', v.value.phone ? '<a href="tel:' + esc_(v.value.phone) + '">' + esc_(v.value.phone) + '</a>' : '—'],
+    ['Email', v.value.email ? esc_(v.value.email) : '—'],
+    ['Tema', esc_(v.value.topic || '—')],
+    ['Poruka', esc_(v.value.message).replace(/\n/g, '<br>')]
+  ], 'Odgovor na ovaj email ide direktno pošiljaocu' + (v.value.email ? '.' : ' (nije ostavio email, pozovite ga).'));
+  var text = 'Nova poruka sa sajta\nIme: ' + v.value.name + '\nTelefon: ' + v.value.phone + '\nEmail: ' + v.value.email + '\nTema: ' + v.value.topic + '\n\n' + v.value.message;
+  var res = deliverEmail_(recipients_(settings.contact_email_recipients), 'Poruka sa sajta: ' + (v.value.topic || v.value.name), html, text, {
+    priorityFirst: true,
+    replyTo: v.value.email || undefined
+  });
+  log_('INFO', 'contact.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, recipients_(settings.contact_email_recipients).length));
+  var response = { ok: true };
+  if (p.requestId && validRequestId_(p.requestId)) idempotencyPut_('contact:' + p.requestId, response);
+  return response;
+}
+
+function cvFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('CV_FOLDER_ID');
+  if (id) {
+    try {
+      return DriveApp.getFolderById(id);
+    } catch (ignored) {}
+  }
+  var folder = DriveApp.createFolder('Grčki Giros — CV prijave');
+  props.setProperty('CV_FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function saveCv_(cv, applicantName) {
+  if (!cv || !cv.data) return null;
+  var type = String(cv.type || '');
+  var ext = CV_TYPES[type];
+  if (!ext) throw apiError_('VALIDATION', 'CV može biti PDF, Word ili slika (JPG, PNG).', { field: 'cv' });
+  var bytes;
+  try {
+    bytes = Utilities.base64Decode(String(cv.data).replace(/^data:[^,]+,/, ''));
+  } catch (err) {
+    throw apiError_('VALIDATION', 'CV fajl nije ispravan.', { field: 'cv' });
+  }
+  if (bytes.length > CV_MAX_BYTES) throw apiError_('VALIDATION', 'CV je veći od 4 MB.', { field: 'cv' });
+  var safeName = GG_Validation.clean(applicantName, 40).replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, '_') || 'kandidat';
+  var fileName = 'CV_' + safeName + '_' + fmt_(now_(), 'yyyyMMdd-HHmm') + '.' + ext;
+  var blob = Utilities.newBlob(bytes, type, fileName);
+  var file = cvFolder_().createFile(blob);
+  return { url: file.getUrl(), blob: blob, name: fileName };
+}
+
+function submitJob_(payload, ctx) {
+  var p = payload || {};
+  checkBot_(p.meta);
+  if (p.requestId && validRequestId_(p.requestId)) {
+    var prior = idempotencyGet_('job:' + p.requestId);
+    if (prior) return prior;
+  }
+  var v = GG_Validation.validateJobForm(p);
+  if (!v.ok) throw fieldError_(v.errors);
+  if (!hitRateLimit_('job:' + v.value.phone, 2, 3600) || !hitRateLimit_('job:global', 20, 3600)) {
+    throw apiError_('RATE_LIMITED', 'Prijava sa ovog broja je već stigla. Hvala!');
+  }
+  var settings = getSettings_();
+  var position = settings.job_title || 'Prodavac-kuvar';
+  var cv = saveCv_(p.cv, v.value.name);
+  appendObjects_(SHEETS.JOBS, [
+    {
+      Timestamp: now_(),
+      Name: v.value.name,
+      Phone: v.value.phone,
+      Email: v.value.email,
+      Position: position,
+      Experience: v.value.experience,
+      Shift: v.value.shift,
+      Message: v.value.message,
+      CV: cv ? cv.url : '',
+      Status: 'NEW',
+      'Request ID': p.requestId || ''
+    }
+  ]);
+  var recipients = recipients_(settings.jobs_email_recipients);
+  var html = simpleCard_('Nova prijava: ' + position, [
+    ['Ime', '<b>' + esc_(v.value.name) + '</b>'],
+    ['Telefon', '<a href="tel:' + esc_(v.value.phone) + '" style="font-size:18px;font-weight:bold">' + esc_(v.value.phone) + '</a>'],
+    ['Email', esc_(v.value.email || '—')],
+    ['Iskustvo', esc_(v.value.experience || '—')],
+    ['Smena', esc_(v.value.shift || '—')],
+    ['Poruka', esc_(v.value.message || '—').replace(/\n/g, '<br>')],
+    ['CV', cv ? '<a href="' + esc_(cv.url) + '">' + esc_(cv.name) + '</a> (i u prilogu)' : 'nije priložen']
+  ], 'Kandidat je dobio potvrdu da ga vlasnik zove u najkraćem roku.');
+  var text = 'Nova prijava: ' + position + '\n' + v.value.name + '\n' + v.value.phone + '\n' + (v.value.email || '') + '\nIskustvo: ' + v.value.experience + '\nSmena: ' + v.value.shift + '\n\n' + v.value.message + (cv ? '\nCV: ' + cv.url : '');
+  var res = deliverEmail_(recipients, 'Prijava za posao: ' + v.value.name, html, text, { priorityFirst: true, attachments: cv ? [cv.blob] : undefined, replyTo: v.value.email || undefined });
+  if (v.value.email) {
+    var confirm = simpleCard_('Hvala, prijava je stigla.', [
+      ['Pozicija', esc_(position)],
+      ['Šta sledi', 'Vlasnik vas zove na ' + esc_(v.value.phone) + ' u najkraćem roku.']
+    ], esc_(settings.business_name) + ' · ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city));
+    deliverEmail_([v.value.email], 'Prijava je stigla — ' + (settings.business_name || 'Grčki Giros'), confirm, 'Hvala, prijava je stigla. Vlasnik vas zove u najkraćem roku.', {});
+  }
+  log_('INFO', 'jobs.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, recipients.length));
+  var response = { ok: true };
+  if (p.requestId && validRequestId_(p.requestId)) idempotencyPut_('job:' + p.requestId, response);
+  return response;
+}

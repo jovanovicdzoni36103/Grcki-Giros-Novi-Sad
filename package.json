@@ -1,0 +1,25 @@
+{
+  "name": "grcki-giros-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Grčki Giros: website, digital menu, online ordering, Google Sheets + Apps Script backend",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev && node tools/dev-server.mjs",
+    "serve": "node tools/dev-server.mjs",
+    "test": "node --test \"tests/unit/*.test.mjs\" \"tests/gas/*.test.mjs\"",
+    "test:unit": "node --test \"tests/unit/*.test.mjs\"",
+    "test:gas": "node --test \"tests/gas/*.test.mjs\"",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "sync": "node tools/sync-snapshot.mjs"
+  },
+  "devDependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "esbuild": "^0.25.0",
+    "playwright-core": "^1.55.0"
+  }
+}

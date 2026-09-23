@@ -1,0 +1,202 @@
+/* Buttons: bold caps pills (PDF: "CTA — Bold, caps"). The fill wipes up on hover. */
+
+.btn {
+  --btn-bg: var(--ink);
+  --btn-fg: #fff;
+  --btn-fill: var(--aegean);
+  --btn-fill-fg: #fff;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  min-height: 56px;
+  padding: 0 1.7em;
+  border-radius: var(--pill);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: 800;
+  font-stretch: var(--stretch-ui);
+  font-size: 0.95rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: color var(--t-base) var(--ease-out), transform var(--t-base) var(--ease-out), background-color var(--t-base) var(--ease-out);
+  will-change: transform;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--btn-fill);
+  border-radius: inherit;
+  transform: translateY(101%);
+  transition: transform var(--t-slow) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover::before {
+    transform: translateY(0);
+  }
+  .btn:hover {
+    color: var(--btn-fill-fg);
+  }
+  .btn:hover .btn__icon {
+    transform: translateX(4px);
+  }
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn__icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  transition: transform var(--t-base) var(--ease-out);
+}
+
+.btn--gold {
+  --btn-bg: var(--gold);
+  --btn-fg: var(--ink);
+  --btn-fill: var(--ink);
+  --btn-fill-fg: var(--gold);
+}
+
+.btn--blue {
+  --btn-bg: var(--aegean);
+  --btn-fg: #fff;
+  --btn-fill: var(--ink);
+}
+
+.btn--ghost {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  --btn-fill: var(--ink);
+  --btn-fill-fg: #fff;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.on-blue .btn--ghost,
+.section--blue .btn--ghost {
+  --btn-fg: #fff;
+  --btn-fill: #fff;
+  --btn-fill-fg: var(--aegean);
+}
+
+.btn--sm {
+  min-height: 44px;
+  padding: 0 1.2em;
+  font-size: 0.82rem;
+}
+
+.btn--lg {
+  min-height: 64px;
+  padding: 0 2.1em;
+  font-size: 1.02rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn[disabled],
+.btn[aria-disabled='true'] {
+  --btn-bg: var(--line-strong);
+  --btn-fg: var(--ink-2);
+  --btn-fill: var(--line-strong);
+  --btn-fill-fg: var(--ink-2);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.is-busy {
+  pointer-events: none;
+}
+
+.btn.is-busy .btn__label {
+  opacity: 0.001;
+}
+
+.btn.is-busy::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Text link with animated underline */
+.link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-weight: 800;
+  font-stretch: var(--stretch-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.9rem;
+  text-decoration: none;
+  padding-block: 0.4em;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% 2px;
+  transition: background-size var(--t-slow) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .link:hover {
+    background-size: 0 2px;
+    background-position: 100% 100%;
+  }
+}
+
+.link svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  flex: none;
+  transition: background-color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+
+.icon-btn:hover {
+  background: rgba(22, 32, 46, 0.07);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.icon {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+  display: inline-block;
+  vertical-align: -0.2em;
+}

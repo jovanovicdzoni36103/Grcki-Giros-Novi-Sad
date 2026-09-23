@@ -1,0 +1,83 @@
+/* Layout primitives. */
+
+.container {
+  width: 100%;
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section);
+  position: relative;
+}
+
+.section--tight {
+  padding-block: calc(var(--section) * 0.6);
+}
+
+.section--cream {
+  background: var(--cream);
+}
+
+.section--blue {
+  background: var(--aegean);
+  color: #fff;
+}
+
+.section--ink {
+  background: var(--ink);
+  color: #fff;
+}
+
+.section__head {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+@media (min-width: 900px) {
+  .section__head--split {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: end;
+    gap: 3rem;
+  }
+}
+
+.stack {
+  display: grid;
+  gap: var(--stack, 1rem);
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cluster, 0.75rem);
+}
+
+.page-top {
+  padding-top: calc(var(--header-h) + clamp(2rem, 6vw, 4.5rem));
+}
+
+main {
+  display: block;
+  min-height: 60vh;
+}
+
+/* Hairline divider with the Greek key as a quiet brand signature. */
+.meander {
+  --meander-color: var(--aegean);
+  height: 12px;
+  background-color: var(--meander-color);
+  -webkit-mask: url('../img/meander.svg') repeat-x left center / auto 12px;
+  mask: url('../img/meander.svg') repeat-x left center / auto 12px;
+  opacity: 0.9;
+}
+
+.rule {
+  height: 2px;
+  background: var(--ink);
+  border: 0;
+  margin: 0;
+}

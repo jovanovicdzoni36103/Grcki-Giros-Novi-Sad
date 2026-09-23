@@ -1,0 +1,561 @@
+/* Cart drawer, product sheet, toasts. Bottom sheets on phones, side panels on desktop. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  display: grid;
+  /* One track exactly as tall as the viewport, so panels with height/max-height: 100% really stop there. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear var(--t-slow);
+}
+
+.overlay.is-open {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s;
+}
+
+.overlay__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 42, 79, 0.42);
+  opacity: 0;
+  transition: opacity var(--t-slow) var(--ease-out);
+}
+
+.overlay.is-open .overlay__scrim {
+  opacity: 1;
+}
+
+.overlay__panel {
+  position: relative;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  outline: none;
+  box-shadow: var(--shadow-sheet);
+  transition: transform var(--t-slow) var(--ease-in-out);
+}
+
+.overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0.75rem 0.9rem var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+
+/* min-height: 0 lets the body shrink and scroll; without it a long cart pushes the checkout button off screen. */
+.overlay__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.overlay__foot {
+  border-top: 1px solid var(--line);
+  padding: 1rem var(--gutter) calc(1rem + env(safe-area-inset-bottom));
+  background: var(--surface);
+}
+
+.grabber {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  margin: 8px auto 0;
+}
+
+/* Cart drawer */
+.drawer {
+  justify-items: end;
+}
+
+.drawer .overlay__panel {
+  width: min(100%, 460px);
+  height: 100%;
+  transform: translateX(104%);
+}
+
+.drawer.is-open .overlay__panel {
+  transform: none;
+}
+
+@media (max-width: 639px) {
+  .drawer {
+    align-items: end;
+  }
+  .drawer .overlay__panel {
+    width: 100%;
+    height: auto;
+    max-height: 92dvh;
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    transform: translateY(104%);
+  }
+}
+
+/* Product sheet */
+.sheet {
+  z-index: var(--z-sheet);
+  align-items: end;
+  justify-items: center;
+}
+
+.sheet .overlay__panel {
+  width: 100%;
+  max-height: 94dvh;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  transform: translateY(104%);
+  overflow: hidden;
+}
+
+.sheet.is-open .overlay__panel {
+  transform: none;
+}
+
+@media (min-width: 900px) {
+  .sheet {
+    align-items: center;
+    padding: 3vh 2rem;
+  }
+  .sheet .overlay__panel {
+    width: min(1040px, 100%);
+    max-height: 94vh;
+    border-radius: var(--radius-l);
+    transform: translateY(40px) scale(0.98);
+    opacity: 0;
+    transition: transform var(--t-slow) var(--ease-out), opacity var(--t-base) var(--ease-out);
+  }
+  .sheet.is-open .overlay__panel {
+    opacity: 1;
+  }
+}
+
+.sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 10px rgba(22, 32, 46, 0.14);
+}
+
+.sheet__layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+@media (min-width: 900px) {
+  .sheet__layout {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    min-height: 0;
+    height: 100%;
+    max-height: 94vh;
+  }
+}
+
+.sheet__media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  flex: none;
+  overflow: hidden;
+  background: var(--art-bg, var(--cream));
+}
+
+@media (min-width: 900px) {
+  .sheet__media {
+    aspect-ratio: auto;
+    height: 100%;
+  }
+}
+
+.sheet__media .art,
+.sheet__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sheet__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.sheet__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem var(--gutter) 1.5rem;
+}
+
+/* Phones: the picture scrolls away with the options, the add button stays pinned. */
+@media (max-width: 899px) {
+  .sheet .overlay__panel {
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet__layout {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet__main {
+    display: block;
+  }
+  .sheet__scroll {
+    overflow: visible;
+    padding: 1.1rem var(--gutter) 1.5rem;
+  }
+  .sheet__media {
+    aspect-ratio: 16 / 10;
+  }
+  .sheet__foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+  }
+}
+
+.hide-sm {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .hide-sm {
+    display: inline;
+  }
+}
+
+@media (max-width: 479px) {
+  .sheet__foot .qty--lg button {
+    width: 44px;
+    height: 50px;
+  }
+  .sheet__foot .btn--lg {
+    padding: 0 1.3em;
+  }
+}
+
+.sheet__title {
+  font-size: clamp(2.3rem, 7vw, 3.6rem);
+  font-stretch: 62%;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+.sheet__desc {
+  color: var(--ink-2);
+  margin-top: 0.6rem;
+  max-width: 34rem;
+}
+
+.sheet__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  font-weight: 900;
+  font-size: 1.5rem;
+  font-stretch: 75%;
+}
+
+.sheet__price s {
+  font-size: 1rem;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.sheet__includes {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--aegean);
+}
+
+.opt-group {
+  border: 0;
+  padding: 0;
+  margin: 1.6rem 0 0;
+  min-width: 0;
+}
+
+.opt-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0 0.7rem;
+  width: 100%;
+}
+
+.opt-group__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 900;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+
+.opt-group__step {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  font-stretch: 100%;
+}
+
+.opt-group.is-done .opt-group__step {
+  background: var(--olive);
+}
+
+.opt-group__badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.opt-group__badge.is-required {
+  color: var(--tomato);
+}
+
+.opt-group__hint {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  margin: -0.35rem 0 0.75rem;
+}
+
+.opt-group.is-invalid .opt-group__badge {
+  animation: nudge 420ms var(--ease-out);
+}
+
+@keyframes nudge {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.opt-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.opt-card {
+  position: relative;
+}
+
+.opt-card input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.opt-card label {
+  display: grid;
+  place-items: center;
+  gap: 0.2rem;
+  min-height: 64px;
+  padding: 0.6rem 0.4rem;
+  border-radius: var(--radius-m);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  background: var(--surface);
+  text-align: center;
+  font-weight: 800;
+  font-stretch: var(--stretch-ui);
+  cursor: pointer;
+  transition: box-shadow var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+
+.opt-card label small {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.opt-card input:checked + label {
+  background: var(--sky);
+  box-shadow: inset 0 0 0 2.5px var(--aegean);
+  color: var(--aegean-deep);
+}
+
+.opt-card input:focus-visible + label {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.opt-info {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-m);
+  background: var(--gold-tint);
+  font-weight: 700;
+}
+
+.opt-info svg {
+  width: 22px;
+  height: 22px;
+  color: var(--gold-deep);
+}
+
+.sheet__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem var(--gutter) calc(0.85rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet__foot .btn {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.sheet__foot .btn .num {
+  font-size: 1.05rem;
+}
+
+.pairs {
+  margin-top: 1.8rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.pairs__title {
+  font-size: var(--fs-micro);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 0.7rem;
+}
+
+/* Toasts */
+.toast-region {
+  position: fixed;
+  z-index: var(--z-toast);
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 0.5rem;
+  width: min(calc(100% - 2 * var(--gutter)), 460px);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .toast-region {
+    bottom: 2rem;
+    left: auto;
+    right: 2rem;
+    transform: none;
+  }
+}
+
+.toast {
+  pointer-events: auto;
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 0.9rem 0.9rem 1.1rem;
+  border-radius: var(--radius-m);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: var(--shadow-float);
+  animation: toast-in var(--t-slow) var(--ease-out);
+}
+
+.toast.is-leaving {
+  animation: toast-out var(--t-base) var(--ease-in-out) forwards;
+}
+
+.toast__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toast__row > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--gold);
+  flex: none;
+}
+
+.toast__text {
+  flex: 1;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.toast__action {
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.8rem;
+  color: var(--gold);
+  padding: 0.6rem 0.4rem;
+  min-height: 44px;
+}
+
+.toast .chip {
+  --chip-bg: rgba(255, 255, 255, 0.08);
+  --chip-fg: #fff;
+  --chip-ring: rgba(255, 255, 255, 0.25);
+  min-height: 40px;
+  font-size: 0.85rem;
+}
+
+.toast--error {
+  background: #7a1f10;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}

@@ -1,0 +1,123 @@
+/* Motion primitives. Every effect has a reduced-motion fallback: content is always visible. */
+
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity var(--t-slower) var(--ease-out), transform var(--t-slower) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Word-by-word masked title reveal (Bonus Content reference). */
+/* The mask needs head room: Serbian capitals (Č Ć Š Ž Đ) carry marks above the cap height. */
+.split .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.2em 0.03em 0.08em;
+  margin: -0.2em -0.03em -0.08em;
+}
+
+.split .w > span {
+  display: inline-block;
+  transform: translateY(105%);
+  transition: transform var(--t-slower) var(--ease-out);
+  transition-delay: calc(var(--wi, 0) * 45ms + var(--d, 0ms));
+}
+
+.split.is-in .w > span {
+  transform: none;
+}
+
+/* Marquee */
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.marquee__track {
+  display: inline-flex;
+  will-change: transform;
+}
+
+.marquee__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding-right: 0.6em;
+  font-weight: 900;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: clamp(2.6rem, 9vw, 7rem);
+  line-height: 1;
+}
+
+.marquee__item svg {
+  width: 0.5em;
+  height: 0.5em;
+  color: var(--gold);
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal],
+  .split .w > span {
+    opacity: 1;
+    transform: none;
+  }
+  .marquee__track {
+    transform: none !important;
+  }
+}
+
+/* Cross-document page transition (progressive: browsers without support just navigate). */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: vt-out 420ms var(--ease-in-out) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-in 520ms var(--ease-out) both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-2%);
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(2%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* Flying dot when something is added to the cart */
+.fly-dot {
+  position: fixed;
+  z-index: 100;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--ink);
+  pointer-events: none;
+}
