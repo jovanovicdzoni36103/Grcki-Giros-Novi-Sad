@@ -3,39 +3,51 @@
 Trajanje: ~45 minuta. Troškovi: 0 RSD mesečno (domen se plaća posebno).
 
 ```
-Gost ──► sajt (Cloudflare Pages, statički) ──► Apps Script Web App ──► Google Sheets
-                                                     └─► Gmail (karte za kuhinju, izveštaji)
-Lokal ──► /panel/ na tabletu ─────────────────────────┘
+Kupac ──► sajt (Cloudflare Pages, statički) ──► Apps Script Web App ──► Google Sheets
+                                                      ├─► Gmail (karta za kuhinju, emailovi kupcu, izveštaji)
+Lokal ──► /admin/ (tablet, telefon, računar) ─────────┤
+                                                      └─► Google Drive (fotografije menija, CV prijave)
 ```
 
 ## 0. Pre početka
 
-- Google nalog lokala na kome će živeti tabela i sa kog idu emailovi. **Preporuka: Google Workspace** (1.500 email primalaca dnevno). Besplatan Gmail ima limit od **100 primalaca dnevno** — sa tri primaoca po porudžbini to je ~33 porudžbine dnevno, posle čega sistem šalje samo prvom primaocu (i to loguje). Alternativa: jedan primalac + Gmail pravilo za prosleđivanje.
+- Google nalog lokala na kome će biti tabela i sa kog idu emailovi. **Preporuka: Google Workspace** (1.500 email primalaca dnevno). Besplatan Gmail ima limit od **100 primalaca dnevno**. Svaka porudžbina troši 1 primaoca po adresi iz `order_email_recipients` i, ako je kupac ostavio email, još do 3 (primljena, potvrđena, spremna/odbijena). Sa jednom kuhinjskom adresom to je ~25–50 porudžbina dnevno. Poslednjih 10 slanja u danu čuva se za kuhinju: emailovi kupcima tada prestaju prvi, a kuhinjska karta ide bar prvom primaocu. Sve se loguje, a admin panel na Pregledu i Novim porudžbinama upozorava kad ostane manje od 25. Porudžbine se uvek vide u admin panelu, nezavisno od emaila.
 - Node.js 20+ na računaru koji pravi build.
 
 ## 1. Google Sheets + Apps Script
 
-Najbrže preko `clasp` (zvanični Google alat):
+Preko `clasp` (zvanični Google alat):
 
 ```powershell
 npm install -g @google/clasp
 clasp login
 cd backend/apps-script
 clasp create --type sheets --title "Grčki Giros — porudžbine" --rootDir .
-npm run build            # iz korena projekta: generiše Shared_*.gs i Seed.gs
+cd ../..
+npm run build            # generiše Shared_*.gs i Seed.gs
+cd backend/apps-script
 clasp push
 ```
 
-Bez clasp-a: napravite novu Google tabelu → **Extensions ▸ Apps Script** → za svaki fajl iz `backend/apps-script/` napravite fajl istog imena i nalepite sadržaj (`appsscript.json` se vidi kad u Project Settings uključite „Show manifest file“).
+Bez clasp-a: napravite Google tabelu → **Extensions ▸ Apps Script** → za svaki `.gs` fajl iz `backend/apps-script/` napravite fajl istog imena i nalepite sadržaj (`appsscript.json` se vidi kad u Project Settings uključite „Show manifest file“).
 
-Zatim u tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
+U tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
 
-1. **Grčki Giros ▸ 1. Prvo podešavanje** — Google traži dozvole (Sheets, Gmail slanje, Drive za CV, okidači). Pravi se 22 lista sa podacima iz `data/seed.json`.
-2. **Grčki Giros ▸ 3. Postavi PIN za panel** — 6 do 8 cifara.
-3. List **SETTINGS**: proverite `order_email_recipients`, `contact_email_recipients`, `jobs_email_recipients`, `site_url`, `delivery_fee_default`. `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili na vlasnika skripte ako je prazno).
-4. List **REPORT_CONFIG**: `report_recipients`.
-5. U Apps Script editoru: **Deploy ▸ New deployment ▸ Web app** — *Execute as: Me*, *Who has access: Anyone*. Kopirajte URL koji se završava sa `/exec`.
-6. **Grčki Giros ▸ 2. Instaliraj automatiku** — dnevni izveštaj ~01:00, nedeljni ponedeljkom, mesečni 1. u mesecu, dashboard na 10 min, noćno održavanje ~04:30. Ovo se radi jednom; posle toga promene sati u `REPORT_CONFIG` noćno održavanje samo primenjuje.
+1. **Grčki Giros ▸ 1. Prvo podešavanje**. Google traži dozvole: Sheets, slanje emaila, Drive (fotografije menija i CV), okidači. Pravi se 23 lista sa podacima iz `data/seed.json`, uključujući FEEDBACK i kolone za pauzu u HOURS.
+2. **Grčki Giros ▸ 3. Postavi PIN za admin panel**: 6 do 8 cifara.
+3. List **SETTINGS**: proverite `order_email_recipients`, `site_url`, `phone_*`, `address_*`. `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili vlasniku skripte ako je prazno). Novi ključevi i njihove početne vrednosti:
+   - `order_number_start` (1001)
+   - `accept_timeout_min` (5)
+   - `preorder_days` (7)
+   - `delivery_eta_min`/`delivery_eta_max` (45/60)
+   - `pickup_eta_min`/`pickup_eta_max` (15/30)
+   - `min_order_delivery` (500)
+   - `customer_status_emails` (TRUE)
+   - `image_url_template`
+4. List **ZONES**: prave zone, cene i minimum. Seed zone su **DEMO** dok agencija ne potvrdi cene.
+5. List **REPORT_CONFIG**: `report_recipients`.
+6. U Apps Script editoru: **Deploy ▸ New deployment ▸ Web app**, *Execute as: Me*, *Who has access: Anyone*. Kopirajte URL koji se završava sa `/exec`.
+7. **Grčki Giros ▸ 2. Instaliraj automatiku**: dnevni izveštaj ~01:00, nedeljni ponedeljkom, mesečni 1. u mesecu, dashboard na 10 min, noćno održavanje ~04:30.
 
 Kasnije izmene koda: `clasp push`, pa **Deploy ▸ Manage deployments ▸ Edit ▸ New version** (URL ostaje isti).
 
@@ -44,37 +56,51 @@ Kasnije izmene koda: `clasp push`, pa **Deploy ▸ Manage deployments ▸ Edit �
 ```powershell
 npm install
 # site.config.json → "apiUrl": "https://script.google.com/macros/s/…/exec"
-npm run sync      # povuče živi meni i radno vreme iz tabele u data/snapshot.json
+npm run sync      # povuče živi meni, zone i radno vreme iz tabele u data/snapshot.json
 npm run build     # → dist/
 ```
 
-Hosting (besplatno): **Cloudflare Pages** — novi projekat, „Direct upload“ foldera `dist/` ili povezivanje Git repoa sa build komandom `npm run build` i izlazom `dist`. Fajl `_headers` (keš i bezbednosna zaglavlja) već je u buildu. Domen `grckigiros.rs`: Custom domains ▸ dodati domen, pa kod registratora postaviti DNS zapise koje Cloudflare prikaže. HTTPS je automatski.
+Hosting (besplatno): **Cloudflare Pages**. Novi projekat, „Direct upload“ foldera `dist/`, ili povezivanje Git repoa sa build komandom `npm run build` i izlazom `dist`. `_headers` (keš, bezbednosna zaglavlja, `noindex` + `no-store` za `/admin/`) već je u buildu. Domen: Custom domains ▸ dodati domen, pa kod registratora DNS zapise koje Cloudflare prikaže. HTTPS je automatski.
 
-Meni se na sajtu uvek osvežava iz tabele (cene, rasprodato, radno vreme). Ponovni build je potreban samo da bi statički HTML (Google, gosti bez JavaScript-a) video nove cene — dovoljno je jednom nedeljno ili posle većih izmena menija.
+Meni, cene, dostupnost, zone, radno vreme i procene sajt uvek čita iz tabele (preko Apps Script-a, keš 60 s). Ponovni build treba samo da bi statički HTML za Google i posetioce bez JavaScript-a video nove cene: jednom nedeljno ili posle većih izmena menija.
 
 ## 3. Test pre puštanja (test_mode = TRUE)
 
 | Korak | Očekivano |
 |---|---|
-| Meni ▸ Grčki Giros ▸ Pošalji test porudžbinu | Email „[TEST] #37 · DOSTAVA…“ stiže na test adresu |
-| Na sajtu poručite dostavu (vaš telefon, adresa, 2.000 RSD) | Karta sa brojem #1, red u ORDERS, email za kuhinju sa kusurom |
-| Poručite preuzimanje sa terminom | #2, PICKUP, „ZAKAZANO“ u emailu |
-| Otvorite `grckigiros.rs/panel/` na tabletu, PIN | Obe porudžbine u koloni „Nove“, zvuk pri novoj |
-| Prihvati → U pripremi → Spremno → Preuzeto | Status se menja u tabeli; gost na stranici potvrde vidi status |
-| Panel ▸ Rasprodato: isključite jedno jelo | Na meniju piše „Trenutno nema“ |
+| Meni ▸ Grčki Giros ▸ Pošalji test porudžbinu | Email „[TEST] #1042 · DOSTAVA…“ sa crvenom trakom „Prihvatite ili odbijte u roku od 5 min“ |
+| Na sajtu poručite dostavu: naselje, adresa sa stanom i spratom, 2.000 RSD, vaš email | Potvrda **#1001 — čeka potvrdu**, red u ORDERS (status NEW, `Accept By` +5 min), email kuhinji, email kupcu „Primili smo porudžbinu“ |
+| Otvorite `…/admin/` na tabletu, PIN | Žuta traka, zvuk na 20 s, kartica #1001 sa odbrojavanjem |
+| **Prihvati** | Kupac na stranici statusa vidi „✓ Primljena ● Potvrđena“, email „Porudžbina #1001 je potvrđena“ |
+| U pripremu → Spremna → Isporučeno | Kolone Aktivne, vremena u ORDERS (`Preparing At`, `Ready At`, `Completed At`), kupac vidi „Završena“ i formu za ocenu |
+| Ocenite porudžbinu na stranici statusa | Red u FEEDBACK, ocena u admin ▸ Feedback |
+| Poručite preuzimanje za sutra u 12:00 | #1002, „ZAKAZANO četvrtak … u 12:00“ u emailu i ORDERS (`Scheduled Date`/`Time`) |
+| Ne prihvatajte #1002 5 minuta | Kartica crvena „KASNI … pozovite kupca“, kupac vidi „Lokal još nije potvrdio… pozovite“ |
+| **Odbij** #1002 | Kupac vidi „Odbijena, ništa ne plaćate“, email „nije prihvaćena“ |
+| Admin ▸ Proizvodi: promenite cenu, dodajte fotografiju | Nova cena i fotografija na meniju za ≤ 1 min. Fotografija u Drive folderu „Grčki Giros — slike menija“ |
+| Admin ▸ Dostupnost: isključite dostavu, pa sve porudžbine | Meni vidljiv, poručivanje zatvoreno sa jasnom porukom |
+| Admin ▸ Radno vreme: pauza za danas | Tokom pauze „Trenutno ne primamo porudžbine… pauza“, posle nje samo nastavlja |
 | Meni ▸ Pošalji dnevni izveštaj za juče | Izveštaj stiže na test adresu |
-| Kontakt forma i prijava za posao (sa PDF-om) | Redovi u CONTACT / JOBS, CV u Drive folderu „Grčki Giros — CV prijave“ |
 
-Kada sve prođe: obrišite test redove iz ORDERS/ORDER_ITEMS/CUSTOMERS, **Podesi sledeći broj porudžbine ▸ 1**, i `test_mode` = **FALSE**.
+**Fotografija sa Drive-a:** otvorite adresu slike iz polja „Fotografija“ u pregledaču u kome **niste** prijavljeni na Google (anonimni prozor). Ako se slika ne prikaže, u SETTINGS promenite `image_url_template` u `https://drive.google.com/thumbnail?id={id}&sz=w1000`. Lokalno je ovaj korak testiran samo sa emulatorom (vidi QA-CHECKLIST, „Nije testirano“).
+
+Kada sve prođe:
+
+1. Obrišite test redove iz ORDERS, ORDER_ITEMS, CUSTOMERS i FEEDBACK.
+2. **Grčki Giros ▸ Vrati brojač na početak (samo pre puštanja)**. Radi samo kad je ORDERS prazan. Sledeća porudžbina je ponovo #1001.
+3. `test_mode` = **FALSE**.
 
 ## 4. Posle puštanja
 
-- **Tablet u lokalu** (PDF G30): bilo koji Android tablet sa Chrome-om, `grckigiros.rs/panel/`, „Dodaj na početni ekran“, ekran uvek uključen, zvuk uključen (jedan dodir na ekran posle otvaranja).
-- Email kvota: **Grčki Giros ▸ Stanje sistema** pokazuje preostalu dnevnu kvotu, PIN, okidače i poslednji izveštaj.
+- **Tablet u lokalu**: Android tablet sa Chrome-om, `grckigiros.rs/admin/`, „Dodaj na početni ekran“, ekran uvek uključen, zvuk uključen (jedan dodir na ekran posle otvaranja).
+- **Uputstvo za zaposlene**: `docs/UPUTSTVO-ZA-LOKAL.md` (odštampati).
+- **Stanje sistema** (meni u tabeli): preostala email kvota, PIN, okidači, poslednji izveštaj.
 - Greške: listovi `ERROR_LOG` i `SYSTEM_LOG` (automatski skraćeni na 5.000 redova).
 
 ## Poznata ograničenja arhitekture
 
-- Apps Script ne vidi IP adresu ni Origin zaglavlje: zaštita je rate-limit po telefonu i globalno, honeypot, minimalno vreme popunjavanja, idempotencija i serverska validacija svega.
-- Hladan start Apps Script-a je 1–3 s; meni se zato prikazuje odmah iz keša/snapshot-a, a slanje porudžbine ima jasan status i bezbedan ponovni pokušaj.
+- Apps Script ne vidi IP adresu ni Origin zaglavlje. Zaštita čine rate-limit po telefonu i globalno, honeypot, minimalno vreme popunjavanja, idempotencija i serverska validacija svega.
+- Jedna porudžbina u isto vreme: upis i broj idu pod `LockService` script lock (čeka do 20 s). Pri velikom broju istovremenih porudžbina ostali dobijaju „pokušajte ponovo za nekoliko sekundi“, ne duplikat.
+- Hladan start Apps Script-a je 1–3 s. Meni se zato prikazuje odmah iz keša ili snapshot-a, a slanje porudžbine ima jasan status i bezbedan ponovni pokušaj.
+- Admin panel proverava nove porudžbine na svakih 10 s (`panel_poll_seconds`). Zvuk radi samo dok je panel otvoren u pregledaču. Email je rezervni kanal.
 - Okidači imaju ±15 minuta tolerancije (Google).

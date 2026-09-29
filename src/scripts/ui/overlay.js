@@ -87,7 +87,3 @@ export function close(el, { fromHistory = false } = {}) {
   if (entry.opener && document.contains(entry.opener)) entry.opener.focus({ preventScroll: true });
   if (entry.onClose) entry.onClose();
 }
-
-export function closeAll() {
-  stack.slice().reverse().forEach((s) => close(s.el));
-}

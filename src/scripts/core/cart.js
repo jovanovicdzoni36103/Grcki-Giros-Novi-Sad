@@ -10,10 +10,23 @@ const LAST_ORDER_KEY = 'gg:last-order:v1';
 
 let cart = normalize(local.get(KEY));
 
+/** A stored line exactly as the cart writes it; anything edited by hand in storage is repaired or dropped. */
+function normalizeLine(l) {
+  if (!l || typeof l !== 'object' || typeof l.productId !== 'string' || !l.productId) return null;
+  const qty = Math.floor(Number(l.qty));
+  if (!(qty >= 1)) return null;
+  return {
+    productId: l.productId.slice(0, 60),
+    qty: Math.min(qty, 20),
+    options: Array.isArray(l.options) ? l.options.filter((o) => typeof o === 'string').slice(0, 40).sort() : [],
+    note: typeof l.note === 'string' ? l.note.trim().slice(0, 140) : ''
+  };
+}
+
 function normalize(raw) {
   const c = raw && typeof raw === 'object' ? raw : {};
   return {
-    lines: Array.isArray(c.lines) ? c.lines.filter((l) => l && l.productId && l.qty > 0) : [],
+    lines: Array.isArray(c.lines) ? c.lines.map(normalizeLine).filter(Boolean).slice(0, 30) : [],
     mode: c.mode === 'delivery' || c.mode === 'pickup' ? c.mode : null,
     zone: typeof c.zone === 'string' ? c.zone : '',
     updatedAt: c.updatedAt || 0
@@ -44,6 +57,11 @@ export function zone() {
 export function setZone(id) {
   cart.zone = id || '';
   save();
+}
+
+/** Most pieces of one cart line (the server enforces the same number). */
+export function maxQty() {
+  return settingNumber('max_qty_per_line', 20);
 }
 
 export function addLine(line) {
@@ -86,12 +104,25 @@ export function restoreLine(removed) {
   save();
 }
 
-export function replaceLine(key, line) {
-  const idx = cart.lines.findIndex((l) => Pricing.lineKey(l) === key);
-  if (idx === -1) return addLine(line);
-  cart.lines.splice(idx, 1);
+/**
+ * Adds a product configured piece by piece (Cheeseburger ×2: extra cheese on one, bacon on the other).
+ * Identical pieces merge into one line; `replaceKey` swaps out the line that was being edited.
+ */
+export function addPieces(productId, pieces, replaceKey) {
+  const lines = Pricing.groupPieces(productId, pieces);
+  if (replaceKey) {
+    const idx = cart.lines.findIndex((l) => Pricing.lineKey(l) === replaceKey);
+    if (idx !== -1) cart.lines.splice(idx, 1);
+  }
+  const max = settingNumber('max_qty_per_line', 20);
+  lines.forEach((line) => {
+    const key = Pricing.lineKey(line);
+    const existing = cart.lines.find((l) => Pricing.lineKey(l) === key);
+    if (existing) existing.qty = Math.min(max, existing.qty + line.qty);
+    else cart.lines.push({ ...line, qty: Math.min(max, line.qty), note: line.note.slice(0, 140) });
+  });
   save();
-  return addLine(line);
+  return lines.map(Pricing.lineKey);
 }
 
 export function rawLine(key) {
@@ -104,7 +135,7 @@ export function clearCart() {
 }
 
 export function replaceAll(lines) {
-  cart.lines = lines.map((l) => ({ productId: l.productId, qty: l.qty, options: (l.options || []).slice().sort(), note: l.note || '' }));
+  cart.lines = (Array.isArray(lines) ? lines : []).map(normalizeLine).filter(Boolean).slice(0, 30);
   save();
 }
 
@@ -119,19 +150,26 @@ export function view(modeOverride) {
   const b = business();
   if (!s.index) return { lines: [], subtotal: 0, deliveryFee: 0, total: 0, itemCount: itemCount(), mode: m, ready: false, errors: [] };
   const zones = (s.data && s.data.zones) || [];
-  const zoneObj = zones.find((z) => z.id === cart.zone);
   const zonesOn = String(b.zones_enabled).toUpperCase() === 'TRUE';
-  const minOrder = m === 'delivery' ? Math.max(settingNumber('min_order_delivery', 0), zoneObj ? zoneObj.minOrder : 0) : settingNumber('min_order_pickup', 0);
+  const zoneObj = zonesOn ? zones.find((z) => z.id === cart.zone) || null : null;
+  // Zone minimum comes resolved from the server (zone value, else min_order_delivery).
+  const minOrder = m === 'delivery' ? (zoneObj ? zoneObj.minOrder : settingNumber('min_order_delivery', 0)) : settingNumber('min_order_pickup', 0);
   const priced = Pricing.computeCart(s.index, cart.lines, {
     mode: m,
     feeMode: b.delivery_fee_mode || 'fixed',
     defaultFee: settingNumber('delivery_fee_default', 0),
-    zoneFee: zonesOn && zoneObj ? zoneObj.fee : undefined,
+    zoneFee: zoneObj ? zoneObj.fee : undefined,
     freeThreshold: settingNumber('free_delivery_threshold', 0),
     minOrder,
     maxLines: settingNumber('max_lines_per_order', 30),
     maxQty: settingNumber('max_qty_per_line', 20)
   });
+  // With zones on, the fee is only known once the guest picks a zone: never show a guessed total.
+  const needsZone = m === 'delivery' && zonesOn && !zoneObj && priced.deliveryExternal !== true;
+  if (needsZone) {
+    priced.deliveryFee = null;
+    priced.total = priced.subtotal;
+  }
   const lines = priced.lines.map((p, i) => ({ ...p, key: Pricing.lineKey(cart.lines[i]), raw: cart.lines[i] }));
   const ids = cart.lines.map((l) => l.productId);
   return {
@@ -141,6 +179,8 @@ export function view(modeOverride) {
     zone: cart.zone,
     zoneObj,
     zonesOn,
+    needsZone,
+    minOrder,
     ready: true,
     hints: Pricing.bundleHints(s.index, priced.lines.filter((l) => l.product)),
     recs: Pricing.recommendations(s.index, ids, (s.data && s.data.recs) || {}, 3),
@@ -163,4 +203,12 @@ window.addEventListener('storage', (e) => {
     cart = normalize(local.get(KEY));
     emit('cart', view());
   }
+});
+
+// "Nazad" after ordering can restore this page from the browser's memory (back/forward cache) with the cart
+// it had before: re-read the stored cart, or the already ordered lines could be written back and sent again.
+window.addEventListener('pageshow', (e) => {
+  if (!e.persisted) return;
+  cart = normalize(local.get(KEY));
+  emit('cart', view());
 });

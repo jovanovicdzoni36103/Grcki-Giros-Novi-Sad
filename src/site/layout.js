@@ -42,6 +42,7 @@ ${page.noindex ? '<meta name="robots" content="noindex, nofollow">' : `<link rel
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/assets/fonts/archivo-core.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${css}">
+${page.headExtra || ''}
 <script>document.documentElement.classList.add('js');window.GG=${JSON.stringify(runtime)};setTimeout(function(){if(!window.GG_READY)document.documentElement.classList.remove('js')},4000);</script>
 <script type="module" src="${page.script}"></script>
 ${schema}

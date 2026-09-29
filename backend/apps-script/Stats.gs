@@ -2,7 +2,7 @@
  * Grčki Giros — statistics engine. Pure functions over order/item records, so the same code
  * feeds the dashboard, the rollup sheets and the emailed reports (and is unit-tested locally).
  *
- * Revenue = food subtotal of orders that are not CANCELLED/FAILED (+ delivery if revenue_includes_delivery).
+ * Revenue = food subtotal of orders that are not REJECTED (+ delivery if revenue_includes_delivery).
  */
 
 var WEEKDAY_NAMES_ = ['', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota', 'Nedelja'];

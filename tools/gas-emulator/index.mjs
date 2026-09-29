@@ -307,6 +307,7 @@ export function createEmulator(options = {}) {
     outbox: [],
     triggers: [],
     driveFiles: [],
+    folders: [],
     mailQuota: options.mailQuota ?? 100,
     faults: { sheetsWrite: false, sheetsRead: false, sheetsOpen: false, mail: false, lock: false },
     lockLog: [],
@@ -415,6 +416,34 @@ export function createEmulator(options = {}) {
     return b;
   }
 
+  function folderApi(meta) {
+    return {
+      getId: () => meta.id,
+      getName: () => meta.name,
+      createFile: (blob) => {
+        const bytes = blob.getBytes();
+        const file = {
+          id: 'file-' + randomUUID().slice(0, 8),
+          folderId: meta.id,
+          name: blob.getName(),
+          size: bytes.length,
+          type: blob.getContentType(),
+          sharing: 'PRIVATE',
+          data: Buffer.from(Array.from(bytes, (b) => b & 0xff)).toString('base64')
+        };
+        emu.driveFiles.push(file);
+        return {
+          getUrl: () => `https://drive.google.com/file/d/${file.id}/view`,
+          getId: () => file.id,
+          getName: () => file.name,
+          setSharing: (access) => {
+            file.sharing = access;
+          }
+        };
+      }
+    };
+  }
+
   function services() {
     const Utilities = {
       DigestAlgorithm: { MD5: 'md5', SHA_256: 'sha256' },
@@ -470,23 +499,17 @@ export function createEmulator(options = {}) {
         newTrigger: triggerBuilder
       },
       DriveApp: {
+        Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', PRIVATE: 'PRIVATE' },
+        Permission: { VIEW: 'VIEW', EDIT: 'EDIT' },
         createFolder: (name) => {
-          const folder = {
-            id: 'folder-' + randomUUID().slice(0, 8),
-            name,
-            getId: () => folder.id,
-            createFile: (blob) => {
-              const file = { id: 'file-' + randomUUID().slice(0, 8), name: blob.getName(), size: blob.getBytes().length, type: blob.getContentType() };
-              emu.driveFiles.push(file);
-              return { getUrl: () => `https://drive.google.com/file/d/${file.id}/view`, getId: () => file.id };
-            }
-          };
-          emu.folder = folder;
-          return folder;
+          const meta = { id: 'folder-' + randomUUID().slice(0, 8), name };
+          emu.folders.push(meta);
+          return folderApi(meta);
         },
         getFolderById: (id) => {
-          if (emu.folder && emu.folder.id === id) return emu.folder;
-          throw new Error('No item with the given ID could be found.');
+          const meta = emu.folders.find((f) => f.id === id);
+          if (!meta) throw new Error('No item with the given ID could be found.');
+          return folderApi(meta);
         }
       },
       Charts: { ChartType: { COLUMN: 'COLUMN', LINE: 'LINE' } }
@@ -539,6 +562,8 @@ export function createEmulator(options = {}) {
         outbox: emu.outbox,
         triggers: emu.triggers.map(({ getHandlerFunction, getUniqueId, ...t }) => t),
         mailQuota: emu.mailQuota,
+        folders: emu.folders,
+        driveFiles: emu.driveFiles,
         sheets: emu.spreadsheet.sheets.map((s) => ({ name: s.name, data: s.data.map((r) => (r || []).map(storeCell)), charts: s.charts }))
       };
     },
@@ -553,6 +578,8 @@ export function createEmulator(options = {}) {
       emu.cache = new Map(j.cache || []);
       emu.outbox = j.outbox || [];
       emu.mailQuota = j.mailQuota ?? 100;
+      emu.folders = j.folders || [];
+      emu.driveFiles = j.driveFiles || [];
       emu.triggers = (j.triggers || []).map((t) => ({ ...t, getHandlerFunction: () => t.handler, getUniqueId: () => t.id }));
       emu.spreadsheet.sheets = j.sheets.map((s) => {
         const sh = new MockSheet(emu.spreadsheet, s.name);

@@ -10,7 +10,7 @@ import { artSvg, artBg } from './render.js';
 import * as overlay from './overlay.js';
 import { toast } from './toast.js';
 import { openProduct, quickAdd } from './product-sheet.js';
-import { modeSwitch, refreshModeMeta, defaultMode, deliveryFeeLabel } from './mode.js';
+import { modeSwitch, refreshModeMeta, defaultMode, deliveryFeeLabel, closedReason, zoneSelect, zones } from './mode.js';
 import { track } from '../core/analytics.js';
 
 let root;
@@ -52,7 +52,11 @@ function lineHtml(l) {
         <div class="qty" role="group" aria-label="Količina za ${esc(p.name)}">
           <button type="button" data-line-qty="-1" data-key="${esc(l.key)}" aria-label="${l.qty === 1 ? 'Ukloni' : 'Manje'}">${icon(l.qty === 1 ? 'trash' : 'minus')}</button>
           <output>${l.qty}</output>
-          <button type="button" data-line-qty="1" data-key="${esc(l.key)}" aria-label="Više">${icon('plus')}</button>
+          ${
+            l.qty >= cart.maxQty()
+              ? `<button type="button" disabled aria-label="Najviše ${cart.maxQty()} po stavci" title="Najviše ${cart.maxQty()} po stavci — za veću porudžbinu pozovite nas">${icon('plus')}</button>`
+              : `<button type="button" data-line-qty="1" data-key="${esc(l.key)}" aria-label="Više">${icon('plus')}</button>`
+          }
         </div>
         ${editable ? `<button type="button" class="text-btn" data-edit="${esc(l.key)}">Izmeni</button>` : ''}
         <button type="button" class="text-btn" data-remove="${esc(l.key)}">Ukloni</button>
@@ -81,35 +85,49 @@ function render() {
   foot.hidden = false;
   const closedNotice =
     snap && !snap[mode].canOrder
-      ? `<div class="notice notice--closed" style="margin:0 var(--gutter) 1rem">${icon('clock')}<span>${
-          snap.paused ? esc(business().pause_message || 'Poručivanje je pauzirano.') : `${mode === 'delivery' ? 'Dostava trenutno ne radi' : 'Trenutno ne radimo'}. ${snap[mode].next ? 'Poručivanje ' + esc(snap[mode].next.label) + '.' : ''}`
+      ? `<div class="notice notice--closed" style="margin:0 var(--gutter) 1rem">${icon('clock')}<span><strong>Trenutno ne primamo porudžbine.</strong> ${
+          snap.paused ? esc(business().pause_message || '') : esc(closedReason(snap[mode], mode)).replace(/^./, (c) => c.toUpperCase()) + '.'
         }</span></div>`
+      : '';
+  const zoneRow =
+    mode === 'delivery' && view.zonesOn && zones().length
+      ? `<div class="drawer-zone" data-drawer-zone><label class="field__label" for="drawer-zone">Dostava u</label>${zoneSelect('drawer-zone', 'drawer-zone', view.zone)}${
+          view.zone === 'none'
+            ? `<p class="zone-result is-no">${icon('alert')} Na tu adresu trenutno ne dostavljamo. Izaberite preuzimanje ili pozovite ${esc(business().phone_display || '')}.</p>`
+            : view.zoneObj
+              ? `<p class="zone-result is-ok">${icon('check')} Dostava ${esc(deliveryFeeLabel(view.zoneObj))}${view.zoneObj.minOrder ? ` · minimalna porudžbina ${esc(Money.formatRSD(view.zoneObj.minOrder))}` : ''}</p>`
+              : ''
+        }</div>`
       : '';
   const recs = view.recs
     .map((r) => productById(r.productId))
     .filter(Boolean)
     .map((p) => `<button type="button" class="chip chip--price" data-rec="${esc(p.id)}">${icon('plus')} ${esc(p.name)} <small>${Money.formatNumber(p.price)}</small></button>`)
     .join('');
-  body.innerHTML = `<div style="padding:1rem var(--gutter) 0.75rem" data-mode-root>${modeSwitch('cart-mode', mode, snap)}</div>${closedNotice}
+  body.innerHTML = `<div style="padding:1rem var(--gutter) 0.75rem" data-mode-root>${modeSwitch('cart-mode', mode, snap)}</div>${closedNotice}${zoneRow}
     <ul class="cart-lines" role="list">${view.lines.map(lineHtml).join('')}</ul>
     ${recs ? `<div class="recs"><p class="recs__title">Najčešće se naručuje uz</p><div class="chips">${recs}</div></div>` : ''}`;
 
   const hint = view.hints[0];
   const blocking = view.errors.find((e) => e.code === 'ITEM_UNAVAILABLE' || e.shortfall);
   const canOrder = !snap || snap[mode].canOrder;
+  const zoneBlocked = mode === 'delivery' && view.zone === 'none';
   const deliveryRow =
     mode === 'delivery'
-      ? `<div class="totals__row"><span>Dostava</span><span>${view.deliveryExternal ? esc(deliveryFeeLabel()) : view.deliveryFree ? 'besplatna' : Money.formatRSD(view.deliveryFee)}</span></div>`
+      ? `<div class="totals__row"><span>Dostava</span><span>${
+          view.deliveryExternal ? esc(deliveryFeeLabel()) : view.needsZone ? 'izaberite naselje' : view.deliveryFree ? 'besplatna' : Money.formatRSD(view.deliveryFee)
+        }</span></div>`
       : `<div class="totals__row"><span>Preuzimanje u lokalu</span><span>${Money.formatRSD(0)}</span></div>`;
+  const totalText = view.needsZone ? `${Money.formatRSD(view.subtotal)} + dostava` : Money.formatRSD(view.total);
   foot.innerHTML = `${hint ? `<div class="hint-card">${icon('spark')}<span>Povoljnije u paketu: <strong>${esc(hint.name)}</strong> — ušteda ${Money.formatRSD(hint.saving)}.</span><button type="button" class="text-btn" data-hint="${esc(hint.productId)}">Pogledaj</button></div>` : ''}
     ${blocking ? `<div class="notice notice--error" style="margin-bottom:0.8rem">${icon('alert')}<span>${esc(blocking.message)}</span></div>` : ''}
     <div class="totals">
       <div class="totals__row"><span>Međuzbir</span><span>${Money.formatRSD(view.subtotal)}</span></div>
       ${deliveryRow}
-      <div class="totals__row totals__row--total"><span>Ukupno</span><span>${Money.formatRSD(view.total)}</span></div>
+      <div class="totals__row totals__row--total"><span>Ukupno</span><span data-cart-total>${totalText}</span></div>
     </div>
-    <a class="btn btn--gold btn--lg btn--block" style="margin-top:1rem;justify-content:space-between" href="/porudzbina/" data-checkout ${canOrder && !blocking ? '' : 'aria-disabled="true"'}>
-      <span class="btn__label">${canOrder ? 'Nastavi na porudžbinu' : 'Poručivanje trenutno nije moguće'}</span><span class="num">${Money.formatRSD(view.total)}</span>
+    <a class="btn btn--gold btn--lg btn--block" style="margin-top:1rem;justify-content:space-between" href="/porudzbina/" data-checkout ${canOrder && !blocking && !zoneBlocked ? '' : 'aria-disabled="true"'}>
+      <span class="btn__label">${canOrder ? 'Nastavi na porudžbinu' : 'Poručivanje trenutno nije moguće'}</span><span class="num">${view.needsZone ? '' : Money.formatRSD(view.total)}</span>
     </a>
     <p class="small muted" style="margin-top:0.6rem;text-align:center">Plaćanje gotovinom ${mode === 'delivery' ? 'dostavljaču' : 'na kasi'}.</p>`;
 }
@@ -117,6 +135,9 @@ function render() {
 function onChange(e) {
   if (e.target.name === 'cart-mode') {
     cart.setMode(e.target.value);
+  }
+  if (e.target.name === 'drawer-zone') {
+    cart.setZone(e.target.value);
   }
 }
 

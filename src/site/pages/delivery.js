@@ -3,20 +3,36 @@ import { esc, iconSvg, hoursRows } from '../../scripts/ui/render.js';
 import { faq, breadcrumbs } from '../schema.js';
 import Money from '../../scripts/shared/money.cjs';
 
+const zonesOn = (ctx) => String(ctx.business.zones_enabled).toUpperCase() === 'TRUE' && ctx.zones.length > 0;
+
+function feeText(ctx) {
+  const b = ctx.business;
+  if (String(b.delivery_fee_mode) === 'agency') return 'po cenovniku dostavne službe';
+  if (zonesOn(ctx)) return ctx.zones.map((z) => `${z.name}: ${Money.formatRSD(z.fee)}`).join(', ').replace(/\u00a0/g, ' ');
+  return Money.formatRSD(Number(b.delivery_fee_default) || 0).replace(/\u00a0/g, ' ');
+}
+
+function minOrderText(ctx) {
+  const mins = zonesOn(ctx) ? [...new Set(ctx.zones.map((z) => Number(z.minOrder) || 0))] : [Number(ctx.business.min_order_delivery) || 0];
+  if (mins.length === 1) return mins[0] ? `${mins[0]} dinara` : '';
+  return `od ${Math.min(...mins)} do ${Math.max(...mins)} dinara, zavisno od naselja`;
+}
+
 function faqItems(ctx) {
   const b = ctx.business;
-  const fee = String(b.delivery_fee_mode) === 'agency' ? 'po cenovniku dostavne službe' : `${Money.formatRSD(Number(b.delivery_fee_default) || 0)}`.replace(' ', ' ');
-  const ahead = Math.round(Number(b.preorder_max_ahead_min || 120) / 60);
+  const days = Number(b.preorder_days || 7);
+  const min = minOrderText(ctx);
   return [
-    ['Koliko traje dostava?', `Oko ${b.delivery_eta_min} minuta od porudžbine. U špicu može duže, zato pišemo „oko“, a ne tačan minut. Tačnu procenu vidite pre nego što poručite.`],
-    ['Za koliko je spremno preuzimanje?', `Za ${b.pickup_eta_min} minuta, u špicu do ${b.pickup_eta_max}. Procenjeno vreme piše na potvrdi porudžbine.`],
+    ['Koliko traje dostava?', `Između ${b.delivery_eta_min} i ${b.delivery_eta_max} minuta. U špicu može duže, zato pišemo raspon, a ne tačan minut. Tačnu procenu vidite pre nego što poručite.`],
+    ['Za koliko je spremno preuzimanje?', `Za ${b.pickup_eta_min} do ${b.pickup_eta_max} minuta. Procenjeno vreme piše na potvrdi porudžbine.`],
+    ['Kako znam da je porudžbina prihvaćena?', `Lokal potvrđuje svaku porudžbinu u roku od ${b.accept_timeout_min || 5} minuta. Status pratite na stranici porudžbine, a ako ostavite email, javljamo vam i tamo.`],
     ['Da li mogu da platim karticom?', 'Za sada ne. Plaćate gotovinom — dostavljaču ili na kasi. Pri poručivanju upišete sa koliko novca plaćate, da dostavljač ponese tačan kusur.'],
-    ['Koliko košta dostava?', `Dostava je ${fee}. Tačan iznos vidite u korpi, pre potvrde. Za preuzimanje u lokalu nema troška.`],
-    ['Mogu li da poručim za kasnije?', `Možete, do ${ahead} sata unapred, za isti dan. Slobodne termine birate u koraku „Kada?“.`],
-    ['Da li dostavljate do mene?', `Dostavljamo po Novom Sadu preko partnerske dostavne službe. Ako niste sigurni za svoju adresu, pozovite ${b.phone_display} pre poručivanja.`],
-    ['Kako da izmenim ili otkažem porudžbinu?', `Pozovite ${b.phone_display} i recite broj porudžbine. Što ranije javite, to je lakše.`],
-    ['Mogu li giros bez luka ili bez pomfrita?', 'Naravno. Pri izboru jela isključite šta ne želite — u kuhinji to piše crvenim slovima. Za sve ostalo postoji napomena.'],
-    ['Da li postoji minimalna porudžbina?', Number(b.min_order_delivery) > 0 ? `Za dostavu je minimum ${b.min_order_delivery} dinara.` : 'Ne postoji. Poručite i jedan giros.'],
+    ['Koliko košta dostava?', `Zavisi od naselja: ${feeText(ctx)}. Tačan iznos vidite u korpi, pre slanja. Za preuzimanje u lokalu nema troška.`],
+    ['Mogu li da poručim za kasnije?', `Možete, do ${days} dana unapred, u terminima na svakih pola sata. Termin birate u koraku „Kada?“ — sajt nikad ne nudi termin kada ne radimo.`],
+    ['Da li dostavljate do mene?', `Dostavljamo u naselja sa spiska koji vidite u korpi. Ako vašeg naselja nema, izaberite preuzimanje ili pozovite ${b.phone_display}.`],
+    ['Kako da izmenim ili otkažem porudžbinu?', `Samo telefonom: pozovite ${b.phone_display} i recite broj porudžbine. Što ranije javite, to je lakše.`],
+    ['Mogu li giros bez luka ili bez pomfrita?', 'Naravno. Pri izboru jela isključite šta ne želite — u kuhinji to piše crvenim slovima. Ako poručujete više komada, svaki možete da složite drugačije.'],
+    ['Da li postoji minimalna porudžbina?', min ? `Za dostavu je minimum ${min}. Za preuzimanje nema minimuma.` : 'Ne postoji. Poručite i jedan giros.'],
     ['Kada radite?', `${ctx.hoursLine}. Dostava ${ctx.deliveryLine}. Nedeljom ne radimo.`],
     ['Mogu li da jedem u lokalu?', `Možete. Lokal u ulici ${b.address_street} ima mesta za sedenje.`],
     ['Da li pita zaista stiže iz Atine?', 'Da. To je razlog zašto postojimo.']
@@ -28,7 +44,7 @@ export const meta = {
   out: 'dostava/index.html',
   script: 'basic',
   title: 'Dostava girosa u Novom Sadu — vreme i uslovi | Grčki Giros',
-  description: 'Dostava girosa po Novom Sadu za oko 60 minuta, preuzimanje za 15. Plaćanje gotovinom, poručivanje unapred do 2 sata. Česta pitanja o dostavi i porudžbinama.',
+  description: 'Dostava girosa po Novom Sadu za 45–60 minuta, preuzimanje za 15–30. Plaćanje gotovinom, zakazivanje do 7 dana unapred. Česta pitanja o dostavi i porudžbinama.',
   bodyClass: 'page-delivery',
   schema: (ctx) => [faq(faqItems(ctx)), breadcrumbs(ctx, [{ name: 'Dostava', path: '/dostava/' }])]
 };
@@ -36,8 +52,7 @@ export const meta = {
 export function render(ctx) {
   const a = ctx.assets;
   const b = ctx.business;
-  const zonesOn = String(b.zones_enabled).toUpperCase() === 'TRUE';
-  const feeText = String(b.delivery_fee_mode) === 'agency' ? 'po cenovniku dostavne službe' : Money.formatRSD(Number(b.delivery_fee_default) || 0);
+  const min = minOrderText(ctx);
   return `<main id="main">
 <section class="page-hero">
   <div class="container page-hero__grid">
@@ -54,12 +69,16 @@ export function render(ctx) {
     <article class="info-card info-card--blue on-blue" data-reveal>
       <h2>${iconSvg(a, 'scooter')}Dostava</h2>
       <dl class="facts">
-        <div><dt>Vreme</dt><dd>oko ${esc(b.delivery_eta_min)} minuta</dd></div>
+        <div><dt>Vreme</dt><dd>${esc(b.delivery_eta_min)}–${esc(b.delivery_eta_max)} minuta</dd></div>
         <div><dt>Radno vreme</dt><dd>${esc(ctx.deliveryLine)}</dd></div>
-        <div><dt>Cena</dt><dd>${esc(feeText)}</dd></div>
+        ${
+          zonesOn(ctx)
+            ? `<div><dt>Cena po zoni</dt><dd>${ctx.zones.map((z) => `${esc(z.name)} — ${esc(Money.formatRSD(z.fee))}`).join('<br>')}</dd></div>`
+            : `<div><dt>Cena</dt><dd>${esc(feeText(ctx))}</dd></div>`
+        }
+        ${min ? `<div><dt>Minimum</dt><dd>${esc(min)}</dd></div>` : ''}
         <div><dt>Plaćanje</dt><dd>gotovinom dostavljaču — unapred upišete sa koliko plaćate, pa kurir ponese kusur</dd></div>
         <div><dt>Ko dostavlja</dt><dd>partnerska dostavna služba</dd></div>
-        ${zonesOn && ctx.zones.length ? `<div><dt>Zone</dt><dd>${ctx.zones.map((z) => `${esc(z.name)} — ${esc(Money.formatRSD(z.fee))}`).join('<br>')}</dd></div>` : ''}
       </dl>
       <a class="btn btn--gold" href="/meni/"><span class="btn__label">Poruči dostavu</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
     </article>
@@ -81,9 +100,9 @@ export function render(ctx) {
   <div class="container split-2" style="align-items:center">
     <div>
       <p class="kicker">Poručivanje unapred</p>
-      <h2 class="h2" style="margin-top:0.8rem">Do dva sata unapred.</h2>
+      <h2 class="h2" style="margin-top:0.8rem">Do ${esc(b.preorder_days || 7)} dana unapred.</h2>
     </div>
-    <p class="lead">Za isti dan, u okviru radnog vremena. Prvi slobodan termin je sat vremena od poručivanja, a sistem nikad ne nudi termin koji ne može da se ispuni. Nedeljom ne radimo.</p>
+    <p class="lead">Birate dan i vreme u terminima na svakih pola sata, u okviru radnog vremena. Sajt nikad ne nudi termin u prošlosti, tokom pauze ili kada ne radimo. Lokal potvrđuje svaku porudžbinu u roku od ${esc(b.accept_timeout_min || 5)} minuta.</p>
   </div>
 </section>
 

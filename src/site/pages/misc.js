@@ -59,21 +59,41 @@ export const notFound = {
   }
 };
 
-export const panel = {
+export const admin = {
   meta: {
-    path: '/panel/',
-    out: 'panel/index.html',
-    script: 'panel',
-    css: 'panel',
-    title: 'Panel — Grčki Giros',
-    description: 'Interni panel lokala.',
-    bodyClass: 'page-panel',
+    path: '/admin/',
+    out: 'admin/index.html',
+    script: 'admin',
+    css: 'admin',
+    title: 'Admin — Grčki Giros',
+    description: 'Admin panel lokala.',
+    bodyClass: 'page-panel page-admin',
     noindex: true,
     chrome: false,
     noOrderBar: true,
     schema: () => []
   },
   render() {
-    return `<main id="main" data-panel><p style="padding:2rem">Učitavanje panela…</p><noscript><p style="padding:2rem">Panel zahteva JavaScript.</p></noscript></main>`;
+    return `<div data-admin><p style="padding:2rem">Učitavanje admin panela…</p><noscript><p style="padding:2rem">Admin panel zahteva JavaScript.</p></noscript></div>`;
+  }
+};
+
+/** The old tablet address keeps working: /panel/ → /admin/. */
+export const panelRedirect = {
+  meta: {
+    path: '/panel/',
+    out: 'panel/index.html',
+    script: 'basic',
+    title: 'Admin — Grčki Giros',
+    description: 'Admin panel je preseljen na /admin/.',
+    bodyClass: 'page-panel',
+    noindex: true,
+    chrome: false,
+    noOrderBar: true,
+    headExtra: '<meta http-equiv="refresh" content="0; url=/admin/">',
+    schema: () => []
+  },
+  render() {
+    return `<main id="main" style="padding:2rem"><p>Admin panel je preseljen: <a href="/admin/">/admin/</a></p><script>location.replace('/admin/' + location.hash)</script></main>`;
   }
 };

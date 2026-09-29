@@ -64,7 +64,7 @@ var SEED = {
   {
    "key": "ordering_enabled",
    "value": "TRUE",
-   "note": "FALSE = pauza, sajt ne prima porudžbine (menja se i iz panela)"
+   "note": "FALSE = pauza, sajt ne prima porudžbine (menja se iz admin panela)"
   },
   {
    "key": "pause_message",
@@ -74,32 +74,37 @@ var SEED = {
   {
    "key": "delivery_enabled",
    "value": "TRUE",
-   "note": ""
+   "note": "FALSE = dostava privremeno isključena, preuzimanje radi (admin panel)"
   },
   {
    "key": "pickup_enabled",
    "value": "TRUE",
-   "note": ""
+   "note": "FALSE = preuzimanje privremeno isključeno, dostava radi (admin panel)"
   },
   {
    "key": "delivery_eta_min",
+   "value": "45",
+   "note": "Procena dostave, najkraće (min)"
+  },
+  {
+   "key": "delivery_eta_max",
    "value": "60",
-   "note": "Procena dostave u minutima (PDF: ~60)"
+   "note": "Procena dostave, najduže (min). PDF: ~60"
   },
   {
    "key": "pickup_eta_min",
    "value": "15",
-   "note": "Preuzimanje, najkraće (PDF: 15)"
+   "note": "Procena preuzimanja, najkraće (min). PDF: 15"
   },
   {
    "key": "pickup_eta_max",
    "value": "30",
-   "note": "Preuzimanje u špicu (PDF: do 30)"
+   "note": "Procena preuzimanja, najduže (min). PDF: do 30"
   },
   {
    "key": "extra_wait_min",
    "value": "0",
-   "note": "Gužva: dodatni minuti na sve procene (menja se iz panela)"
+   "note": "Gužva: dodatni minuti na sve procene (admin panel)"
   },
   {
    "key": "asap_cutoff_min",
@@ -108,23 +113,23 @@ var SEED = {
   },
   {
    "key": "slot_first_offset_min",
-   "value": "60",
-   "note": "Prvi zakazani termin = sada + ovoliko minuta"
+   "value": "30",
+   "note": "Zakazani termin najranije za ovoliko minuta (i nikad pre najduže procene)"
   },
   {
    "key": "slot_interval_min",
    "value": "30",
-   "note": "Razmak između termina"
+   "note": "Razmak između termina (30 = 18:00, 18:30, 19:00…)"
   },
   {
    "key": "slot_round_min",
-   "value": "15",
-   "note": "Termini se zaokružuju naviše na ovoliko minuta (15 = 15:30, 16:00…)"
+   "value": "30",
+   "note": "Termini počinju na punih ovoliko minuta"
   },
   {
-   "key": "preorder_max_ahead_min",
-   "value": "120",
-   "note": "Najdalji termin unapred (PDF: max 2 h, isti dan)"
+   "key": "preorder_days",
+   "value": "7",
+   "note": "Zakazivanje najviše ovoliko dana unapred"
   },
   {
    "key": "business_day_rollover_hour",
@@ -143,8 +148,8 @@ var SEED = {
   },
   {
    "key": "zones_enabled",
-   "value": "FALSE",
-   "note": "TRUE = gost bira naselje iz ZONES pre poručivanja"
+   "value": "TRUE",
+   "note": "TRUE = gost bira naselje iz ZONES (cena dostave i minimum po zoni)"
   },
   {
    "key": "free_delivery_threshold",
@@ -153,8 +158,8 @@ var SEED = {
   },
   {
    "key": "min_order_delivery",
-   "value": "0",
-   "note": "Minimalna porudžbina za dostavu (PDF: nema)"
+   "value": "500",
+   "note": "Minimalna porudžbina za dostavu kad zona nema svoj minimum"
   },
   {
    "key": "min_order_pickup",
@@ -162,9 +167,14 @@ var SEED = {
    "note": ""
   },
   {
-   "key": "order_number_max",
-   "value": "100",
-   "note": "Posle ovog broja brojač kreće od 1"
+   "key": "order_number_start",
+   "value": "1001",
+   "note": "Prva porudžbina dobija ovaj broj, posle raste (#1001, #1002…)"
+  },
+  {
+   "key": "accept_timeout_min",
+   "value": "5",
+   "note": "Za koliko minuta lokal treba da prihvati ili odbije novu porudžbinu"
   },
   {
    "key": "order_email_recipients",
@@ -175,6 +185,11 @@ var SEED = {
    "key": "customer_confirmation_enabled",
    "value": "TRUE",
    "note": "Potvrda kupcu ako je uneo email"
+  },
+  {
+   "key": "customer_status_emails",
+   "value": "TRUE",
+   "note": "Kupac sa emailom dobija: potvrđena, odbijena, spremna za preuzimanje"
   },
   {
    "key": "contact_email_recipients",
@@ -249,7 +264,12 @@ var SEED = {
   {
    "key": "panel_poll_seconds",
    "value": "10",
-   "note": "Koliko često panel proverava nove porudžbine"
+   "note": "Koliko često admin panel proverava nove porudžbine (sekunde)"
+  },
+  {
+   "key": "image_url_template",
+   "value": "https://lh3.googleusercontent.com/d/{id}=w900",
+   "note": "Adresa slike iz Google Drive-a ({id} = ID fajla). Ne menjati"
   }
  ],
  "hours": [
@@ -260,7 +280,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 2,
@@ -269,7 +291,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 3,
@@ -278,7 +302,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 4,
@@ -287,7 +313,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 5,
@@ -296,7 +324,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 6,
@@ -305,7 +335,9 @@ var SEED = {
    "close": "01:00",
    "delivery_open": "10:00",
    "delivery_close": "00:00",
-   "closed": false
+   "closed": false,
+   "break_start": "",
+   "break_end": ""
   },
   {
    "dow": 7,
@@ -314,7 +346,9 @@ var SEED = {
    "close": "",
    "delivery_open": "",
    "delivery_close": "",
-   "closed": true
+   "closed": true,
+   "break_start": "",
+   "break_end": ""
   }
  ],
  "specialHours": [
@@ -347,7 +381,7 @@ var SEED = {
    "name": "Novi Sad — grad",
    "areas": "Centar, Stari grad, Rotkvarija, Podbara, Salajka, Liman 1, Liman 2, Liman 3, Liman 4, Grbavica, Adamovićevo naselje, Detelinara, Novo naselje, Bistrica, Telep, Banatić, Sajmište",
    "fee": 250,
-   "min_order": 0,
+   "min_order": 500,
    "active": true,
    "sort": 1,
    "note": "DEMO — potvrditi sa agencijom"
@@ -357,7 +391,7 @@ var SEED = {
    "name": "Petrovaradin i Sremska Kamenica",
    "areas": "Petrovaradin, Sremska Kamenica",
    "fee": 350,
-   "min_order": 0,
+   "min_order": 500,
    "active": true,
    "sort": 2,
    "note": "DEMO — potvrditi sa agencijom"

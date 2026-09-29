@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { freshBackend, placeOrder, orderBody, setSettings, setCell, bootstrap, plain } from './helpers.mjs';
 
 const KLASIK_DEFAULTS = ['meso-pilece', 'pita-atina', 'sos-tzatziki', 'sal-paradajz', 'sal-luk', 'zac-origano', 'pup-da'];
+const PICKUP = { mode: 'pickup', address: {}, cash: undefined, clientTotal: 820 };
 
 describe('delivery order — full pipeline', () => {
   const emu = freshBackend();
@@ -17,108 +18,146 @@ describe('delivery order — full pipeline', () => {
     cash: 2000
   });
 
-  test('succeeds with public number #1 and a unique internal id', () => {
+  test('succeeds as NEW with public number #1001 and a unique internal id', () => {
     assert.equal(res.ok, true, JSON.stringify(res.error));
-    assert.equal(res.data.publicNumber, 1);
-    assert.match(res.data.orderId, /^GG-20260923-1-0001$/);
+    assert.equal(res.data.publicNumber, 1001);
+    assert.equal(res.data.status, 'NEW');
+    assert.match(res.data.orderId, /^GG-20260923-1001-0001$/);
     assert.equal(res.data.total, 1690);
     assert.equal(res.data.change, 310);
     assert.equal(res.data.whenLabel, 'ŠTO PRE');
-    assert.equal(res.data.promisedTime, '15:25');
+    assert.equal(res.data.promisedTime, '15:10', '14:23 + 45 min, rounded to 5');
+    assert.deepEqual([res.data.etaMin, res.data.etaMax], [45, 60]);
+    assert.equal(res.data.acceptBy, '2026-09-23T14:28:00+02:00', '5 minutes to accept');
+    assert.equal(res.data.address.aptFloor, 'stan 4, 2. sprat');
   });
 
-  test('ORDERS row carries everything the prompt lists', () => {
+  test('ORDERS row carries every field of the spec', () => {
     const [row] = emu.rows('ORDERS');
-    for (const col of ['Timestamp', 'Internal Order ID', 'Public Order Number', 'Order Type', 'Customer Name', 'Phone', 'Email', 'Address', 'Apartment/Floor', 'Order Note', 'Order Items', 'Subtotal', 'Delivery Cost', 'Total', 'Cash Provided', 'Change Required', 'Requested Time', 'Actual Time', 'Status', 'Source', 'Created At']) {
+    for (const col of [
+      'Timestamp', 'Internal Order ID', 'Public Order Number', 'Order Type', 'Status', 'Customer Name', 'Phone', 'Email', 'Address', 'Apartment', 'Floor',
+      'Zone', 'Delivery Note', 'Order Note', 'Order Items', 'Subtotal', 'Delivery Cost', 'Total', 'Cash Provided', 'Change Required', 'Requested Time',
+      'Scheduled Date', 'Scheduled Time', 'Accept By', 'Confirmed At', 'Preparing At', 'Ready At', 'Completed At', 'Rejected At', 'Source', 'Created At'
+    ]) {
       assert.ok(col in row, `missing column ${col}`);
     }
     assert.equal(row['Order Type'], 'DELIVERY');
     assert.equal(row.Status, 'NEW');
     assert.equal(row.Phone, '+381641234567');
+    assert.equal(row.Apartment, '4');
+    assert.equal(row.Floor, '2');
+    assert.equal(row.Zone, 'Novi Sad — grad');
     assert.equal(row.Subtotal, 1440);
     assert.equal(row['Delivery Cost'], 250);
     assert.equal(row['Cash Provided'], 2000);
     assert.equal(row['Change Required'], 310);
+    assert.equal(row['Scheduled Date'], '');
     assert.match(row['Order Items'], /2× Klasik — .*BEZ: ljubičasti luk — napomena: dobro zapečeno/);
     assert.equal(row.Channel, 'instagram');
     assert.match(row['Email Status'], /^SENT 3 · kupac OK$/);
   });
 
-  test('ORDER_ITEMS and CUSTOMERS are written', () => {
+  test('ORDER_ITEMS is structured: base price, options price, option ids, line total', () => {
     const items = emu.rows('ORDER_ITEMS');
     assert.equal(items.length, 2);
+    assert.equal(items[0].Product, 'Klasik');
+    assert.equal(items[0].Qty, 2);
+    assert.equal(items[0]['Base Price'], 620);
+    assert.equal(items[0]['Options Price'], 0);
+    assert.equal(items[0]['Unit Price'], 620);
     assert.equal(items[0]['Line Total'], 1240);
+    assert.match(items[0]['Option IDs'], /meso-pilece/);
     assert.equal(items[0].Category, 'Giros');
     const [customer] = emu.rows('CUSTOMERS');
     assert.equal(customer.Orders, 1);
     assert.equal(customer['Total Spent'], 1690);
-    assert.equal(customer['Favorite Product'], 'Klasik');
   });
 
-  test('the same ticket goes to all three kitchen recipients, separately', () => {
-    const kitchen = emu.state.outbox.filter((m) => m.subject.startsWith('#1 '));
+  test('the kitchen ticket goes to all three recipients, separately, with the 5-minute deadline', () => {
+    const kitchen = emu.state.outbox.filter((m) => m.subject.startsWith('#1001 '));
     assert.deepEqual(kitchen.map((m) => m.to).sort(), ['kuhinja@grckigiros.test', 'smena@grckigiros.test', 'vlasnik@grckigiros.test']);
     const html = kitchen[0].htmlBody;
-    assert.match(kitchen[0].subject, /^#1 · DOSTAVA · ŠTO PRE · 1\.690 RSD · Nikola J\.$/);
-    assert.match(html, /#1</);
-    assert.match(html, /Kusur: <b[^>]*>310 RSD/);
+    assert.match(kitchen[0].subject, /^#1001 · DOSTAVA · ŠTO PRE · 1\.690 RSD · Nikola J\.$/);
+    assert.match(html, /Prihvatite ili odbijte u roku od 5 min/);
+    assert.match(html, /Kusur: <b[^>]*>310\sRSD/);
+    assert.match(html, /stan 4, 2\. sprat/);
     assert.match(html, /BEZ: ljubičasti luk/);
     assert.match(html, /tel:\+381641234567/);
     assert.match(html, /Bez soli &lt;b&gt;molim&lt;\/b&gt;/, 'guest note is escaped');
+    assert.match(html, /\/admin\//);
     assert.match(kitchen[0].body, /KUSUR: 310 RSD/);
   });
 
-  test('guest confirmation email links to the live status page', () => {
+  test('guest email says received-not-confirmed and links to the live status page', () => {
     const conf = emu.state.outbox.find((m) => m.to === 'kupac@example.com');
-    assert.equal(conf.subject, 'Porudžbina #1 je primljena — Grčki Giros');
-    assert.match(conf.htmlBody, /\/porudzbina\/\?id=GG-20260923-1-0001&amp;t=[0-9a-f]{20}/);
-    assert.match(conf.htmlBody, /Sačuvajte broj porudžbine/);
+    assert.equal(conf.subject, 'Primili smo porudžbinu #1001 — Grčki Giros');
+    assert.match(conf.htmlBody, /\/porudzbina\/\?id=GG-20260923-1001-0001&amp;t=[0-9a-f]{20}/);
+    assert.match(conf.htmlBody, /još nije potvrđena/);
   });
 
   test('log entry with duration and no errors', () => {
     const log = emu.rows('SYSTEM_LOG').find((r) => r.Function === 'order.create');
     assert.equal(log.Status, 'OK');
-    assert.equal(log['Order ID'], 'GG-20260923-1-0001');
+    assert.equal(log['Order ID'], 'GG-20260923-1001-0001');
     assert.ok(log['Duration ms'] >= 0);
     assert.equal(emu.rows('ERROR_LOG').length, 0);
   });
 });
 
-describe('pickup order', () => {
-  test('no delivery fee, no cash question, pickup ticket', () => {
+describe('pickup and scheduled orders', () => {
+  test('pickup today at 15:30: no delivery fee, no cash question, pickup ticket', () => {
     const emu = freshBackend();
-    const res = placeOrder(emu, { mode: 'pickup', address: {}, cash: undefined, clientTotal: 820, when: '15:30' });
+    const res = placeOrder(emu, { ...PICKUP, when: '2026-09-23 15:30' });
     assert.equal(res.ok, true, JSON.stringify(res.error));
     assert.equal(res.data.deliveryFee, 0);
     assert.equal(res.data.total, 820);
     assert.equal(res.data.cash, null);
     assert.equal(res.data.whenLabel, '15:30');
+    assert.equal(res.data.whenText, 'ZAKAZANO sreda 23.09. u 15:30');
     const [row] = emu.rows('ORDERS');
     assert.equal(row['Order Type'], 'PICKUP');
     assert.equal(row['Requested Time'], '15:30');
+    assert.equal(row['Scheduled Date'], '2026-09-23');
+    assert.equal(row['Scheduled Time'], '15:30');
     assert.equal(row.Address, '');
-    const mail = emu.state.outbox[0];
-    assert.match(mail.subject, /PREUZIMANJE · ZAKAZANO 15:30/);
-    assert.match(mail.htmlBody, /Plaća gotovinom na kasi/);
+    assert.match(emu.state.outbox[0].subject, /PREUZIMANJE · ZAKAZANO 23\.09\. 15:30/);
+    assert.match(emu.state.outbox[0].htmlBody, /Plaća gotovinom na kasi/);
+  });
+
+  test('delivery scheduled for Saturday 19:00 (within 7 days)', () => {
+    const emu = freshBackend();
+    const res = placeOrder(emu, { when: '2026-09-26 19:00' });
+    assert.equal(res.ok, true, JSON.stringify(res.error));
+    assert.equal(res.data.scheduledDate, '2026-09-26');
+    assert.match(emu.state.outbox[0].htmlBody, /ZAKAZANO subota 26\.09\. u 19:00/);
+  });
+
+  test('past, too-far, Sunday and off-grid slots are refused', () => {
+    const emu = freshBackend();
+    for (const when of ['2026-09-23 12:00', '2026-09-23 15:00', '2026-10-01 12:00', '2026-09-27 13:00', '2026-09-24 10:15', '19:00']) {
+      const r = placeOrder(emu, { when });
+      assert.equal(r.error.code, 'SLOT_UNAVAILABLE', when);
+      assert.equal(r.error.field, 'when');
+    }
+    assert.equal(emu.rows('ORDERS').length, 0);
   });
 });
 
 describe('order numbers', () => {
-  test('#98 → #99 → #100 → #1 → #2, internal ids stay unique', () => {
+  test('start at order_number_start and grow: #1001, #1002, …; internal ids stay unique', () => {
     const emu = freshBackend({ settings: { rate_limit_phone_count: '1000', rate_limit_global_per_min: '1000' } });
-    emu.state.properties.PUBLIC_NO = '97';
     emu.state.properties.ORDER_SEQ = '4242';
     const got = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const r = placeOrder(emu);
       assert.equal(r.ok, true, JSON.stringify(r.error));
       got.push([r.data.publicNumber, r.data.orderId]);
     }
-    assert.deepEqual(got.map((g) => g[0]), [98, 99, 100, 1, 2]);
-    assert.deepEqual(got.map((g) => g[1]), ['GG-20260923-98-1093', 'GG-20260923-99-1094', 'GG-20260923-100-1095', 'GG-20260923-1-1096', 'GG-20260923-2-1097']);
+    assert.deepEqual(got.map((g) => g[0]), [1001, 1002, 1003]);
+    assert.deepEqual(got.map((g) => g[1]), ['GG-20260923-1001-1093', 'GG-20260923-1002-1094', 'GG-20260923-1003-1095']);
   });
 
-  test('250 orders: numbers cycle 1..100 and no internal id ever repeats', () => {
+  test('250 orders back to back: 250 distinct numbers and ids, no gaps, one row each', () => {
     const emu = freshBackend({ settings: { rate_limit_phone_count: '1000', rate_limit_global_per_min: '1000' } });
     const ids = new Set();
     const numbers = [];
@@ -129,18 +168,20 @@ describe('order numbers', () => {
       numbers.push(r.data.publicNumber);
     }
     assert.equal(ids.size, 250);
-    assert.equal(numbers[0], 1);
-    assert.equal(numbers[99], 100);
-    assert.equal(numbers[100], 1);
-    assert.equal(numbers[249], 50);
+    assert.equal(new Set(numbers).size, 250);
+    assert.equal(numbers[0], 1001);
+    assert.equal(numbers[249], 1250);
+    assert.equal(emu.rows('ORDERS').length, 250);
     assert.equal(new Set(emu.rows('ORDERS').map((r) => r['Internal Order ID'])).size, 250);
+    assert.equal(emu.rows('ORDER_ITEMS').length, 500);
   });
 
-  test('the counter only moves while the script lock is held', () => {
+  test('the counter only moves while the script lock is held, and every order takes and releases it', () => {
     const emu = freshBackend();
-    assert.throws(() => emu.run('nextOrderNumber_', null, 100), /without holding the script lock/);
+    assert.throws(() => emu.run('nextOrderNumber_', null, 1001), /without holding the script lock/);
     placeOrder(emu);
-    assert.deepEqual(plain(emu.state.lockLog.map((l) => l.event)), ['acquire', 'release']);
+    placeOrder(emu, { customer: { phone: '0659876543' } });
+    assert.deepEqual(plain(emu.state.lockLog.map((l) => l.event)), ['acquire', 'release', 'acquire', 'release']);
   });
 
   test('lock timeout: friendly BUSY error, no number consumed, nothing written', () => {
@@ -154,17 +195,27 @@ describe('order numbers', () => {
     assert.equal(emu.rows('ORDERS').length, 0);
   });
 
-  test('admin "next number" setting', () => {
+  test('counter reset before go-live: refused while orders exist, allowed once ORDERS is empty', () => {
     const emu = freshBackend();
-    emu.run('setNextOrderNumber_', 37);
-    assert.equal(placeOrder(emu).data.publicNumber, 37);
-    emu.run('setNextOrderNumber_', 1);
-    assert.equal(placeOrder(emu, { customer: { phone: '0659876543' } }).data.publicNumber, 1);
+    placeOrder(emu);
+    assert.throws(() => emu.run('resetOrderCounter_'), /još ima 1 porudžbina/);
+    const sh = emu.sheet('ORDERS');
+    sh.data = [sh.data[0]];
+    assert.equal(emu.run('resetOrderCounter_'), 1001);
+    assert.equal(placeOrder(emu, { customer: { phone: '0659876543' } }).data.publicNumber, 1001);
+  });
+
+  test('owner can move the next number forward, never back onto a used one', () => {
+    const emu = freshBackend();
+    emu.run('setNextOrderNumber_', 2000);
+    assert.equal(placeOrder(emu).data.publicNumber, 2000);
+    assert.throws(() => emu.run('setNextOrderNumber_', 1500), /već iskorišćen/);
+    assert.equal(placeOrder(emu, { customer: { phone: '0659876543' } }).data.publicNumber, 2001);
   });
 });
 
 describe('duplicate submission protection', () => {
-  test('same requestId twice returns the same order, stores it once, emails once', () => {
+  test('same requestId twice (double click, retry) returns the same order, stores it once, emails once', () => {
     const emu = freshBackend();
     const body = orderBody();
     const a = emu.doPost({ action: 'order.create', payload: body });
@@ -185,6 +236,14 @@ describe('duplicate submission protection', () => {
     assert.equal(b.data.orderId, a.data.orderId);
     assert.equal(emu.rows('ORDERS').length, 1);
   });
+
+  test('two real orders with identical content but different requests are both kept', () => {
+    const emu = freshBackend();
+    const a = placeOrder(emu);
+    const b = placeOrder(emu);
+    assert.notEqual(a.data.orderId, b.data.orderId);
+    assert.equal(emu.rows('ORDERS').length, 2);
+  });
 });
 
 describe('validation (server never trusts the browser)', () => {
@@ -192,6 +251,7 @@ describe('validation (server never trusts the browser)', () => {
     ['invalid phone', { customer: { phone: '123' } }, 'phone', /mobilnog telefona/],
     ['empty name', { customer: { name: ' ' } }, 'name', /ime i prezime/],
     ['missing address', { address: { street: '', number: '' } }, 'address.street', /ulicu/],
+    ['no zone picked', { address: { zone: '' } }, 'address.zone', /naselje/],
     ['cash below total', { cash: 1000 }, 'cash', /najmanje 1070/],
     ['cash missing', { cash: '' }, 'cash', /Sa koliko novca/i],
     ['absurd cash', { cash: 90000 }, 'cash', /prevelik/],
@@ -214,6 +274,34 @@ describe('validation (server never trusts the browser)', () => {
     });
   }
 
+  test('delivery minimum 500 RSD: refused with the missing amount; pickup has no minimum', () => {
+    const emu = freshBackend();
+    const small = { items: [{ productId: 'coca-cola', qty: 1, options: [] }], clientTotal: 450 };
+    const r = placeOrder(emu, small);
+    assert.equal(r.error.code, 'MIN_ORDER');
+    assert.equal(r.error.message, 'Minimalna porudžbina za dostavu je 500 RSD. Dodajte još 300 RSD.');
+    assert.equal(r.error.data.shortfall, 300);
+    const pickup = placeOrder(emu, { ...PICKUP, items: small.items, clientTotal: 200 });
+    assert.equal(pickup.ok, true, JSON.stringify(pickup.error));
+  });
+
+  test('zone rules: unknown or switched-off zone is refused; zone fee and zone minimum apply', () => {
+    const emu = freshBackend();
+    assert.equal(placeOrder(emu, { address: { zone: 'mars' } }).error.code, 'ZONE_UNAVAILABLE');
+    const r = placeOrder(emu, { address: { zone: 'ns-okolina' }, clientTotal: 820 + 350 });
+    assert.equal(r.ok, true, JSON.stringify(r.error));
+    assert.equal(r.data.deliveryFee, 350);
+    assert.equal(r.data.address.zone, 'Petrovaradin i Sremska Kamenica');
+    setCell(emu, 'ZONES', 'id', 'ns-okolina', 'min_order', 1000);
+    const high = placeOrder(emu, { address: { zone: 'ns-okolina' }, clientTotal: 820 + 350, customer: { phone: '0651231231' } });
+    assert.equal(high.error.code, 'MIN_ORDER');
+    assert.match(high.error.message, /1\.000 RSD\. Dodajte još 180 RSD/);
+    setCell(emu, 'ZONES', 'id', 'ns-okolina', 'active', false);
+    const off = placeOrder(emu, { address: { zone: 'ns-okolina' }, clientTotal: 820 + 350, customer: { phone: '0651231232' } });
+    assert.equal(off.error.code, 'ZONE_UNAVAILABLE');
+    assert.match(off.error.message, /Izaberite drugo naselje ili preuzimanje/);
+  });
+
   test('unknown product and sold-out product', () => {
     const emu = freshBackend();
     const unknown = placeOrder(emu, { items: [{ productId: 'burger', qty: 1 }], clientTotal: 250 });
@@ -224,13 +312,24 @@ describe('validation (server never trusts the browser)', () => {
     assert.match(soldOut.error.message, /Trenutno nema: Coca-Cola 0\.33 l\./);
   });
 
-  test('price changed in the sheet after the page loaded', () => {
+  test('stale cart: price or delivery fee changed after the page loaded', () => {
     const emu = freshBackend();
     setCell(emu, 'PRODUCTS', 'id', 'klasik', 'price', 650);
     const r = placeOrder(emu);
     assert.equal(r.error.code, 'PRICE_CHANGED');
     assert.equal(r.error.data.total, 1100);
-    assert.match(r.error.message, /1\.100 RSD/);
+    assert.match(r.error.message, /1\.100\sRSD/);
+    setCell(emu, 'PRODUCTS', 'id', 'klasik', 'price', 620);
+    setCell(emu, 'ZONES', 'id', 'ns-grad', 'fee', 300);
+    const fee = placeOrder(emu);
+    assert.equal(fee.error.code, 'PRICE_CHANGED');
+    assert.equal(fee.error.data.deliveryFee, 300);
+  });
+
+  test('forged client total or foreign price is never accepted', () => {
+    const emu = freshBackend();
+    assert.equal(placeOrder(emu, { clientTotal: 10 }).error.code, 'PRICE_CHANGED');
+    assert.equal(emu.rows('ORDERS').length, 0);
   });
 
   test('bot signals: honeypot and instant submit', () => {
@@ -265,50 +364,99 @@ describe('validation (server never trusts the browser)', () => {
   });
 });
 
+describe('historical accuracy', () => {
+  test('changing a price later never changes an existing order', () => {
+    const emu = freshBackend();
+    const r = placeOrder(emu, { items: [{ productId: 'klasik', qty: 1, options: [...KLASIK_DEFAULTS, 'dod-meso'] }], clientTotal: 920 + 250 });
+    assert.equal(r.ok, true, JSON.stringify(r.error));
+    const before = emu.rows('ORDERS')[0];
+    const itemsBefore = emu.rows('ORDER_ITEMS')[0];
+    setCell(emu, 'PRODUCTS', 'id', 'klasik', 'price', 990);
+    setCell(emu, 'OPTIONS', 'id', 'dod-meso', 'price', 500);
+    setCell(emu, 'PRODUCTS', 'id', 'klasik', 'name', 'Klasik Novi');
+    setCell(emu, 'ZONES', 'id', 'ns-grad', 'fee', 400);
+    const after = emu.rows('ORDERS')[0];
+    assert.equal(after.Total, 1170);
+    assert.equal(after['Delivery Cost'], 250);
+    assert.equal(after['Items JSON'], before['Items JSON']);
+    const line = JSON.parse(after['Items JSON'])[0];
+    assert.deepEqual([line.name, line.basePrice, line.optionsPrice, line.lineTotal], ['Klasik', 620, 300, 920]);
+    assert.deepEqual(emu.rows('ORDER_ITEMS')[0], itemsBefore);
+  });
+
+  test('per-piece options: two Klasik, one with extra meat, one without onion → two structured lines', () => {
+    const emu = freshBackend();
+    const r = placeOrder(emu, {
+      items: [
+        { productId: 'klasik', qty: 1, options: [...KLASIK_DEFAULTS, 'dod-meso'] },
+        { productId: 'klasik', qty: 1, options: KLASIK_DEFAULTS.filter((o) => o !== 'sal-luk') }
+      ],
+      clientTotal: 920 + 620 + 250
+    });
+    assert.equal(r.ok, true, JSON.stringify(r.error));
+    const items = emu.rows('ORDER_ITEMS');
+    assert.equal(items.length, 2);
+    assert.match(items[0].Options, /Extra meso \+300/);
+    assert.equal(items[0]['Options Price'], 300);
+    assert.equal(items[1].Removed, 'BEZ: ljubičasti luk');
+    assert.equal(items[1]['Options Price'], 0);
+  });
+});
+
 describe('opening hours on the server', () => {
-  test('Sunday: closed, tells when it opens', () => {
+  test('Sunday: closed, says when ordering reopens', () => {
     const emu = freshBackend({ now: '2026-09-27T13:00:00+02:00' });
-    const r = placeOrder(emu, { businessDate: '2026-09-27' });
+    const r = placeOrder(emu);
     assert.equal(r.error.code, 'CLOSED');
-    assert.equal(r.error.message, 'Trenutno ne radimo. Otvaramo sutra u 10:00.');
-    const pickup = placeOrder(emu, { mode: 'pickup', cash: undefined, clientTotal: 820 });
-    assert.equal(pickup.error.message, 'Trenutno ne radimo. Otvaramo sutra u 09:00.');
+    assert.equal(r.error.message, 'Trenutno ne primamo porudžbine. Poručivanje ponovo sutra u 10:00.');
+    assert.equal(placeOrder(emu, PICKUP).error.message, 'Trenutno ne primamo porudžbine. Poručivanje ponovo sutra u 09:00.');
   });
 
   test('before opening and after closing', () => {
     const before = freshBackend({ now: '2026-09-23T08:40:00+02:00' });
-    assert.match(placeOrder(before, { mode: 'pickup', cash: undefined, clientTotal: 820 }).error.message, /Otvaramo danas u 09:00/);
+    assert.match(placeOrder(before, PICKUP).error.message, /Poručivanje ponovo danas u 09:00/);
     const after = freshBackend({ now: '2026-09-24T01:10:00+02:00' });
-    assert.match(placeOrder(after, { mode: 'pickup', cash: undefined, clientTotal: 820 }).error.message, /Otvaramo ujutru u 09:00/);
+    assert.match(placeOrder(after, PICKUP).error.message, /Poručivanje ponovo ujutru u 09:00/);
   });
 
   test('delivery closed at 23:50 but pickup still open: says so', () => {
     const emu = freshBackend({ now: '2026-09-23T23:50:00+02:00' });
-    const r = placeOrder(emu);
-    assert.equal(r.error.code, 'CLOSED');
-    assert.equal(r.error.message, 'Dostava trenutno ne radi. Preuzimanje u lokalu je moguće do 00:45.');
+    assert.equal(placeOrder(emu).error.message, 'Dostava trenutno ne radi. Preuzimanje u lokalu je moguće do 00:45.');
   });
 
   test('after midnight the order belongs to the previous business day', () => {
     const emu = freshBackend({ now: '2026-09-24T00:30:00+02:00' });
-    const r = placeOrder(emu, { mode: 'pickup', cash: undefined, clientTotal: 820 });
+    const r = placeOrder(emu, PICKUP);
     assert.equal(r.ok, true, JSON.stringify(r.error));
     assert.equal(r.data.businessDate, '2026-09-23');
     assert.match(r.data.orderId, /^GG-20260923-/);
   });
 
-  test('slot outside availability is rejected with fresh slots', () => {
+  test('break from the HOURS sheet closes ordering and reopens by itself', () => {
     const emu = freshBackend();
-    const r = placeOrder(emu, { when: '19:00' });
-    assert.equal(r.error.code, 'SLOT_UNAVAILABLE');
-    assert.deepEqual(plain(r.error.data.slots), ['15:30', '16:00', '16:30']);
+    setCell(emu, 'HOURS', 'dow', 3, 'break_start', '14:00');
+    setCell(emu, 'HOURS', 'dow', 3, 'break_end', '15:00');
+    const r = placeOrder(emu);
+    assert.equal(r.error.code, 'CLOSED');
+    assert.equal(r.error.message, 'Trenutno ne primamo porudžbine. Pauza je u toku, poručivanje ponovo danas u 15:00.');
+    emu.setNow('2026-09-23T15:00:00+02:00');
+    assert.equal(placeOrder(emu).ok, true);
   });
 
-  test('temporary closure, holiday and exceptional hours from the sheets', () => {
+  test('global pause, delivery off, pickup off', () => {
     const emu = freshBackend();
     setSettings(emu, { ordering_enabled: 'FALSE', pause_message: 'Zatvoreno zbog kvara.' });
     assert.equal(placeOrder(emu).error.message, 'Zatvoreno zbog kvara. Pozovite nas: 064 227 4334.');
-    setSettings(emu, { ordering_enabled: 'TRUE' });
+    setSettings(emu, { ordering_enabled: 'TRUE', delivery_enabled: 'FALSE' });
+    assert.equal(placeOrder(emu).error.message, 'Dostava je trenutno isključena. Izaberite preuzimanje u lokalu.');
+    assert.equal(placeOrder(emu, PICKUP).ok, true);
+    setSettings(emu, { delivery_enabled: 'TRUE', pickup_enabled: 'FALSE' });
+    assert.equal(placeOrder(emu, { ...PICKUP, customer: { phone: '0651231233' } }).error.message, 'Preuzimanje u lokalu je trenutno isključeno. Izaberite dostavu.');
+    assert.equal(placeOrder(emu, { customer: { phone: '0651231234' } }).ok, true);
+  });
+
+  test('holiday from SPECIAL_HOURS', () => {
+    const emu = freshBackend();
     const sp = emu.sheet('SPECIAL_HOURS');
     const h = sp.data[0];
     const row = [];
@@ -320,16 +468,7 @@ describe('opening hours on the server', () => {
     emu.state.cache.clear();
     const closed = placeOrder(emu);
     assert.equal(closed.error.code, 'CLOSED');
-    assert.match(closed.error.message, /Otvaramo sutra u 09:00|Otvaramo sutra u 10:00/);
-  });
-
-  test('delivery zones: required when enabled, zone fee used', () => {
-    const emu = freshBackend({ settings: { zones_enabled: 'TRUE' } });
-    assert.equal(placeOrder(emu).error.field, 'address.zone');
-    const r = placeOrder(emu, { address: { zone: 'ns-okolina' }, clientTotal: 820 + 350 });
-    assert.equal(r.ok, true, JSON.stringify(r.error));
-    assert.equal(r.data.deliveryFee, 350);
-    assert.equal(r.data.address.zone, 'Petrovaradin i Sremska Kamenica');
+    assert.match(closed.error.message, /Poručivanje ponovo sutra u 10:00/);
   });
 });
 
@@ -347,7 +486,7 @@ describe('failures of Google services', () => {
     assert.ok(err.Stack.length > 0);
     assert.equal(emu.state.properties.PUBLIC_NO, '0');
     emu.state.faults.sheetsWrite = false;
-    assert.equal(placeOrder(emu).data.publicNumber, 1, 'no gap after a failed write');
+    assert.equal(placeOrder(emu).data.publicNumber, 1001, 'no gap after a failed write');
   });
 
   test('email service down: order still accepted and saved, failure logged with retry', () => {
@@ -356,8 +495,7 @@ describe('failures of Google services', () => {
     const r = placeOrder(emu);
     assert.equal(r.ok, true);
     assert.equal(emu.rows('ORDERS')[0]['Email Status'], 'FAILED');
-    const errs = emu.rows('ERROR_LOG').filter((e) => e.Function === 'email.send');
-    assert.equal(errs.length, 3);
+    assert.equal(emu.rows('ERROR_LOG').filter((e) => e.Function === 'email.send').length, 3);
     assert.ok(emu.rows('SYSTEM_LOG').some((l) => l.Function === 'email.send' && l.Retry === 1));
   });
 
@@ -375,7 +513,6 @@ describe('failures of Google services', () => {
     placeOrder(emu);
     assert.deepEqual(emu.state.outbox.map((m) => m.to), ['kuhinja@grckigiros.test']);
     assert.equal(emu.rows('ORDERS')[0]['Email Status'], 'PARTIAL 1/3');
-    assert.ok(emu.rows('SYSTEM_LOG').some((l) => l.Function === 'email.quota' && l.Severity === 'WARN'));
   });
 
   test('test mode: every email goes to the test recipient only, marked [TEST]', () => {
@@ -398,27 +535,35 @@ describe('failures of Google services', () => {
 });
 
 describe('guest status polling', () => {
-  test('needs the secret token; follows panel changes', () => {
+  test('needs the secret token; reports the 5-minute overdue state', () => {
     const emu = freshBackend();
     const { data } = placeOrder(emu);
     const ok = emu.doGet({ action: 'order.status', id: data.orderId, t: data.statusToken });
     assert.equal(ok.data.status, 'NEW');
+    assert.equal(ok.data.overdue, false);
+    assert.equal(ok.data.publicNumber, 1001);
+    assert.ok(!('token' in ok.data), 'token is never echoed');
     assert.equal(emu.doGet({ action: 'order.status', id: data.orderId, t: 'wrong' }).ok, false);
-    assert.equal(emu.doGet({ action: 'order.status', id: 'GG-20260923-2-0002', t: data.statusToken }).ok, false);
+    assert.equal(emu.doGet({ action: 'order.status', id: 'GG-20260923-1002-0002', t: data.statusToken }).ok, false);
+    emu.setNow('2026-09-23T14:29:00+02:00');
+    assert.equal(emu.doGet({ action: 'order.status', id: data.orderId, t: data.statusToken }).data.overdue, true);
   });
 });
 
 describe('bootstrap payload', () => {
-  test('exposes public config only (no recipients, no test switches)', () => {
+  test('exposes public config only (no recipients, no test switches) and active zones with minimum', () => {
     const emu = freshBackend();
     const b = bootstrap(emu);
     assert.equal(b.business.business_name, 'Grčki Giros');
     assert.equal(b.business.phone_display, '064 227 4334');
+    assert.equal(b.business.delivery_eta_max, '60');
+    assert.equal(b.business.preorder_days, '7');
     assert.ok(!('order_email_recipients' in b.business));
     assert.ok(!('test_mode' in b.business));
+    assert.ok(!('image_url_template' in b.business));
     assert.equal(b.catalog.products.length, 27);
     assert.equal(b.hours.find((h) => h.dow === 7).closed, true);
-    assert.deepEqual(plain(b.zones), []);
+    assert.deepEqual(plain(b.zones.map((z) => [z.id, z.fee, z.minOrder])), [['ns-grad', 250, 500], ['ns-okolina', 350, 500]]);
     assert.equal(typeof b.serverNow, 'number');
     assert.match(b.version, /^[0-9a-f]{12}$/);
   });

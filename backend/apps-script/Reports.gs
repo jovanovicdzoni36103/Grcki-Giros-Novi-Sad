@@ -179,7 +179,7 @@ function upsertDailyStats_(date, s) {
     Revenue: s.revenue,
     'Delivery Orders': s.delivery,
     'Pickup Orders': s.pickup,
-    Cancelled: s.cancelled,
+    Rejected: s.cancelled,
     'Average Order': s.aov,
     'Delivery Fees': s.deliveryFees,
     'Items Sold': s.itemsSold,
@@ -199,8 +199,8 @@ function upsertWeeklyStats_(key, from, to, s, prev) {
     'Average Order': s.aov,
     'Delivery Orders': s.delivery,
     'Pickup Orders': s.pickup,
-    Cancelled: s.cancelled,
-    'Cancellation %': round_(s.cancelRate, 1),
+    Rejected: s.cancelled,
+    'Rejected %': round_(s.cancelRate, 1),
     'Top Product': s.topProduct,
     'Top Package': s.topPackage,
     'Busiest Day': s.busiestDay,
@@ -219,8 +219,8 @@ function upsertMonthlyStats_(key, s, prev) {
     'Average Order': s.aov,
     'Delivery Orders': s.delivery,
     'Pickup Orders': s.pickup,
-    Cancelled: s.cancelled,
-    'Cancellation %': round_(s.cancelRate, 1),
+    Rejected: s.cancelled,
+    'Rejected %': round_(s.cancelRate, 1),
     'Top Product': s.topProduct,
     'Top Category': s.topCategory,
     'Top Package': s.topPackage,
@@ -251,8 +251,8 @@ function writeLifetimeStats_(data) {
     ['Orders This Year', year.orders],
     ['Delivery %', round_(all.deliveryPct, 1)],
     ['Pickup %', round_(all.pickupPct, 1)],
-    ['Cancellation %', round_(all.cancelRate, 1)],
-    ['Cancelled Orders', all.cancelled],
+    ['Rejected %', round_(all.cancelRate, 1)],
+    ['Rejected Orders', all.cancelled],
     ['Delivery Fees (RSD)', all.deliveryFees],
     ['Items Sold', all.itemsSold],
     ['Top Product', all.topProduct],
@@ -312,8 +312,8 @@ function writeDashboard_(data) {
 
   var grid = [];
   grid.push(['GRČKI GIROS — DASHBOARD', '', '', '', '', '', 'Osveženo: ' + displayDateTime_(now_())]);
-  grid.push(['Prihod sajta = hrana iz porudžbina koje nisu otkazane' + (inc ? ' (sa dostavom)' : ' (bez dostave)'), '', '', '', '', '', all.firstDate ? 'Prva porudžbina: ' + displayDate_(all.firstDate) : 'Još nema porudžbina']);
-  grid.push(['PERIOD', 'PORUDŽBINE', 'PRIHOD (RSD)', 'PROSEČNA (RSD)', 'DOSTAVA', 'PREUZIMANJE', 'OTKAZANO']);
+  grid.push(['Prihod sajta = hrana iz porudžbina koje nisu odbijene' + (inc ? ' (sa dostavom)' : ' (bez dostave)'), '', '', '', '', '', all.firstDate ? 'Prva porudžbina: ' + displayDate_(all.firstDate) : 'Još nema porudžbina']);
+  grid.push(['PERIOD', 'PORUDŽBINE', 'PRIHOD (RSD)', 'PROSEČNA (RSD)', 'DOSTAVA', 'PREUZIMANJE', 'ODBIJENO']);
   periods.forEach(function (p, i) {
     var s = stats[i];
     grid.push([p[0], s.orders, s.revenue, s.aov, s.delivery, s.pickup, s.cancelled]);
@@ -328,13 +328,13 @@ function writeDashboard_(data) {
     ['Najprometniji dan', monthStats.busiestDay, all.busiestDay],
     ['Najčešće vreme', monthStats.topSlot, all.topSlot],
     ['Dostava / preuzimanje', round_(monthStats.deliveryPct, 0) + '% / ' + round_(monthStats.pickupPct, 0) + '%', round_(all.deliveryPct, 0) + '% / ' + round_(all.pickupPct, 0) + '%'],
-    ['Otkazano', round_(monthStats.cancelRate, 1) + '%', round_(all.cancelRate, 1) + '%'],
+    ['Odbijeno', round_(monthStats.cancelRate, 1) + '%', round_(all.cancelRate, 1) + '%'],
     ['Kupci (povratni)', monthStats.customers + ' (' + monthStats.returningCustomers + ')', all.customers + ' (' + all.returningCustomers + ')']
   ].forEach(function (r) {
     grid.push([r[0], r[1] || '—', '', r[2] || '—', '', '', '']);
   });
   grid.push(['', '', '', '', '', '', '']);
-  grid.push(['POSLEDNJIH 14 DANA', 'DAN', 'PORUDŽBINE', 'PRIHOD (RSD)', 'DOSTAVA', 'PREUZIMANJE', 'OTKAZANO']);
+  grid.push(['POSLEDNJIH 14 DANA', 'DAN', 'PORUDŽBINE', 'PRIHOD (RSD)', 'DOSTAVA', 'PREUZIMANJE', 'ODBIJENO']);
   for (var i = 13; i >= 0; i--) {
     var d = addDays_(today, -i);
     var s = aggregate_(data.orders, data.items, d, d, inc);

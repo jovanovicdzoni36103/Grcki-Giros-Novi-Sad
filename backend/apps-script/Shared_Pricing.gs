@@ -11,10 +11,15 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  /** Lookup table without a prototype: ids like "constructor" or "__proto__" find nothing. */
+  function dict() {
+    return Object.create(null);
+  }
+
   function byId(list) {
-    var map = {};
+    var map = dict();
     (list || []).forEach(function (x) {
-      map[x.id] = x;
+      if (x && typeof x.id === 'string' && x.id) map[x.id] = x;
     });
     return map;
   }
@@ -23,9 +28,32 @@
     return (a.sort || 0) - (b.sort || 0);
   }
 
+  function thousands(n) {
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  /**
+   * Groups per-piece configurations into cart lines: identical pieces become one line with qty n,
+   * different ones stay separate (Cheeseburger ×2: one with extra cheese, one with bacon = 2 lines).
+   */
+  function groupPieces(productId, pieces) {
+    var lines = [];
+    var byKey = dict();
+    (pieces || []).forEach(function (piece) {
+      var line = { productId: productId, qty: 1, options: (piece.options || []).slice().sort(), note: String(piece.note || '').trim() };
+      var key = lineKey(line);
+      if (byKey[key]) byKey[key].qty += 1;
+      else {
+        byKey[key] = line;
+        lines.push(line);
+      }
+    });
+    return lines;
+  }
+
   function buildIndex(catalog) {
     var c = catalog || {};
-    var optionsByGroup = {};
+    var optionsByGroup = dict();
     (c.options || []).forEach(function (o) {
       (optionsByGroup[o.groupId] = optionsByGroup[o.groupId] || []).push(o);
     });
@@ -75,9 +103,10 @@
     var context = ctx || {};
     var maxQty = context.maxQty || 20;
     var errors = [];
-    var product = index.products[line && line.productId];
+    var productId = line && typeof line.productId === 'string' ? line.productId : '';
+    var product = productId ? index.products[productId] : null;
     if (!product || product.active === false) {
-      return { ok: false, errors: [err('ITEM_UNAVAILABLE', 'Ovaj proizvod više nije u ponudi.', { productId: line && line.productId })] };
+      return { ok: false, errors: [err('ITEM_UNAVAILABLE', 'Ovaj proizvod više nije u ponudi.', { productId: productId })] };
     }
     // Neutral wording: product names have every grammatical gender (Fanta, pomfrit, Giros + sok).
     if (product.available === false) {
@@ -96,12 +125,13 @@
       qty = Math.max(1, Math.min(maxQty, Math.floor(qty) || 1));
     }
 
-    var chosen = {};
-    var seen = {};
-    (line.options || []).forEach(function (optId) {
+    var chosen = dict();
+    var seen = dict();
+    (Array.isArray(line.options) ? line.options : []).forEach(function (raw) {
+      var optId = typeof raw === 'string' ? raw : '';
       if (seen[optId]) return;
       seen[optId] = true;
-      var opt = index.options[optId];
+      var opt = optId ? index.options[optId] : null;
       if (!opt || (product.groups || []).indexOf(opt.groupId) === -1) {
         errors.push(err('VALIDATION', 'Izabrana opcija ne postoji za ' + product.name + '.', { productId: product.id, optionId: optId }));
         return;
@@ -112,7 +142,7 @@
       (chosen[opt.groupId] = chosen[opt.groupId] || []).push(opt);
     });
 
-    var defaults = {};
+    var defaults = dict();
     (product.defaults || []).forEach(function (id) {
       defaults[id] = true;
     });
@@ -230,7 +260,8 @@
     var minOrder = Number(context.minOrder) || 0;
     var shortfall = minOrder > 0 && subtotal < minOrder ? minOrder - subtotal : 0;
     if (shortfall > 0) {
-      errors.push(err('VALIDATION', 'Minimalna porudžbina je ' + minOrder + ' RSD.', { field: 'items', shortfall: shortfall }));
+      var what = context.mode === 'delivery' ? 'Minimalna porudžbina za dostavu je ' : 'Minimalna porudžbina je ';
+      errors.push(err('VALIDATION', what + thousands(minOrder) + ' RSD. Dodajte još ' + thousands(shortfall) + ' RSD.', { field: 'items', shortfall: shortfall, minOrder: minOrder }));
     }
     return {
       ok: errors.length === 0,
@@ -303,11 +334,11 @@
    * "Ide uz ovo" / "Najčešće se naručuje uz": manual pairs first, then data-driven recs, excluding what is already in the cart.
    */
   function recommendations(index, productIds, autoRecs, limit) {
-    var inCart = {};
+    var inCart = dict();
     productIds.forEach(function (id) {
       inCart[id] = true;
     });
-    var scored = {};
+    var scored = dict();
     var order = [];
     function add(id, source, weight) {
       var p = index.products[id];
@@ -320,10 +351,11 @@
     }
     productIds.forEach(function (pid) {
       var p = index.products[pid];
-      (p && p.pairs ? p.pairs : []).forEach(function (id, i) {
+      (p && Array.isArray(p.pairs) ? p.pairs : []).forEach(function (id, i) {
         add(id, 'pairs', 10 - i);
       });
-      ((autoRecs && autoRecs[pid]) || []).forEach(function (id, i) {
+      var data = autoRecs && Object.prototype.hasOwnProperty.call(autoRecs, pid) ? autoRecs[pid] : null;
+      (Array.isArray(data) ? data : []).forEach(function (id, i) {
         add(id, 'data', 5 - i);
       });
     });
@@ -347,6 +379,7 @@
     bundleHints: bundleHints,
     recommendations: recommendations,
     lineKey: lineKey,
+    groupPieces: groupPieces,
     productAllowedFor: productAllowedFor
   };
 });

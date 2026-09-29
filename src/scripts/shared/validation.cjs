@@ -14,8 +14,10 @@
     email: 120,
     street: 80,
     number: 12,
-    apt: 60,
+    apt: 40,
+    floor: 20,
     addressNote: 200,
+    feedbackComment: 600,
     orderNote: 300,
     lineNote: 140,
     message: 2000,
@@ -24,7 +26,8 @@
 
   /** Strips control characters (keeps newlines when multiline), trims and caps the length. */
   function clean(value, max, multiline) {
-    if (value === null || value === undefined) return '';
+    // Only text and numbers count as text: an object or a list from a tampered request becomes empty, never "[object Object]".
+    if (typeof value !== 'string' && !(typeof value === 'number' && isFinite(value))) return '';
     var s = String(value);
     s = multiline ? s.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '') : s.replace(/[\u0000-\u001F\u007F]/g, ' ');
     s = s.replace(/[​-‍﻿]/g, '');
@@ -101,24 +104,60 @@
     var street = clean(a.street, 200);
     var number = clean(a.number, 40);
     var apt = clean(a.apt, 200);
+    var floor = clean(a.floor, 100);
     var note = clean(a.note, 400, true);
     if (street.length < 2 || !/\p{L}/u.test(street)) errors.street = 'Unesite ulicu.';
     else if (street.length > LIMITS.street) errors.street = 'Naziv ulice je predugačak.';
     if (!number) errors.number = 'Unesite broj (ili „bb“).';
     else if (number.length > LIMITS.number || !/^(bb|b\.b\.|\d[\dA-Za-z/.\- ]*)$/i.test(number)) errors.number = 'Broj nije ispravan (npr. 12, 12a, 5/3 ili bb).';
     if (apt.length > LIMITS.apt) errors.apt = 'Predugačko (najviše ' + LIMITS.apt + ' znakova).';
+    if (floor.length > LIMITS.floor) errors.floor = 'Predugačko (najviše ' + LIMITS.floor + ' znakova).';
     if (note.length > LIMITS.addressNote) errors.note = 'Napomena je predugačka (najviše ' + LIMITS.addressNote + ' znakova).';
     return {
       ok: Object.keys(errors).length === 0,
       errors: errors,
-      value: { street: street.slice(0, LIMITS.street), number: number.slice(0, LIMITS.number), apt: apt.slice(0, LIMITS.apt), note: note.slice(0, LIMITS.addressNote) }
+      value: {
+        street: street.slice(0, LIMITS.street),
+        number: number.slice(0, LIMITS.number),
+        apt: apt.slice(0, LIMITS.apt),
+        floor: floor.slice(0, LIMITS.floor),
+        note: note.slice(0, LIMITS.addressNote)
+      }
+    };
+  }
+
+  /** Chips the guest can tick after a completed order (keys are stored, labels shown). */
+  var FEEDBACK_GOOD = { taste: 'Ukus', speed: 'Brzina', temperature: 'Toplo stiglo', portion: 'Porcija', staff: 'Ljubaznost', packaging: 'Pakovanje' };
+  var FEEDBACK_IMPROVE = { taste: 'Ukus', speed: 'Brzina', temperature: 'Stiglo hladno', portion: 'Porcija', accuracy: 'Tačnost porudžbine', packaging: 'Pakovanje' };
+
+  function pickKeys(list, allowed) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (k) {
+      var key = String(k);
+      if (Object.prototype.hasOwnProperty.call(allowed, key) && out.indexOf(key) === -1) out.push(key);
+    });
+    return out;
+  }
+
+  function validateFeedback(payload) {
+    var p = payload || {};
+    var errors = {};
+    var rating = Number(p.rating);
+    if (!(rating >= 1 && rating <= 5 && Math.floor(rating) === rating)) errors.rating = 'Izaberite ocenu od 1 do 5.';
+    var comment = clean(p.comment, 2000, true);
+    if (comment.length > LIMITS.feedbackComment) errors.comment = 'Komentar je predugačak (najviše ' + LIMITS.feedbackComment + ' znakova).';
+    return {
+      ok: Object.keys(errors).length === 0,
+      errors: errors,
+      value: { rating: rating, good: pickKeys(p.good, FEEDBACK_GOOD), improve: pickKeys(p.improve, FEEDBACK_IMPROVE), comment: comment.slice(0, LIMITS.feedbackComment) }
     };
   }
 
   function parseAmount(raw) {
     if (raw === null || raw === undefined || raw === '') return NaN;
-    if (typeof raw === 'number') return raw;
-    var s = String(raw).replace(/\s|RSD|din\.?|dinara/gi, '');
+    if (typeof raw === 'number') return isFinite(raw) && raw >= 0 && Math.floor(raw) === raw ? raw : NaN;
+    if (typeof raw !== 'string') return NaN;
+    var s = raw.replace(/\s|RSD|din\.?|dinara/gi, '');
     // "2.000" and "2,000" are thousands in Serbian usage; decimals are not used for cash.
     if (/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, '');
     return /^\d+$/.test(s) ? parseInt(s, 10) : NaN;
@@ -177,7 +216,7 @@
       value.address = addr.value;
       value.zone = clean((p.address || {}).zone, 60);
     } else {
-      value.address = { street: '', number: '', apt: '', note: '' };
+      value.address = { street: '', number: '', apt: '', floor: '', note: '' };
       value.zone = '';
     }
     return { ok: Object.keys(errors).length === 0, errors: errors, value: value };
@@ -255,6 +294,9 @@
     validateCash: validateCash,
     validateNote: validateNote,
     validateOrderContact: validateOrderContact,
+    validateFeedback: validateFeedback,
+    FEEDBACK_GOOD: FEEDBACK_GOOD,
+    FEEDBACK_IMPROVE: FEEDBACK_IMPROVE,
     validateContactForm: validateContactForm,
     validateJobForm: validateJobForm,
     sheetSafe: sheetSafe,

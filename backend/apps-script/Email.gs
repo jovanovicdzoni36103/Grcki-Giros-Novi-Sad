@@ -36,7 +36,8 @@ function effectiveUserEmail_() {
 
 /**
  * Sends one message to each recipient. Returns { sent:[], failed:[{to,error}], skipped, degraded, test }.
- * opts: { priorityFirst: when quota is short, still deliver to the first recipient; replyTo; attachments }
+ * opts: { priorityFirst: when quota is short, still deliver to the first recipient; replyTo; attachments;
+ *         reserve: skip unless this many sends stay left afterwards (guest emails keep room for kitchen tickets) }
  */
 function deliverEmail_(recipients, subject, html, text, opts) {
   var o = opts || {};
@@ -66,6 +67,11 @@ function deliverEmail_(recipients, subject, html, text, opts) {
   try {
     quota = MailApp.getRemainingDailyQuota();
   } catch (ignored) {}
+  if (o.reserve && quota - list.length < o.reserve) {
+    result.skipped = 'quota_reserved';
+    log_('WARN', 'email.quota', 'SKIPPED', 'Email kvota je pri kraju (' + quota + '), email kupcu je preskočen da bi kuhinja i dalje dobijala porudžbine: ' + subject);
+    return result;
+  }
   if (quota < list.length) {
     if (o.priorityFirst && quota >= 1) {
       list = list.slice(0, quota);
@@ -117,7 +123,7 @@ function sendOrderEmails_(order, settings) {
   var status = emailStatusOf_(res, kitchen.length);
   if (order.customer.email && toBool_(settings.customer_confirmation_enabled, true)) {
     var conf = customerConfirmation_(order, settings);
-    var cres = deliverEmail_([order.customer.email], conf.subject, conf.html, conf.text, { replyTo: settings.email_public });
+    var cres = deliverEmail_([order.customer.email], conf.subject, conf.html, conf.text, { replyTo: settings.email_public, reserve: GUEST_EMAIL_RESERVE });
     status += cres.sent.length ? ' · kupac OK' : ' · kupac ' + (cres.skipped || 'FAILED');
   }
   return status;
@@ -178,11 +184,14 @@ function totalsTable_(order) {
 function kitchenTicket_(order, settings) {
   var isDelivery = order.mode === 'delivery';
   var typeLabel = isDelivery ? 'DOSTAVA' : 'PREUZIMANJE';
-  var timeLabel = order.when === 'asap' ? 'ŠTO PRE' : 'ZAKAZANO ' + order.when;
+  var timeLabel = whenText_(order);
+  var subjectTime = order.when === 'asap' ? 'ŠTO PRE' : 'ZAKAZANO ' + GG_Scheduling.formatDateShort(order.scheduledDate) + ' ' + order.scheduledTime;
   var eta = order.when === 'asap' ? 'oko ' + order.promisedLabel : '';
   var shortName = order.customer.name.split(' ')[0] + (order.customer.name.split(' ')[1] ? ' ' + order.customer.name.split(' ')[1].charAt(0) + '.' : '');
-  var subject = '#' + order.publicNumber + ' · ' + typeLabel + ' · ' + timeLabel + ' · ' + GG_Money.formatNumber(order.total) + ' RSD · ' + shortName;
+  var subject = '#' + order.publicNumber + ' · ' + typeLabel + ' · ' + subjectTime + ' · ' + GG_Money.formatNumber(order.total) + ' RSD · ' + shortName;
   var site = String(settings.site_url || '').replace(/\/$/, '');
+  var acceptMin = toNum_(settings.accept_timeout_min, 5);
+  var aptFloor = aptFloorText_(order.address);
 
   var cashBlock = '';
   if (isDelivery) {
@@ -198,16 +207,20 @@ function kitchenTicket_(order, settings) {
   var people = infoRow_('Kupac', '<b>' + esc_(order.customer.name) + '</b>');
   people += infoRow_('Telefon', '<a href="tel:' + esc_(order.customer.phone) + '" style="color:' + C_.blue + ';font-weight:bold;font-size:18px;text-decoration:none">' + esc_(order.customer.phoneDisplay || order.customer.phone) + '</a>');
   if (isDelivery) {
-    var addr = esc_(addressLine_(order)) + (order.address.apt ? ', ' + esc_(order.address.apt) : '');
+    var addr = esc_(addressLine_(order)) + (aptFloor ? ', ' + esc_(aptFloor) : '');
     people += infoRow_('Adresa', '<a href="' + esc_(mapsLink_(order, settings)) + '" style="color:' + C_.ink + ';font-weight:bold">' + addr + '</a>');
-    if (order.address.zoneName) people += infoRow_('Naselje', esc_(order.address.zoneName));
+    if (order.address.zoneName) people += infoRow_('Zona', esc_(order.address.zoneName));
     if (order.address.note) people += infoRow_('Za kurira', esc_(order.address.note));
   }
   if (order.customer.email) people += infoRow_('Email', esc_(order.customer.email));
 
   var noteBlock = order.note
-    ? '<tr><td style="padding:0 16px 16px"><div style="border:2px dashed ' + C_.tomato + ';padding:10px 12px;font-size:16px"><div style="font-size:11px;letter-spacing:1.5px;color:' + C_.tomato + ';font-weight:bold">NAPOMENA ZA KUHINJU</div>' + esc_(order.note).replace(/\n/g, '<br>') + '</div></td></tr>'
+    ? '<tr><td style="padding:0 16px 16px"><div style="border:2px dashed ' + C_.tomato + ';padding:10px 12px;font-size:16px"><div style="font-size:11px;letter-spacing:1.5px;color:' + C_.tomato + ';font-weight:bold">NAPOMENA KUPCA</div>' + esc_(order.note).replace(/\n/g, '<br>') + '</div></td></tr>'
     : '';
+
+  var acceptBlock =
+    '<tr><td style="padding:0 16px 14px"><div style="background:' + C_.tomato + ';color:#fff;padding:10px 12px;font-size:15px;font-weight:bold">Prihvatite ili odbijte u roku od ' + acceptMin + ' min' +
+    (site ? ' · <a href="' + esc_(site) + '/admin/" style="color:#fff">otvori admin panel</a>' : '') + '</div></td></tr>';
 
   var html =
     '<div style="background:' + C_.paper + ';padding:16px 8px;font-family:Arial,Helvetica,sans-serif;color:' + C_.ink + '">' +
@@ -217,8 +230,9 @@ function kitchenTicket_(order, settings) {
     '<td style="font-size:60px;font-weight:900;line-height:1;letter-spacing:-1px">#' + order.publicNumber + '</td>' +
     '<td align="right" style="vertical-align:top"><span style="display:inline-block;background:' + (isDelivery ? C_.blue : C_.gold) + ';color:' + (isDelivery ? '#fff' : C_.ink) + ';padding:7px 12px;font-weight:bold;font-size:14px;letter-spacing:1px">' + typeLabel + '</span></td>' +
     '</tr></table>' +
-    '<div style="font-size:22px;font-weight:bold;margin-top:10px">' + timeLabel + (eta ? ' <span style="font-weight:normal;color:' + C_.ink2 + ';font-size:17px">· ' + eta + '</span>' : '') + '</div>' +
+    '<div style="font-size:22px;font-weight:bold;margin-top:10px">' + esc_(timeLabel) + (eta ? ' <span style="font-weight:normal;color:' + C_.ink2 + ';font-size:17px">· ' + eta + '</span>' : '') + '</div>' +
     '<div style="font-size:14px;color:' + C_.ink2 + ';margin-top:4px">Primljeno ' + esc_(displayDateTime_(order.createdAt)) + '</div></td></tr>' +
+    acceptBlock +
     cashBlock +
     '<tr><td style="padding:0 16px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' + people + '</table></td></tr>' +
     '<tr><td style="padding:8px 16px 4px;border-top:2px solid ' + C_.ink + '">' + linesTable_(order.lines) + '</td></tr>' +
@@ -226,16 +240,18 @@ function kitchenTicket_(order, settings) {
     noteBlock +
     '<tr><td style="padding:12px 16px;background:' + C_.paper + ';font-size:12px;color:' + C_.ink2 + ';line-height:1.5">' +
     esc_(order.id) + ' · sa sajta' + (order.channel && order.channel !== 'direct' ? ' (' + esc_(order.channel) + ')' : '') +
-    (site ? '<br><a href="' + esc_(site) + '/panel/" style="color:' + C_.blue + ';font-weight:bold">Otvori panel porudžbina →</a>' : '') +
+    (site ? '<br><a href="' + esc_(site) + '/admin/" style="color:' + C_.blue + ';font-weight:bold">Otvori admin panel →</a>' : '') +
     '</td></tr></table></div>';
 
   var text = [
     'NOVA PORUDŽBINA #' + order.publicNumber + ' — ' + (settings.business_name || 'Grčki Giros'),
     typeLabel + ' · ' + timeLabel + (eta ? ' (' + eta + ')' : ''),
+    'PRIHVATITE ILI ODBIJTE U ROKU OD ' + acceptMin + ' MIN' + (site ? ': ' + site + '/admin/' : ''),
     '',
     'KUPAC: ' + order.customer.name,
     'TELEFON: ' + (order.customer.phoneDisplay || order.customer.phone),
-    isDelivery ? 'ADRESA: ' + addressLine_(order) + (order.address.apt ? ', ' + order.address.apt : '') : '',
+    isDelivery ? 'ADRESA: ' + addressLine_(order) + (aptFloor ? ', ' + aptFloor : '') : '',
+    isDelivery && order.address.zoneName ? 'ZONA: ' + order.address.zoneName : '',
     isDelivery && order.address.note ? 'ZA KURIRA: ' + order.address.note : '',
     '',
     'PROIZVODI:',
@@ -257,57 +273,122 @@ function kitchenTicket_(order, settings) {
 }
 
 // ---------------------------------------------------------------------------
-// Customer confirmation
+// Guest emails: received, confirmed, rejected, ready for pickup
 // ---------------------------------------------------------------------------
+
+function guestShell_(title, bodyRows, settings, accent) {
+  return (
+    '<div style="background:' + C_.paper + ';padding:20px 8px;font-family:Arial,Helvetica,sans-serif;color:' + C_.ink + '">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#fff">' +
+    '<tr><td style="background:' + (accent || C_.blue) + ';color:#fff;padding:22px 24px"><div style="font-size:13px;letter-spacing:2px;font-weight:bold">' + esc_((settings.business_name || 'Grčki Giros').toUpperCase()) + '</div>' +
+    '<div style="font-size:26px;font-weight:900;margin-top:8px;line-height:1.15">' + esc_(title) + '</div></td></tr>' +
+    bodyRows +
+    '<tr><td style="padding:16px 24px;background:' + C_.paper + ';font-size:13px;color:' + C_.ink2 + ';line-height:1.5">Izmena ili otkazivanje samo telefonom: <a href="tel:' + esc_(settings.phone_e164) + '" style="color:' + C_.blue + ';font-weight:bold">' + esc_(settings.phone_display) + '</a><br>' +
+    esc_(settings.business_name) + ' · ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city) + '</td></tr>' +
+    '</table></div>'
+  );
+}
+
+function numberBlock_(order, line) {
+  return (
+    '<tr><td style="padding:24px 24px 8px"><div style="font-size:12px;letter-spacing:1.5px;color:' + C_.ink2 + '">BROJ PORUDŽBINE</div>' +
+    '<div style="font-size:60px;font-weight:900;line-height:1;margin:4px 0 8px">#' + order.publicNumber + '</div>' +
+    (line ? '<div style="font-size:15px;line-height:1.5">' + line + '</div>' : '') +
+    '</td></tr>'
+  );
+}
+
+function statusButton_(order, settings, label) {
+  return '<tr><td style="padding:8px 24px 24px"><a href="' + esc_(statusUrl_(order, settings)) + '" style="display:inline-block;background:' + C_.gold + ';color:' + C_.ink + ';font-weight:bold;text-decoration:none;padding:14px 22px;border-radius:999px">' + esc_(label || 'Pratite status porudžbine') + '</a></td></tr>';
+}
+
+function guestWhen_(order) {
+  var isDelivery = order.mode === 'delivery';
+  if (order.when === 'asap') return isDelivery ? 'Što pre — okvirno oko ' + order.promisedLabel : 'Što pre — spremno okvirno oko ' + order.promisedLabel;
+  return 'Zakazano: ' + scheduledText_(order.scheduledDate, order.scheduledTime);
+}
 
 function customerConfirmation_(order, settings) {
   var isDelivery = order.mode === 'delivery';
-  var site = String(settings.site_url || '').replace(/\/$/, '');
-  var statusUrl = site + '/porudzbina/?id=' + encodeURIComponent(order.id) + '&t=' + encodeURIComponent(order.statusToken);
-  var when = order.when === 'asap' ? (isDelivery ? 'Što pre — oko ' + order.promisedLabel : 'Što pre — spremno oko ' + order.promisedLabel) : 'Zakazano za ' + order.when;
+  var acceptMin = toNum_(settings.accept_timeout_min, 5);
   var pay = isDelivery
     ? 'Gotovinom dostavljaču: ' + rsd_(order.total) + '. Pripremite ' + rsd_(order.cash) + (order.change ? ', kusur ' + rsd_(order.change) + '.' : '.')
     : 'Gotovinom na kasi: ' + rsd_(order.total) + '.';
+  var aptFloor = aptFloorText_(order.address);
   var where = isDelivery
-    ? esc_(addressLine_(order)) + (order.address.apt ? ', ' + esc_(order.address.apt) : '')
+    ? esc_(addressLine_(order)) + (aptFloor ? ', ' + esc_(aptFloor) : '')
     : esc_(settings.business_name) + ', ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city);
-
-  var html =
-    '<div style="background:' + C_.paper + ';padding:20px 8px;font-family:Arial,Helvetica,sans-serif;color:' + C_.ink + '">' +
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#fff">' +
-    '<tr><td style="background:' + C_.blue + ';color:#fff;padding:22px 24px"><div style="font-size:13px;letter-spacing:2px;font-weight:bold">GRČKI GIROS</div>' +
-    '<div style="font-size:26px;font-weight:900;margin-top:8px;line-height:1.15">Porudžbina je primljena.</div></td></tr>' +
-    '<tr><td style="padding:24px"><div style="font-size:12px;letter-spacing:1.5px;color:' + C_.ink2 + '">BROJ PORUDŽBINE</div>' +
-    '<div style="font-size:64px;font-weight:900;line-height:1;margin:4px 0 8px">#' + order.publicNumber + '</div>' +
-    '<div style="font-size:14px;color:' + C_.ink2 + '">Sačuvajte broj porudžbine. Ako nas zovete, samo ga recite.</div></td></tr>' +
+  var body =
+    numberBlock_(order, 'Porudžbina još nije potvrđena. Lokal je potvrđuje u roku od ' + acceptMin + ' minuta — dobićete email čim je potvrdi.') +
     '<tr><td style="padding:0 24px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' +
     infoRow_(isDelivery ? 'Dostava na' : 'Preuzimanje', where) +
-    infoRow_('Vreme', esc_(when)) +
+    infoRow_('Vreme', esc_(guestWhen_(order))) +
     infoRow_('Plaćanje', esc_(pay)) +
     '</table></td></tr>' +
     '<tr><td style="padding:8px 24px;border-top:1px solid ' + C_.line + '">' + linesTable_(order.lines) + '</td></tr>' +
-    '<tr><td style="padding:8px 24px 20px">' + totalsTable_(order) + '</td></tr>' +
-    '<tr><td style="padding:0 24px 24px"><a href="' + esc_(statusUrl) + '" style="display:inline-block;background:' + C_.gold + ';color:' + C_.ink + ';font-weight:bold;text-decoration:none;padding:14px 22px;border-radius:999px">Pratite status porudžbine</a></td></tr>' +
-    '<tr><td style="padding:16px 24px;background:' + C_.paper + ';font-size:13px;color:' + C_.ink2 + ';line-height:1.5">Izmena ili otkazivanje: <a href="tel:' + esc_(settings.phone_e164) + '" style="color:' + C_.blue + ';font-weight:bold">' + esc_(settings.phone_display) + '</a><br>' +
-    esc_(settings.business_name) + ' · ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city) + '</td></tr>' +
-    '</table></div>';
-
+    '<tr><td style="padding:8px 24px 12px">' + totalsTable_(order) + '</td></tr>' +
+    statusButton_(order, settings);
   var text = [
-    'Porudžbina je primljena. Broj porudžbine: #' + order.publicNumber,
-    (isDelivery ? 'Dostava na: ' : 'Preuzimanje: ') + (isDelivery ? addressLine_(order) : settings.address_street + ', ' + settings.address_city),
-    'Vreme: ' + when,
+    'Primili smo porudžbinu #' + order.publicNumber + '. Lokal je potvrđuje u roku od ' + acceptMin + ' minuta.',
+    (isDelivery ? 'Dostava na: ' + addressLine_(order) + (aptFloor ? ', ' + aptFloor : '') : 'Preuzimanje: ' + settings.address_street + ', ' + settings.address_city),
+    'Vreme: ' + guestWhen_(order),
     'Plaćanje: ' + pay,
     '',
     itemsText_(order.lines),
     '',
     'Ukupno: ' + rsd_(order.total),
-    'Status: ' + statusUrl,
+    'Status: ' + statusUrl_(order, settings),
     'Izmena ili otkazivanje: ' + settings.phone_display
   ]
     .join('\n')
     .replace(/ /g, ' ');
+  return { subject: 'Primili smo porudžbinu #' + order.publicNumber + ' — ' + (settings.business_name || 'Grčki Giros'), html: guestShell_('Primili smo vašu porudžbinu.', body, settings), text: text };
+}
 
-  return { subject: 'Porudžbina #' + order.publicNumber + ' je primljena — Grčki Giros', html: html, text: text };
+/**
+ * Status emails for guests who left an email. Only moves the guest cares about:
+ * NEW → CONFIRMED, → REJECTED, and the first time a pickup is READY (an undo such as
+ * ZAVRŠENA → SPREMNA never tells the guest to come again). Returns a short status or '' when nothing was sent.
+ */
+function sendStatusEmail_(order, fromStatus, settings, firstTime) {
+  if (!order.customer.email || !toBool_(settings.customer_status_emails, true)) return '';
+  var isDelivery = order.mode === 'delivery';
+  var cfg = schedulingConfig_();
+  var eta = GG_Scheduling.etaFor(cfg, order.mode);
+  var mail = null;
+  if (order.status === STATUS.CONFIRMED && fromStatus === STATUS.NEW) {
+    var when = order.when === 'asap'
+      ? (isDelivery ? 'Stiže za oko ' + eta.min + '–' + eta.max + ' minuta.' : 'Biće spremna za oko ' + eta.min + '–' + eta.max + ' minuta.')
+      : 'Zakazano: ' + scheduledText_(order.scheduledDate, order.scheduledTime) + '.';
+    mail = {
+      subject: 'Porudžbina #' + order.publicNumber + ' je potvrđena',
+      title: 'Porudžbina je potvrđena.',
+      line: esc_(when) + ' Plaćanje gotovinom' + (isDelivery ? ' dostavljaču' : ' na kasi') + ': <b>' + rsd_(order.total) + '</b>.',
+      text: 'Porudžbina #' + order.publicNumber + ' je potvrđena. ' + when,
+      accent: C_.olive
+    };
+  } else if (order.status === STATUS.REJECTED) {
+    mail = {
+      subject: 'Porudžbina #' + order.publicNumber + ' nije prihvaćena',
+      title: 'Nažalost, porudžbina nije prihvaćena.',
+      line: 'Lokal trenutno ne može da pripremi ovu porudžbinu. Ništa ne plaćate. Pozovite nas na <a href="tel:' + esc_(settings.phone_e164) + '" style="color:' + C_.blue + '"><b>' + esc_(settings.phone_display) + '</b></a> ako želite da poručite drugačije.',
+      text: 'Porudžbina #' + order.publicNumber + ' nije prihvaćena. Ništa ne plaćate. Telefon: ' + settings.phone_display,
+      accent: C_.tomato,
+      button: 'Pogledajte porudžbinu'
+    };
+  } else if (order.status === STATUS.READY && !isDelivery && firstTime !== false && (fromStatus === STATUS.CONFIRMED || fromStatus === STATUS.PREPARING)) {
+    mail = {
+      subject: 'Porudžbina #' + order.publicNumber + ' je spremna',
+      title: 'Spremno je — možete da dođete.',
+      line: esc_(settings.business_name) + ', ' + esc_(settings.address_street) + '. Plaćate na kasi: <b>' + rsd_(order.total) + '</b>. Recite broj porudžbine.',
+      text: 'Porudžbina #' + order.publicNumber + ' je spremna za preuzimanje: ' + settings.address_street + '. Plaćate ' + rsd_(order.total) + '.',
+      accent: C_.olive
+    };
+  }
+  if (!mail) return '';
+  var html = guestShell_(mail.title, numberBlock_(order, mail.line) + statusButton_(order, settings, mail.button), settings, mail.accent);
+  var res = deliverEmail_([order.customer.email], mail.subject + ' — ' + (settings.business_name || 'Grčki Giros'), html, mail.text + '\nStatus: ' + statusUrl_(order, settings), { replyTo: settings.email_public, reserve: GUEST_EMAIL_RESERVE });
+  return 'kupac ' + STATUS_LABEL[order.status] + ' ' + (res.sent.length ? 'OK' : res.skipped || 'FAILED');
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +435,7 @@ function reportEmail_(report, settings) {
   var grid =
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">' +
     '<tr>' + kpiCell_('Prihod', rsd_(s.revenue), delta(s.revenue, p && p.revenue)) + kpiCell_('Porudžbine', GG_Money.formatNumber(s.orders), delta(s.orders, p && p.orders)) + '</tr>' +
-    '<tr>' + kpiCell_('Prosečna porudžbina', rsd_(s.aov), '') + kpiCell_('Otkazano', GG_Money.formatNumber(s.cancelled), s.orders + s.cancelled ? round_(s.cancelRate, 1) + '% porudžbina' : '') + '</tr>' +
+    '<tr>' + kpiCell_('Prosečna porudžbina', rsd_(s.aov), '') + kpiCell_('Odbijeno', GG_Money.formatNumber(s.cancelled), s.orders + s.cancelled ? round_(s.cancelRate, 1) + '% porudžbina' : '') + '</tr>' +
     '<tr>' + kpiCell_('Dostava', GG_Money.formatNumber(s.delivery), round_(s.deliveryPct, 0) + '%') + kpiCell_('Preuzimanje', GG_Money.formatNumber(s.pickup), round_(s.pickupPct, 0) + '%') + '</tr>' +
     '</table>';
 
@@ -383,7 +464,7 @@ function reportEmail_(report, settings) {
     '<tr><td style="background:' + C_.ink + ';color:#fff;padding:18px 20px"><div style="font-size:12px;letter-spacing:2px;color:' + C_.gold + ';font-weight:bold">' + esc_(report.title) + '</div>' +
     '<div style="font-size:22px;font-weight:900;margin-top:6px">' + esc_(report.periodLabel) + '</div><div style="font-size:13px;opacity:.8;margin-top:2px">' + esc_(settings.business_name) + '</div></td></tr>' +
     '<tr><td style="padding:20px">' + (s.orders + s.cancelled === 0 ? '<p style="font-size:16px">U ovom periodu nije bilo porudžbina preko sajta.</p>' : grid + sections) + lifetime + '</td></tr>' +
-    '<tr><td style="padding:14px 20px;background:' + C_.paper + ';font-size:12px;color:' + C_.ink2 + '">Prihod = hrana iz porudžbina koje nisu otkazane' + (toBool_(settings.revenue_includes_delivery, false) ? ', sa dostavom' : ', bez dostave') + '. Detalji u Google Sheets tabeli (DASHBOARD).</td></tr>' +
+    '<tr><td style="padding:14px 20px;background:' + C_.paper + ';font-size:12px;color:' + C_.ink2 + '">Prihod = hrana iz porudžbina koje nisu odbijene' + (toBool_(settings.revenue_includes_delivery, false) ? ', sa dostavom' : ', bez dostave') + '. Detalji u Google Sheets tabeli (DASHBOARD).</td></tr>' +
     '</table></div>';
 
   var text = [
@@ -394,7 +475,7 @@ function reportEmail_(report, settings) {
     'Dostava: ' + s.delivery,
     'Preuzimanje: ' + s.pickup,
     'Prosečna porudžbina: ' + rsd_(s.aov),
-    'Otkazano: ' + s.cancelled,
+    'Odbijeno: ' + s.cancelled,
     s.topProducts.length ? 'Top: ' + s.topProducts.slice(0, 3).map(function (t) { return t.name + ' (' + t.qty + ')'; }).join(', ') : '',
     report.lifetime ? 'Ukupno od prvog dana: ' + rsd_(report.lifetime.revenue) : ''
   ]

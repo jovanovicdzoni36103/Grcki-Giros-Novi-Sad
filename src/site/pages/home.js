@@ -7,7 +7,7 @@ export const meta = {
   out: 'index.html',
   script: 'home',
   title: 'Grčki Giros Novi Sad | Pravi giros, pita iz Atine | Naruči online',
-  description: 'Pravi grčki giros u piti koja stiže iz Atine. Naručite online u Novom Sadu: dostava za oko 60 minuta, preuzimanje za 15. Dimitrija Tucovića 3.',
+  description: 'Pravi grčki giros u piti iz Atine. Naručite online u Novom Sadu: dostava 45–60 min, preuzimanje 15–30 min, zakazivanje do 7 dana. Dimitrija Tucovića 3.',
   bodyClass: 'page-home',
   schema: (ctx) => [restaurant(ctx)]
 };
@@ -62,8 +62,8 @@ export function render(ctx) {
         <a class="link" href="/meni/#kat-giros">Pogledaj meni ${iconSvg(a, 'arrow')}</a>
       </div>
       <ul class="hero__facts" role="list">
-        <li>${iconSvg(a, 'scooter')}Dostava ~${esc(b.delivery_eta_min)} min</li>
-        <li>${iconSvg(a, 'store')}Preuzimanje ~${esc(b.pickup_eta_min)} min</li>
+        <li>${iconSvg(a, 'scooter')}Dostava ${esc(b.delivery_eta_min)}–${esc(b.delivery_eta_max)} min</li>
+        <li>${iconSvg(a, 'store')}Preuzimanje ${esc(b.pickup_eta_min)}–${esc(b.pickup_eta_max)} min</li>
         <li>${iconSvg(a, 'cash')}Plaćanje gotovinom</li>
       </ul>
     </div>
@@ -113,7 +113,7 @@ ${
         <ol role="list">
           <li class="step is-active" data-step data-reveal><span class="step__n">01</span><h3>Izaberite giros</h3><p>Klasik je već složen. Hoćete drugačije? Menjate meso, sosove i salate, a cena se računa odmah.</p></li>
           <li class="step" data-step data-reveal style="--i:1"><span class="step__n">02</span><h3>Dostava ili preuzimanje</h3><p>Birate na početku, ne na kraju. Vreme i cenu dostave vidite pre nego što izaberete jelo.</p></li>
-          <li class="step" data-step data-reveal style="--i:2"><span class="step__n">03</span><h3>Dobijate broj</h3><p>Broj porudžbine odmah, kuhinja porudžbinu u istom trenutku. Plaćate gotovinom kad stigne.</p></li>
+          <li class="step" data-step data-reveal style="--i:2"><span class="step__n">03</span><h3>Dobijate broj i status</h3><p>Broj porudžbine odmah. Lokal je potvrđuje za nekoliko minuta, a status pratite uživo. Plaćate gotovinom kad stigne.</p></li>
         </ol>
       </div>
       <div class="steps__art" aria-hidden="true">
@@ -121,7 +121,7 @@ ${
         <div class="steps__frame">
           <div data-step-art class="is-active"><svg class="art" viewBox="0 0 200 220"><use href="${a.art}#wrap"/></svg></div>
           <div data-step-art><div class="step-scene"><div class="step-scene__modes"><span class="step-scene__mode">${iconSvg(a, 'scooter')}Dostava</span><span class="step-scene__mode">${iconSvg(a, 'store')}Preuzimanje</span></div></div></div>
-          <div data-step-art><div class="step-scene"><div class="ticket"><p class="ticket__label">Broj porudžbine</p><p class="ticket__number" style="font-size:8rem"><span>#</span>37</p></div></div></div>
+          <div data-step-art><div class="step-scene"><div class="ticket"><p class="ticket__label">Broj porudžbine</p><p class="ticket__number" style="font-size:clamp(4rem, 9vw, 6.5rem)"><span>#</span>1042</p></div></div></div>
         </div>
         <div class="steps__num"><span><em>01</em><em>02</em><em>03</em></span></div>
       </div>

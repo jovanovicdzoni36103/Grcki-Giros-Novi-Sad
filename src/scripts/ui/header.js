@@ -112,7 +112,9 @@ export function initOrderBar({ onOpenCart }) {
     } else {
       link.classList.remove('is-cart');
       link.setAttribute('href', bar.dataset.menuHref || '/meni/');
-      const meta = snap ? (snap.open ? `Dostava ~${snap.delivery.asap.etaMin} min · preuzimanje ~${snap.pickup.asap.etaMin} min` : statusLine(snap).text) : 'Pravi grčki giros';
+      const eta = (av) => (av.asap.etaMin === av.asap.etaMax ? `${av.asap.etaMin}` : `${av.asap.etaMin}–${av.asap.etaMax}`);
+      const parts = snap && snap.open ? [snap.delivery.canOrder ? `dostava ${eta(snap.delivery)} min` : '', snap.pickup.canOrder ? `preuzimanje ${eta(snap.pickup)} min` : ''].filter(Boolean) : [];
+      const meta = snap ? (snap.open ? parts.join(' · ').replace(/^./, (c) => c.toUpperCase()) : statusLine(snap).text) : 'Pravi grčki giros';
       link.innerHTML = `<span class="order-bar__label">${snap && !snap.open ? 'Pogledaj meni' : 'Naruči online'}<span class="order-bar__meta">${esc(meta)}</span></span><span class="order-bar__total">${icon('arrow')}</span>`;
     }
   };

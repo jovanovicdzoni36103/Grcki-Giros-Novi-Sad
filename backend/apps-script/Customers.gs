@@ -46,17 +46,17 @@ function upsertCustomer_(order) {
     'Total Spent': spent,
     'Average Order': Math.round(spent / orders),
     'Favorite Product': favoriteOf_(counts),
-    'Last Address': order.mode === 'delivery' ? addressLine_(order) + (order.address.apt ? ', ' + order.address.apt : '') : existing ? existing['Last Address'] : '',
+    'Last Address': order.mode === 'delivery' ? [addressLine_(order), aptFloorText_(order.address)].filter(Boolean).join(', ') : existing ? existing['Last Address'] : '',
     'Delivery Orders': (existing ? toNum_(existing['Delivery Orders'], 0) : 0) + (order.mode === 'delivery' ? 1 : 0),
     'Pickup Orders': (existing ? toNum_(existing['Pickup Orders'], 0) : 0) + (order.mode === 'pickup' ? 1 : 0),
-    'Cancelled Orders': existing ? toNum_(existing['Cancelled Orders'], 0) : 0,
+    'Rejected Orders': existing ? toNum_(existing['Rejected Orders'], 0) : 0,
     'Product Counts': JSON.stringify(counts)
   };
-  if (existing) updateRow_(SHEETS.CUSTOMERS, existing._row, record);
+  if (existing) writeRowObject_(SHEETS.CUSTOMERS, existing._row, record);
   else appendObjects_(SHEETS.CUSTOMERS, [record]);
 }
 
-/** Status moved into or out of CANCELLED/FAILED: keep spend and counts honest. */
+/** Status moved into or out of REJECTED: keep spend and counts honest. */
 function adjustCustomerForStatus_(orderRow, fromStatus, toStatus) {
   var wasCounted = STATUS_NOT_REVENUE.indexOf(fromStatus) === -1;
   var isCounted = STATUS_NOT_REVENUE.indexOf(toStatus) === -1;
@@ -72,7 +72,7 @@ function adjustCustomerForStatus_(orderRow, fromStatus, toStatus) {
     Orders: orders,
     'Total Spent': spent,
     'Average Order': orders ? Math.round(spent / orders) : 0,
-    'Cancelled Orders': Math.max(0, toNum_(c['Cancelled Orders'], 0) - sign)
+    'Rejected Orders': Math.max(0, toNum_(c['Rejected Orders'], 0) - sign)
   });
 }
 
@@ -100,7 +100,7 @@ function rebuildCustomers_() {
       'Last Address': '',
       'Delivery Orders': 0,
       'Pickup Orders': 0,
-      'Cancelled Orders': 0
+      'Rejected Orders': 0
     });
     var created = String(r['Created At'] || '');
     if (!c['First Order At'] || created < c['First Order At']) c['First Order At'] = created;
@@ -108,10 +108,10 @@ function rebuildCustomers_() {
       c['Last Order At'] = created;
       c.Name = String(r['Customer Name'] || c.Name);
       if (r.Email) c.Email = String(r.Email);
-      if (r['Order Type'] === 'DELIVERY') c['Last Address'] = String(r.Address || '') + (r['Apartment/Floor'] ? ', ' + r['Apartment/Floor'] : '');
+      if (r['Order Type'] === 'DELIVERY') c['Last Address'] = [String(r.Address || ''), aptFloorText_({ apt: String(r.Apartment || ''), floor: String(r.Floor || '') })].filter(Boolean).join(', ');
     }
     if (STATUS_NOT_REVENUE.indexOf(String(r.Status)) !== -1) {
-      c['Cancelled Orders'] += 1;
+      c['Rejected Orders'] += 1;
       return;
     }
     c.Orders += 1;
@@ -139,7 +139,7 @@ function rebuildCustomers_() {
       'Last Address': c['Last Address'],
       'Delivery Orders': c['Delivery Orders'],
       'Pickup Orders': c['Pickup Orders'],
-      'Cancelled Orders': c['Cancelled Orders'],
+      'Rejected Orders': c['Rejected Orders'],
       'Product Counts': JSON.stringify(c.counts),
       Notes: notes[phone] || ''
     };

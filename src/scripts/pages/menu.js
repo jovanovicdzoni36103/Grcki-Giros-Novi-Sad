@@ -7,7 +7,7 @@ import { schedule } from '../core/availability.js';
 import * as cart from '../core/cart.js';
 import { bootCommon } from './common.js';
 import { menuSections, categoryNav, tagFilters, TAG_LABELS } from '../ui/render.js';
-import { modeSwitch, refreshModeMeta, defaultMode, deliveryFeeLabel } from '../ui/mode.js';
+import { modeSwitch, refreshModeMeta, defaultMode, deliveryFeeLabel, etaText, closedReason, zoneSelect, zonesOn, zones, zoneById } from '../ui/mode.js';
 import { openCart } from '../ui/cart-drawer.js';
 import { initReveal } from '../ui/motion.js';
 import { track } from '../core/analytics.js';
@@ -97,35 +97,38 @@ function renderModeBar() {
   const av = snap[mode];
   const facts = [];
   if (av.canOrder) {
-    facts.push(`<span class="mode-bar__fact">${icon('clock')}<span>${mode === 'delivery' ? `Stiže za <strong>~${av.asap.etaMin} min</strong> (oko ${av.asap.readyLabel})` : `Spremno za <strong>${av.asap.etaMin}–${av.asap.etaMax} min</strong>`}</span></span>`);
-    facts.push(`<span class="mode-bar__fact">${icon(mode === 'delivery' ? 'scooter' : 'pin')}<span>${mode === 'delivery' ? `Dostava ${esc(deliveryFeeLabel())}` : esc(b.address_street || '')}</span></span>`);
+    facts.push(
+      `<span class="mode-bar__fact">${icon('clock')}<span>${mode === 'delivery' ? `Dostava za <strong>${esc(etaText(av))}</strong>` : `Spremno za <strong>${esc(etaText(av))}</strong>`} · ili zakažite do ${esc(b.preorder_days || 7)} dana unapred</span></span>`
+    );
+    facts.push(`<span class="mode-bar__fact">${icon(mode === 'delivery' ? 'scooter' : 'pin')}<span>${mode === 'delivery' ? `Dostava ${esc(deliveryFeeLabel(zoneById(cart.zone())))}` : esc(b.address_street || '')}</span></span>`);
     facts.push(`<span class="mode-bar__fact">${icon('cash')}<span>Gotovina · poručivanje do ${esc(av.lastOrder)}</span></span>`);
   } else {
-    facts.push(
-      `<span class="mode-bar__fact">${icon('clock')}<span>${
-        snap.paused ? esc(b.pause_message || 'Poručivanje je pauzirano.') : `<strong>${mode === 'delivery' ? 'Dostava ne radi' : 'Zatvoreno'}</strong>${av.next ? ` · poručivanje ${esc(av.next.label)}` : ''}`
-      }</span></span>`
-    );
+    facts.push(`<span class="mode-bar__fact">${icon('clock')}<span>${snap.paused ? esc(b.pause_message || 'Poručivanje je pauzirano.') : `<strong>Trenutno ne primamo porudžbine</strong> · ${esc(closedReason(av, mode))}`}</span></span>`);
     const other = snap[mode === 'delivery' ? 'pickup' : 'delivery'];
     if (other.canOrder) facts.push(`<button type="button" class="link" data-switch-mode="${mode === 'delivery' ? 'pickup' : 'delivery'}">${mode === 'delivery' ? 'Preuzimanje radi' : 'Dostava radi'} ${icon('arrow')}</button>`);
   }
   let zoneHtml = '';
-  const zones = (catalog().data && catalog().data.zones) || [];
-  if (mode === 'delivery' && String(b.zones_enabled).toUpperCase() === 'TRUE' && zones.length) {
+  if (mode === 'delivery' && zonesOn() && zones().length) {
     const current = cart.zone();
-    const z = zones.find((x) => x.id === current);
-    zoneHtml = `<div class="zone-select"><label class="sr-only" for="zone">Naselje za dostavu</label>
-      <select class="input" id="zone" data-zone><option value="">Dostavljamo li do vas? Izaberite naselje</option>${zones
-        .flatMap((zz) => zz.areas.map((a) => `<option value="${esc(zz.id)}|${esc(a)}" ${current === zz.id ? '' : ''}>${esc(a)}</option>`))
-        .join('')}<option value="none">Mog naselja nema na spisku</option></select>
-      <span class="zone-result ${z ? 'is-ok' : ''}" data-zone-result>${z ? `${icon('check')} Dostavljamo · ${Money.formatRSD(z.fee)}` : ''}</span></div>`;
+    const z = zoneById(current);
+    zoneHtml = `<div class="zone-select"><label class="sr-only" for="zone">Naselje za dostavu</label>${zoneSelect('zone', 'zone', current, { placeholder: 'Dostavljamo li do vas? Izaberite naselje' })}
+      <span class="zone-result ${z ? 'is-ok' : current === 'none' ? 'is-no' : ''}" data-zone-result>${
+        z
+          ? `${icon('check')} Dostavljamo · ${esc(deliveryFeeLabel(z))}${z.minOrder ? ` · min. ${esc(Money.formatRSD(z.minOrder))}` : ''}`
+          : current === 'none'
+            ? `${icon('alert')} Dostava na tu lokaciju trenutno nije dostupna. Izaberite preuzimanje ili pozovite ${esc(b.phone_display || '')}.`
+            : ''
+      }</span></div>`;
   }
   info.innerHTML = facts.join('') + zoneHtml;
   const notice = $('[data-closed-notice]');
   if (notice) {
     const closed = !snap.open;
     notice.hidden = !closed;
-    if (closed) notice.innerHTML = `${icon('clock')}<span><strong>Trenutno ne radimo.</strong> ${snap.paused ? esc(b.pause_message || '') : snap.next ? `Poručivanje ${esc(snap.next.label)}.` : ''} Meni možete da pregledate.</span>`;
+    if (closed) {
+      const why = snap.paused ? esc(b.pause_message || '') : snap.onBreak ? `Pauza je u toku, poručivanje ponovo ${esc((snap.pickup.next || snap.delivery.next || {}).label || 'uskoro')}.` : snap.next ? `Poručivanje ponovo ${esc(snap.next.label)}.` : '';
+      notice.innerHTML = `${icon('clock')}<span><strong>Trenutno ne primamo porudžbine.</strong> ${why} Meni možete da pregledate.</span>`;
+    }
   }
 }
 
@@ -138,7 +141,17 @@ function renderReorder() {
     box.hidden = true;
     return;
   }
-  const names = last.lines.map((l) => `${l.qty}× ${(productById(l.productId) || {}).name || ''}`).join(', ');
+  // One entry per product ("2× Klasik", not "1× Klasik, 1× Klasik" for two differently built pieces).
+  const counts = new Map();
+  last.lines.forEach((l) => {
+    const p = productById(l.productId);
+    if (p) counts.set(p.name, (counts.get(p.name) || 0) + (Number(l.qty) || 0));
+  });
+  if (!counts.size) {
+    box.hidden = true;
+    return;
+  }
+  const names = [...counts].map(([name, qty]) => `${qty}× ${name}`).join(', ');
   box.hidden = false;
   box.innerHTML = `${icon('repeat')}<div class="reorder__text"><strong>Isto kao prošli put?</strong><span>${esc(names)}</span></div><button type="button" class="btn btn--sm btn--blue" data-reorder-go><span class="btn__label">Ponovi</span></button>`;
 }
@@ -166,16 +179,9 @@ async function init() {
     cart.setMode(el.dataset.switchMode);
     renderModeBar();
   });
-  on(document, 'change', '[data-zone]', (e, el) => {
-    const [id] = el.value.split('|');
-    const result = $('[data-zone-result]');
-    if (el.value === 'none') {
-      cart.setZone('');
-      result.className = 'zone-result is-no';
-      result.innerHTML = `${icon('alert')} Za vašu adresu pozovite ${esc(business().phone_display || '')} ili izaberite preuzimanje.`;
-      return;
-    }
-    cart.setZone(id);
+  on(document, 'change', '#zone', (e, el) => {
+    cart.setZone(el.value);
+    renderModeBar();
   });
   on(document, 'click', '[data-filter]', (e, el) => {
     activeFilter = activeFilter === el.dataset.filter ? null : el.dataset.filter;

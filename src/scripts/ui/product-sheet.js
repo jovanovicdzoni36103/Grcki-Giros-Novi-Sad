@@ -1,9 +1,10 @@
 // Product detail sheet: the giros "assembly" (PDF: srce sajta) as numbered steps, with live price.
-// Products without options skip this entirely and go straight to the cart.
+// Every piece can be configured on its own (2× Klasik: extra meat on one, no onion on the other);
+// a new piece starts from the product defaults, never silently copies the previous one.
 import Pricing from '../shared/pricing.cjs';
 import Money from '../shared/money.cjs';
-import { $, esc, icon, env, prefersReducedMotion } from '../core/dom.js';
-import { catalog, productById } from '../core/catalog.js';
+import { esc, icon, env, prefersReducedMotion } from '../core/dom.js';
+import { catalog, productById, business } from '../core/catalog.js';
 import { schedule } from '../core/availability.js';
 import * as cart from '../core/cart.js';
 import { artSvg, artBg, tagList, TAG_LABELS } from './render.js';
@@ -12,8 +13,10 @@ import { toast } from './toast.js';
 import { bumpCart } from './header.js';
 import { track } from '../core/analytics.js';
 
+const MAX_PIECES = 20; // same as the default max_qty_per_line
+
 let root;
-let current = null; // { product, selected:Set, qty, note, editKey }
+let current = null; // { product, pieces:[{ selected:Set, note }], active, editKey }
 
 function ensureRoot() {
   if (root) return root;
@@ -32,10 +35,11 @@ function ensureRoot() {
 
 function orderingState() {
   const snap = schedule();
-  const mode = cart.mode() || 'delivery';
   if (!snap) return { can: true, label: '' };
   if (snap.open) return { can: true, label: '' };
-  return { can: false, label: snap.paused ? 'Poručivanje je pauzirano' : snap.next ? `Poručivanje ${snap.next.label}` : 'Trenutno ne radimo', mode };
+  if (snap.paused) return { can: false, label: 'Poručivanje je pauzirano' };
+  if (snap.onBreak) return { can: false, label: 'Pauza — trenutno ne primamo porudžbine' };
+  return { can: false, label: snap.next ? `Poručivanje ${snap.next.label}` : 'Trenutno ne primamo porudžbine' };
 }
 
 function groupsOf(product) {
@@ -50,9 +54,17 @@ function optionsOf(groupId) {
   return (catalog().index.optionsByGroup[groupId] || []).slice().sort((a, b) => a.sort - b.sort);
 }
 
+const piece = () => current.pieces[current.active];
+
+function newPiece(from) {
+  if (from) return { selected: new Set(from.selected), note: from.note };
+  return { selected: new Set(Pricing.defaultOptions(catalog().index, current.product)), note: '' };
+}
+
 function groupHtml(group, step) {
   const opts = optionsOf(group.id);
-  const sel = current.selected;
+  const sel = piece().selected;
+  const n = current.active;
   const required = group.required;
   const badge = group.display === 'info' ? 'Uključeno' : required ? 'Obavezno' : group.type === 'multi' ? (group.max ? `Do ${group.max}` : 'Po želji') : 'Po želji';
   const head = `<legend class="opt-group__head"><span class="opt-group__title"><span class="opt-group__step">${step}</span>${esc(group.name)}</span><span class="opt-group__badge${required && group.display !== 'info' ? ' is-required' : ''}">${badge}</span></legend>${group.hint ? `<p class="opt-group__hint">${esc(group.hint)}</p>` : ''}`;
@@ -70,8 +82,8 @@ function groupHtml(group, step) {
   } else if (group.display === 'cards') {
     body = `<div class="opt-cards">${opts
       .map(
-        (o) => `<div class="opt-card"><input type="${group.type === 'single' ? 'radio' : 'checkbox'}" id="o-${esc(o.id)}" name="g-${esc(group.id)}" value="${esc(o.id)}" ${sel.has(o.id) ? 'checked' : ''} ${o.available === false ? 'disabled' : ''}>
-          <label for="o-${esc(o.id)}">${esc(o.name)}${o.price ? `<small>+${Money.formatRSD(o.price)}</small>` : o.available === false ? '<small>nema</small>' : ''}</label></div>`
+        (o) => `<div class="opt-card"><input type="${group.type === 'single' ? 'radio' : 'checkbox'}" id="o-${n}-${esc(o.id)}" name="g-${esc(group.id)}" value="${esc(o.id)}" ${sel.has(o.id) ? 'checked' : ''} ${o.available === false ? 'disabled' : ''}>
+          <label for="o-${n}-${esc(o.id)}">${esc(o.name)}${o.price ? `<small>+${Money.formatRSD(o.price)}</small>` : o.available === false ? '<small>nema</small>' : ''}</label></div>`
       )
       .join('')}</div>`;
   } else {
@@ -85,19 +97,73 @@ function groupHtml(group, step) {
   return `<fieldset class="opt-group" data-group="${esc(group.id)}">${head}${body}</fieldset>`;
 }
 
-function priced() {
-  return Pricing.priceLine(catalog().index, { productId: current.product.id, qty: current.qty, options: [...current.selected], note: current.note }, { mode: cart.mode() || undefined });
+function pricePiece(p) {
+  return Pricing.priceLine(catalog().index, { productId: current.product.id, qty: 1, options: [...p.selected], note: p.note }, { mode: cart.mode() || undefined });
 }
 
+function totalPrice() {
+  return current.pieces.reduce((sum, p) => sum + (pricePiece(p).lineTotal || current.product.price), 0);
+}
+
+/** First required choice still missing, on any piece: { index, error }. */
 function missingRequired() {
-  const res = priced();
-  return res.errors.find((e) => e.groupId) || null;
+  for (let i = 0; i < current.pieces.length; i++) {
+    const err = pricePiece(current.pieces[i]).errors.find((e) => e.groupId);
+    if (err) return { index: i, error: err };
+  }
+  return null;
+}
+
+/** Short line under a piece tab: what differs from the defaults. */
+function pieceSummary(p) {
+  const res = pricePiece(p);
+  const parts = [];
+  res.selections.forEach((s) => {
+    if (s.display === 'info') return;
+    s.chosen.forEach((o) => {
+      if (o.price) parts.push(`+${o.name}`);
+    });
+  });
+  if (res.removedSummary) parts.push(res.removedSummary.replace(/^BEZ: /, 'bez '));
+  return parts.join(', ') || 'kao na meniju';
+}
+
+function piecesHtml() {
+  if (current.pieces.length < 2 || !groupsOf(current.product).length) return '';
+  return `<div class="pieces">
+    <p class="pieces__hint">${icon('spark')}Svaki komad možete da složite drugačije.</p>
+    <div class="pieces__tabs" role="tablist" aria-label="Komadi">${current.pieces
+      .map((p, i) => {
+        const bad = pricePiece(p).errors.some((e) => e.groupId);
+        return `<button type="button" role="tab" class="pieces__tab${bad ? ' is-incomplete' : ''}" data-piece="${i}" aria-selected="${i === current.active}"><strong>Komad ${i + 1}</strong><small>${esc(pieceSummary(p))}</small></button>`;
+      })
+      .join('')}</div>
+    <button type="button" class="text-btn pieces__copy" data-copy-piece>${icon('copy')} Isto za sve komade</button>
+  </div>`;
+}
+
+function formHtml() {
+  const groups = groupsOf(current.product);
+  const p = piece();
+  const noteLabel = current.pieces.length > 1 ? `Napomena za komad ${current.active + 1}` : 'Napomena';
+  return `${piecesHtml()}
+    ${groups.map((g, i) => groupHtml(g, i + 1)).join('')}
+    <fieldset class="opt-group">
+      <legend class="opt-group__head"><span class="opt-group__title"><span class="opt-group__step">${groups.length + 1}</span>${noteLabel}</span><span class="opt-group__badge">Po želji</span></legend>
+      <textarea class="input" name="note" rows="2" maxlength="140" placeholder="npr. dobro zapečeno, sos sa strane" aria-label="${esc(noteLabel)}">${esc(p.note)}</textarea>
+      <p class="field__hint">Trudimo se da ispunimo svaku želju, ali posebne želje nisu zagarantovane.</p>
+    </fieldset>`;
+}
+
+function renderForm() {
+  const form = root.querySelector('[data-sheet-form]');
+  if (form) form.innerHTML = formHtml();
+  updatePrice();
 }
 
 function render(fromEl) {
   const { product } = current;
   const assets = env().assets;
-  const groups = groupsOf(product);
   const state = orderingState();
   const panel = root.querySelector('.overlay__panel');
   const includes = product.includes ? `<p class="sheet__includes">${esc(product.includes)}</p>` : '';
@@ -114,14 +180,8 @@ function render(fromEl) {
           ${product.description ? `<p class="sheet__desc">${esc(product.description)}</p>` : ''}
           ${includes}
           <p class="sheet__price num">${Money.formatRSD(product.price)} ${compare}</p>
-          <form class="sheet__form" data-sheet-form novalidate>
-            ${groups.map((g, i) => groupHtml(g, i + 1)).join('')}
-            <fieldset class="opt-group">
-              <legend class="opt-group__head"><span class="opt-group__title"><span class="opt-group__step">${groups.length + 1}</span>Napomena</span><span class="opt-group__badge">Po želji</span></legend>
-              <textarea class="input" name="note" rows="2" maxlength="140" placeholder="npr. dobro zapečeno, sos sa strane" aria-label="Napomena za kuhinju">${esc(current.note)}</textarea>
-              <p class="field__hint">Trudimo se da ispunimo svaku želju, ali posebne želje nisu zagarantovane.</p>
-            </fieldset>
-          </form>
+          ${product.available === false ? `<p class="notice notice--error">${icon('alert')}<span>Trenutno nema: ${esc(product.name)}. Ne može da se doda u porudžbinu.</span></p>` : ''}
+          <form class="sheet__form" data-sheet-form novalidate>${formHtml()}</form>
           ${
             pairs.length
               ? `<div class="pairs"><p class="pairs__title">Ide uz ovo</p><div class="chips">${pairs
@@ -137,7 +197,7 @@ function render(fromEl) {
       <footer class="sheet__foot">
         <div class="qty qty--lg" role="group" aria-label="Količina">
           <button type="button" data-qty="-1" aria-label="Manje">${icon('minus')}</button>
-          <output aria-live="polite" data-qty-value>${current.qty}</output>
+          <output aria-live="polite" data-qty-value>${current.pieces.length}</output>
           <button type="button" data-qty="1" aria-label="Više">${icon('plus')}</button>
         </div>
         <button type="button" class="btn btn--gold btn--lg" data-sheet-add ${state.can && product.available !== false ? '' : 'disabled'}>
@@ -152,25 +212,32 @@ function render(fromEl) {
 }
 
 function updatePrice() {
-  const res = priced();
   const price = root.querySelector('[data-add-price]');
-  if (price) price.textContent = Money.formatRSD(res.lineTotal || current.product.price * current.qty);
+  if (price) price.textContent = Money.formatRSD(totalPrice());
   const q = root.querySelector('[data-qty-value]');
-  if (q) q.textContent = String(current.qty);
+  if (q) q.textContent = String(current.pieces.length);
   const minus = root.querySelector('[data-qty="-1"]');
-  if (minus) minus.disabled = current.qty <= 1;
+  if (minus) minus.disabled = current.pieces.length <= 1;
+  const plus = root.querySelector('[data-qty="1"]');
+  if (plus) plus.disabled = current.pieces.length >= MAX_PIECES;
   root.querySelectorAll('[data-group]').forEach((fs) => {
     const gid = fs.dataset.group;
     const group = catalog().index.groups[gid];
-    const has = optionsOf(gid).some((o) => current.selected.has(o.id));
+    const has = optionsOf(gid).some((o) => piece().selected.has(o.id));
     fs.classList.toggle('is-done', group && group.required ? has : true);
+  });
+  root.querySelectorAll('[data-piece]').forEach((tab) => {
+    const p = current.pieces[Number(tab.dataset.piece)];
+    if (!p) return;
+    tab.querySelector('small').textContent = pieceSummary(p);
+    tab.classList.toggle('is-incomplete', pricePiece(p).errors.some((e) => e.groupId));
   });
   const add = root.querySelector('[data-sheet-add]');
   const label = root.querySelector('[data-add-label]');
   const state = orderingState();
-  if (add && label && state.can) {
+  if (add && label && state.can && current.product.available !== false) {
     const miss = missingRequired();
-    if (miss) label.textContent = miss.message.replace(/\.$/, '');
+    if (miss) label.textContent = (current.pieces.length > 1 ? `Komad ${miss.index + 1}: ` : '') + miss.error.message.replace(/\.$/, '');
     else label.innerHTML = current.editKey ? 'Sačuvaj<span class="hide-sm"> izmene</span>' : 'Dodaj<span class="hide-sm"> u korpu</span>';
   }
 }
@@ -197,19 +264,29 @@ function onChange(e) {
   if (!current || !input.name || !input.name.startsWith('g-')) return;
   const gid = input.name.slice(2);
   const group = catalog().index.groups[gid];
+  const sel = piece().selected;
   if (group.type === 'single') {
-    optionsOf(gid).forEach((o) => current.selected.delete(o.id));
-    if (input.checked) current.selected.add(input.value);
+    optionsOf(gid).forEach((o) => sel.delete(o.id));
+    if (input.checked) sel.add(input.value);
   } else if (input.checked) {
-    current.selected.add(input.value);
+    sel.add(input.value);
   } else {
-    current.selected.delete(input.value);
+    sel.delete(input.value);
   }
   updatePrice();
 }
 
 function onInput(e) {
-  if (current && e.target.name === 'note') current.note = e.target.value.slice(0, 140);
+  if (current && e.target.name === 'note') piece().note = e.target.value.slice(0, 140);
+}
+
+function selectPiece(index, { focus = false } = {}) {
+  current.active = Math.max(0, Math.min(current.pieces.length - 1, index));
+  renderForm();
+  if (focus) {
+    const tab = root.querySelector(`[data-piece="${current.active}"]`);
+    if (tab) tab.focus();
+  }
 }
 
 function onClick(e) {
@@ -219,8 +296,28 @@ function onClick(e) {
   }
   const qtyBtn = e.target.closest('[data-qty]');
   if (qtyBtn) {
-    current.qty = Math.max(1, Math.min(20, current.qty + Number(qtyBtn.dataset.qty)));
-    updatePrice();
+    const hadTabs = current.pieces.length > 1;
+    if (Number(qtyBtn.dataset.qty) > 0 && current.pieces.length < MAX_PIECES) {
+      current.pieces.push(newPiece());
+      if (groupsOf(current.product).length) current.active = current.pieces.length - 1;
+    } else if (Number(qtyBtn.dataset.qty) < 0 && current.pieces.length > 1) {
+      current.pieces.pop();
+      current.active = Math.min(current.active, current.pieces.length - 1);
+    }
+    if (groupsOf(current.product).length && (hadTabs || current.pieces.length > 1)) renderForm();
+    else updatePrice();
+    return;
+  }
+  const tab = e.target.closest('[data-piece]');
+  if (tab) {
+    selectPiece(Number(tab.dataset.piece));
+    return;
+  }
+  if (e.target.closest('[data-copy-piece]')) {
+    const src = piece();
+    current.pieces = current.pieces.map((p, i) => (i === current.active ? p : newPiece(src)));
+    renderForm();
+    toast({ text: `Svi komadi su složeni kao komad ${current.active + 1}.`, icon: 'copy', timeout: 2400 });
     return;
   }
   const quick = e.target.closest('[data-quick-add]');
@@ -236,7 +333,8 @@ function onClick(e) {
 function commit() {
   const miss = missingRequired();
   if (miss) {
-    const fs = root.querySelector(`[data-group="${miss.groupId}"]`);
+    if (miss.index !== current.active) selectPiece(miss.index);
+    const fs = root.querySelector(`[data-group="${miss.error.groupId}"]`);
     if (fs) {
       fs.classList.remove('is-invalid');
       void fs.offsetWidth;
@@ -248,18 +346,24 @@ function commit() {
     return;
   }
   const product = current.product;
-  const line = { productId: product.id, qty: current.qty, options: [...current.selected], note: current.note };
+  const pieces = current.pieces.map((p) => ({ options: [...p.selected], note: p.note }));
   const wasEdit = current.editKey;
-  if (wasEdit) cart.replaceLine(wasEdit, line);
-  else cart.addLine(line);
+  // Identical pieces merge into an existing line; a line never goes past the per-line maximum.
+  const over = Pricing.groupPieces(product.id, pieces).some((l) => {
+    const key = Pricing.lineKey(l);
+    const had = key === wasEdit ? null : cart.rawLine(key);
+    return (had ? had.qty : 0) + l.qty > cart.maxQty();
+  });
+  const lines = cart.addPieces(product.id, pieces, wasEdit);
   overlay.close(root);
   bumpCart();
-  track('add_to_cart', { item_id: line.productId, quantity: line.qty });
-  if (wasEdit) toast({ text: `${product.name}: izmene su sačuvane.`, timeout: 2600 });
-  else announceAdded(product);
+  track('add_to_cart', { item_id: product.id, quantity: pieces.length });
+  if (over) toast({ text: `Najviše ${cart.maxQty()} komada iste stavke u jednoj porudžbini — korpa je dopunjena do ${cart.maxQty()}. Za veću porudžbinu pozovite nas.`, icon: 'alert', tone: 'error', timeout: 7000 });
+  else if (wasEdit) toast({ text: `${product.name}: izmene su sačuvane.`, timeout: 2600 });
+  else announceAdded(product, pieces.length, lines.length);
 }
 
-function announceAdded(product) {
+function announceAdded(product, count, lineCount) {
   const idx = catalog().index;
   const inCart = cart.view().lines.map((l) => l.productId);
   const recs = Pricing.recommendations(idx, [product.id], catalog().data.recs || {}, 2).filter((r) => !inCart.includes(r.productId));
@@ -271,7 +375,8 @@ function announceAdded(product) {
         })
         .join('')}</div>`
     : '';
-  const t = toast({ text: `${product.name} je u korpi.`, extra, timeout: 5200 });
+  const what = count > 1 ? `${count}× ${product.name}${lineCount > 1 ? ' (različito složeni)' : ''}` : product.name;
+  const t = toast({ text: `${what} ${count > 1 ? 'su' : 'je'} u korpi.`, extra, timeout: 5200 });
   t.el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-toast-add]');
     if (!b) return;
@@ -290,8 +395,17 @@ export function quickAdd(productId, fromEl) {
     toast({ text: state.label, icon: 'clock', tone: 'error' });
     return;
   }
+  if (p.available === false) {
+    toast({ text: `Trenutno nema: ${p.name}.`, icon: 'alert', tone: 'error' });
+    return;
+  }
   if (Pricing.hasOptions(p)) {
     openProduct(productId, { fromEl });
+    return;
+  }
+  const existing = cart.rawLine(Pricing.lineKey({ productId, options: [], note: '' }));
+  if (existing && existing.qty >= cart.maxQty()) {
+    toast({ text: `Najviše ${cart.maxQty()} komada po stavci. Za veću porudžbinu pozovite nas: ${business().phone_display || ''}.`, icon: 'alert', tone: 'error', timeout: 6000 });
     return;
   }
   const key = cart.addLine({ productId, qty: 1, options: [] });
@@ -331,14 +445,12 @@ export function openProduct(productId, { fromEl, editKey } = {}) {
   if (!product) return;
   ensureRoot();
   const raw = editKey ? cart.rawLine(editKey) : null;
-  const idx = catalog().index;
-  current = {
-    product,
-    editKey: raw ? editKey : null,
-    selected: new Set(raw ? raw.options : Pricing.defaultOptions(idx, product)),
-    qty: raw ? raw.qty : 1,
-    note: raw ? raw.note || '' : ''
-  };
+  current = { product, editKey: raw ? editKey : null, pieces: [], active: 0 };
+  if (raw) {
+    for (let i = 0; i < raw.qty; i++) current.pieces.push({ selected: new Set(raw.options), note: raw.note || '' });
+  } else {
+    current.pieces.push(newPiece());
+  }
   render(fromEl);
   overlay.open(root, { focus: '[role="dialog"]', onClose: () => (current = null) });
   track('view_item', { item_id: product.id });
@@ -350,7 +462,7 @@ export function addOrOpen(productId, fromEl) {
   if (!p) return;
   if (Pricing.hasOptions(p)) openProduct(productId, { fromEl: fromEl && fromEl.closest('[data-product]') });
   else {
-    quickAdd(productId, fromEl);
+    if (!quickAdd(productId, fromEl)) return;
     const btn = fromEl && fromEl.closest('.product__add');
     if (btn) {
       btn.classList.add('is-added');

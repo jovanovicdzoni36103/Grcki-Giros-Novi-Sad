@@ -53,7 +53,7 @@ export function orderBody(overrides = {}) {
     when: 'asap',
     businessDate: '2026-09-23',
     customer: { name: 'Nikola Jovanović', phone: '064 123 4567', email: '' },
-    address: { street: 'Bulevar oslobođenja', number: '12a', apt: 'stan 4', zone: '', note: 'Interfon 4' },
+    address: { street: 'Bulevar oslobođenja', number: '12a', apt: '4', floor: '2', zone: 'ns-grad', note: 'Interfon 4' },
     cash: 2000,
     note: '',
     items: [
@@ -72,6 +72,16 @@ export function orderBody(overrides = {}) {
 
 export function placeOrder(emu, overrides = {}) {
   return emu.doPost({ action: 'order.create', payload: orderBody(overrides) });
+}
+
+/** Admin session for tests: sets the PIN and returns a call(action, payload) helper. */
+export function adminSession(emu, pin = '482913') {
+  emu.run('setPanelPin_', pin);
+  const login = emu.doPost({ action: 'admin.login', payload: { pin } });
+  if (!login.ok) throw new Error('admin login failed: ' + JSON.stringify(login));
+  const token = login.data.token;
+  const call = (action, payload = {}) => emu.doPost({ action, payload: { token, ...payload } });
+  return { token, call };
 }
 
 /** Plain JSON copy (strips the VM realm so deepStrictEqual works). */

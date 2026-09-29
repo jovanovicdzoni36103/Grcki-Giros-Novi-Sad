@@ -6,7 +6,7 @@ REM  Grcki Giros - pokretanje sajta lokalno
 REM
 REM  Dvoklikni ovaj fajl. Otvara se sajt u pretrazivacu, sa pravim
 REM  backendom (Apps Script kod u lokalnom emulatoru): meni, korpa,
-REM  porudzbine, panel.
+REM  porudzbine, admin panel.
 REM
 REM  Zasto ovo, a ne dvoklik na dist\index.html: otvoren sa diska
 REM  (file://) sajt ne nalazi CSS, fontove i skripte, jer ih trazi na
@@ -14,7 +14,7 @@ REM  /assets/... kao na pravom serveru.
 REM
 REM  Adrese:
 REM    sajt        http://localhost:5180
-REM    panel       http://localhost:5180/panel/   (PIN 123456)
+REM    admin       http://localhost:5180/admin/   (PIN 123456)
 REM    emailovi    http://localhost:5180/__outbox
 REM    tabela      http://localhost:5180/__state
 REM ===================================================================
@@ -62,7 +62,7 @@ if errorlevel 1 (
 echo.
 echo  ================================================
 echo   Sajt radi na:  http://localhost:%PORT%
-echo   Panel lokala:  http://localhost:%PORT%/panel/   PIN 123456
+echo   Admin panel:   http://localhost:%PORT%/admin/   PIN 123456
 echo.
 echo   Da ga ugasis: zatvori ovaj crni prozor.
 echo  ================================================

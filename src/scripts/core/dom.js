@@ -27,12 +27,6 @@ export function icon(name, cls = 'icon') {
   return `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="${env().assets.icons}#i-${name}"/></svg>`;
 }
 
-export function fromHTML(html) {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstElementChild;
-}
-
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const finePointer = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 

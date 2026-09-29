@@ -18,10 +18,11 @@ function at(emu, iso, overrides, phone) {
   return r.data;
 }
 
+/** The shop rejects an order from the admin panel. */
 function cancel(emu, orderId) {
-  const token = emu.doPost({ action: 'panel.login', payload: { pin: '482913' } }).data.token;
-  const r = emu.doPost({ action: 'panel.status', payload: { token, orderId, status: 'CANCELLED' } });
-  assert.equal(r.ok, true);
+  const token = emu.doPost({ action: 'admin.login', payload: { pin: '482913' } }).data.token;
+  const r = emu.doPost({ action: 'admin.status', payload: { token, orderId, status: 'REJECTED' } });
+  assert.equal(r.ok, true, JSON.stringify(r.error));
 }
 
 function buildHistory() {
@@ -75,7 +76,7 @@ describe('daily report at 01:15 for the previous business day', () => {
     const mail = emu.state.outbox[0];
     assert.equal(mail.subject, 'DNEVNI IZVEŠTAJ · Sreda, 23.09.2026. · 4.370 RSD');
     assert.match(mail.htmlBody, /Porudžbine/);
-    assert.match(mail.body, /Porudžbine: 4\nPrihod: 4\.370 RSD\nDostava: 2\nPreuzimanje: 2\nProsečna porudžbina: 1\.093 RSD\nOtkazano: 1/);
+    assert.match(mail.body, /Porudžbine: 4\nPrihod: 4\.370 RSD\nDostava: 2\nPreuzimanje: 2\nProsečna porudžbina: 1\.093 RSD\nOdbijeno: 1/);
   });
 
   test('written to DAILY_STATS and not sent twice', () => {

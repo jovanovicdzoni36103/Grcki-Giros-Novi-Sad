@@ -128,7 +128,7 @@ export function hoursRows(summary, { deliveryColumn = false } = {}) {
   return summary
     .map(
       (r) =>
-        `<div${r.closed ? ' class="is-closed"' : ''}><dt>${esc(r.days)}</dt><dd>${r.closed ? 'ne radimo' : esc(r.store)}${deliveryColumn && !r.closed && r.delivery ? ` <small>dostava ${esc(r.delivery)}</small>` : ''}</dd></div>`
+        `<div${r.closed ? ' class="is-closed"' : ''}><dt>${esc(r.days)}</dt><dd>${r.closed ? 'ne radimo' : esc(r.store)}${deliveryColumn && !r.closed && r.delivery ? ` <small>dostava ${esc(r.delivery)}</small>` : ''}${!r.closed && r.brk ? ` <small>pauza ${esc(r.brk)}</small>` : ''}</dd></div>`
     )
     .join('');
 }

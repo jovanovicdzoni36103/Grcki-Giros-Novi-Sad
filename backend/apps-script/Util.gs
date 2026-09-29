@@ -84,10 +84,6 @@ function prevMonthKey_(monthKey) {
   return monthKey_(addDays_(monthStart_(monthKey), -1));
 }
 
-function uuid_() {
-  return Utilities.getUuid();
-}
-
 function randomHex_(length) {
   var s = '';
   while (s.length < length) s += Utilities.getUuid().replace(/-/g, '');
@@ -210,7 +206,12 @@ function objectToRow_(hi, obj) {
   return row;
 }
 
-/** Appends objects in one write. Returns the first row number written. */
+/**
+ * Appends objects in one write. Returns the first row number written.
+ * A single row goes through appendRow, which Sheets performs atomically: two executions writing at the
+ * same moment (a log line and a contact message, two guests' validation logs) never land on the same row.
+ * Multi-row writes (order items) only happen under the script lock or in nightly maintenance.
+ */
 function appendObjects_(name, objects) {
   if (!objects.length) return 0;
   var sh = sheet_(name);
@@ -218,6 +219,10 @@ function appendObjects_(name, objects) {
   var rows = objects.map(function (o) {
     return objectToRow_(hi, o);
   });
+  if (rows.length === 1) {
+    sh.appendRow(rows[0]);
+    return sh.getLastRow();
+  }
   var start = sh.getLastRow() + 1;
   sh.getRange(start, 1, rows.length, hi.width).setValues(rows);
   return start;
@@ -231,6 +236,50 @@ function updateRow_(name, rowNumber, patch, hiOpt) {
     if (!Object.prototype.hasOwnProperty.call(hi.map, k)) return;
     sh.getRange(rowNumber, hi.map[k] + 1).setValue(cellValue_(patch[k]));
   });
+}
+
+/** Merges `patch` into one row and writes it back in a single call (admin edits touch many columns). */
+function writeRowObject_(name, rowNumber, patch) {
+  var sh = sheet_(name);
+  var hi = headerIndex_(sh);
+  var range = sh.getRange(rowNumber, 1, 1, hi.width);
+  var values = range.getValues()[0];
+  Object.keys(patch).forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(hi.map, k)) values[hi.map[k]] = cellValue_(patch[k]);
+  });
+  range.setValues([values]);
+}
+
+/** Adds header cells a newer version needs, without touching the owner's column order. */
+function ensureColumns_(name, headers) {
+  var sh = sheet_(name);
+  var hi = headerIndex_(sh);
+  var missing = headers.filter(function (h) {
+    return !(h in hi.map);
+  });
+  if (missing.length) sh.getRange(1, hi.width + 1, 1, missing.length).setValues([missing]);
+}
+
+/** 'Giros MAX Ljuti' → 'giros-max-ljuti' (Serbian Latin letters folded). */
+function slugify_(text) {
+  var map = { č: 'c', ć: 'c', š: 's', ž: 'z', đ: 'dj', Č: 'c', Ć: 'c', Š: 's', Ž: 'z', Đ: 'dj' };
+  return String(text || '')
+    .replace(/[čćšžđČĆŠŽĐ]/g, function (c) {
+      return map[c];
+    })
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
+
+/** An id that is not in `taken` (array of existing ids), based on the name. */
+function uniqueId_(base, taken, fallback) {
+  var root = slugify_(base) || fallback || 'stavka';
+  var id = root;
+  var n = 2;
+  while (taken.indexOf(id) !== -1) id = root + '-' + n++;
+  return id;
 }
 
 /** Row numbers whose column equals value (exact match). */

@@ -20,28 +20,25 @@ var POST_ROUTES = {
   'order.create': function (payload, ctx) {
     return createOrder_(payload, ctx);
   },
+  'order.lookup': function (payload) {
+    return lookupOrder_(payload);
+  },
+  'feedback.submit': function (payload, ctx) {
+    return submitFeedback_(payload, ctx);
+  },
   'contact.submit': function (payload, ctx) {
     return submitContact_(payload, ctx);
   },
   'jobs.submit': function (payload, ctx) {
     return submitJob_(payload, ctx);
   },
-  'panel.login': function (payload) {
-    return panelLogin_(payload);
-  },
-  'panel.orders': function (payload) {
-    return panelOrders_(payload);
-  },
-  'panel.status': function (payload) {
-    return panelStatus_(payload);
-  },
-  'panel.availability': function (payload) {
-    return panelAvailability_(payload);
-  },
-  'panel.settings': function (payload) {
-    return panelSettings_(payload);
+  'admin.login': function (payload) {
+    return adminLogin_(payload);
   }
 };
+
+/** Large bodies are only accepted where a file travels (CV, menu photo). */
+var UPLOAD_ACTIONS_ = ['jobs.submit', 'admin.image.upload'];
 
 function doGet(e) {
   return handleRequest_('GET', e);
@@ -80,7 +77,7 @@ function parseBody_(e) {
     throw apiError_('BAD_REQUEST', 'Zahtev nije ispravan.');
   }
   if (!body || typeof body !== 'object' || typeof body.action !== 'string') throw apiError_('BAD_REQUEST', 'Zahtev nije ispravan.');
-  if (body.action !== 'jobs.submit' && raw.length > MAX_BODY_BYTES) throw apiError_('BAD_REQUEST', 'Zahtev je prevelik.');
+  if (UPLOAD_ACTIONS_.indexOf(body.action) === -1 && raw.length > MAX_BODY_BYTES) throw apiError_('BAD_REQUEST', 'Zahtev je prevelik.');
   return body;
 }
 
@@ -94,6 +91,11 @@ function fallbackMessage_() {
   return 'Porudžbina trenutno nije mogla da bude poslata. Molimo pokušajte ponovo ili pozovite nas na ' + phone + '.';
 }
 
+/** Own keys only: "constructor", "toString" or "__proto__" are not actions. */
+function routeFor_(table, action) {
+  return Object.prototype.hasOwnProperty.call(table, action) ? table[action] : null;
+}
+
 function handleRequest_(method, e) {
   var started = Date.now();
   var requestId = newRequestId_();
@@ -102,19 +104,32 @@ function handleRequest_(method, e) {
   try {
     var route;
     var input;
+    var admin = false;
     if (method === 'GET') {
       input = (e && e.parameter) || {};
       action = String(input.action || '');
-      route = GET_ROUTES[action];
+      route = routeFor_(GET_ROUTES, action);
     } else {
       var body = parseBody_(e);
       action = body.action;
-      input = body.payload || {};
-      route = POST_ROUTES[action];
+      input = body.payload && typeof body.payload === 'object' && !Array.isArray(body.payload) ? body.payload : {};
+      route = routeFor_(POST_ROUTES, action);
+      if (!route && routeFor_(ADMIN_ROUTES, action)) {
+        admin = true;
+        route = function (payload) {
+          return adminRoute_(action, payload);
+        };
+      }
     }
     if (!route) throw apiError_('BAD_REQUEST', 'Nepoznata akcija.');
     var data = route(input, { requestId: requestId, method: method, started: started });
-    return json_({ ok: true, data: data, requestId: requestId });
+    var out = { ok: true, data: data, requestId: requestId };
+    // Sliding admin session: a panel that stays open through a 16-hour shift is never logged out mid-service.
+    if (admin) {
+      var renewed = adminRenewal_(input.token);
+      if (renewed) out.session = renewed;
+    }
+    return json_(out);
   } catch (err) {
     return json_(errorEnvelope_(err, action, requestId, started));
   }
@@ -123,7 +138,7 @@ function handleRequest_(method, e) {
 function errorEnvelope_(err, action, requestId, started) {
   var duration = Date.now() - started;
   if (err && err.expected) {
-    var severity = err.code === 'VALIDATION' || err.code === 'CLOSED' || err.code === 'SLOT_UNAVAILABLE' ? 'INFO' : 'WARN';
+    var severity = ['VALIDATION', 'CLOSED', 'SLOT_UNAVAILABLE', 'MIN_ORDER', 'ZONE_UNAVAILABLE'].indexOf(err.code) !== -1 ? 'INFO' : 'WARN';
     log_(severity, action || 'request', 'REJECTED', err.code + ': ' + err.publicMessage, {
       durationMs: duration,
       details: err.fields ? { fields: err.fields } : undefined

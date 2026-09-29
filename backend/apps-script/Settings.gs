@@ -78,6 +78,8 @@ function getHours_() {
         close: String(r.close || '').trim(),
         delivery_open: String(r.delivery_open || '').trim(),
         delivery_close: String(r.delivery_close || '').trim(),
+        break_start: String(r.break_start || '').trim(),
+        break_end: String(r.break_end || '').trim(),
         closed: toBool_(r.closed, false)
       };
     });
@@ -115,20 +117,33 @@ function getSpecial_() {
   });
 }
 
+function zoneFromRow_(r) {
+  var min = String(r.min_order === undefined || r.min_order === null ? '' : r.min_order).replace(/[^\d.-]/g, '');
+  return {
+    id: String(r.id || '').trim(),
+    name: String(r.name || '').trim(),
+    areas: splitList_(r.areas),
+    fee: toNum_(String(r.fee).replace(/[^\d.-]/g, ''), 0),
+    // Blank = the global min_order_delivery applies; 0 = this zone has no minimum.
+    minOrder: min === '' ? null : toNum_(min, null),
+    active: toBool_(r.active, true),
+    sort: toNum_(r.sort, 0),
+    note: String(r.note || ''),
+    _row: r._row
+  };
+}
+
+/** Minimum food value for a delivery order into `zone` (the zone's own value wins, else the global setting). */
+function deliveryMinimum_(zone, settings) {
+  if (zone && zone.minOrder !== null && zone.minOrder !== undefined) return zone.minOrder;
+  return toNum_(settings.min_order_delivery, 0);
+}
+
+/** Active zones for guests. */
 function getZones_() {
   return cached_('zones', CACHE_TTL_SEC, function () {
     return readTable_(SHEETS.ZONES, { display: true })
-      .rows.map(function (r) {
-        return {
-          id: String(r.id || '').trim(),
-          name: String(r.name || '').trim(),
-          areas: splitList_(r.areas),
-          fee: toNum_(String(r.fee).replace(/[^\d.-]/g, ''), 0),
-          minOrder: toNum_(String(r.min_order).replace(/[^\d.-]/g, ''), 0),
-          active: toBool_(r.active, true),
-          sort: toNum_(r.sort, 0)
-        };
-      })
+      .rows.map(zoneFromRow_)
       .filter(function (z) {
         return z.id && z.active;
       })
@@ -145,8 +160,8 @@ function schedulingConfig_() {
 var PUBLIC_SETTING_KEYS = [
   'business_name', 'address_street', 'address_city', 'postal_code', 'phone_display', 'phone_e164', 'email_public',
   'instagram_url', 'site_url', 'map_query', 'ordering_enabled', 'pause_message', 'delivery_enabled', 'pickup_enabled',
-  'delivery_eta_min', 'pickup_eta_min', 'pickup_eta_max', 'extra_wait_min', 'asap_cutoff_min', 'slot_first_offset_min',
-  'slot_interval_min', 'slot_round_min', 'preorder_max_ahead_min', 'business_day_rollover_hour', 'delivery_fee_mode',
+  'delivery_eta_min', 'delivery_eta_max', 'pickup_eta_min', 'pickup_eta_max', 'extra_wait_min', 'asap_cutoff_min',
+  'slot_first_offset_min', 'slot_interval_min', 'slot_round_min', 'preorder_days', 'accept_timeout_min', 'business_day_rollover_hour', 'delivery_fee_mode',
   'delivery_fee_default', 'zones_enabled', 'free_delivery_threshold', 'min_order_delivery', 'min_order_pickup',
   'max_lines_per_order', 'max_qty_per_line', 'cash_max_over_total', 'job_active', 'job_title', 'job_salary',
   'customer_confirmation_enabled'

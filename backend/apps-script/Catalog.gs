@@ -141,7 +141,7 @@ function bootstrapPayload_() {
       }),
       zones: zonesEnabled
         ? getZones_().map(function (z) {
-            return { id: z.id, name: z.name, areas: z.areas, fee: z.fee, minOrder: z.minOrder };
+            return { id: z.id, name: z.name, areas: z.areas, fee: z.fee, minOrder: deliveryMinimum_(z, settings) };
           })
         : [],
       catalog: catalog,
@@ -154,12 +154,4 @@ function bootstrapPayload_() {
   });
   out.serverNow = now_().getTime();
   return out;
-}
-
-/** Owner / panel toggles a product's availability ("rasprodato"). */
-function setProductAvailability_(productId, available) {
-  var rows = findRows_(SHEETS.PRODUCTS, 'id', productId);
-  if (!rows.length) throw apiError_('BAD_REQUEST', 'Proizvod ne postoji.');
-  updateRow_(SHEETS.PRODUCTS, rows[0], { available: !!available });
-  invalidateConfigCache_();
 }

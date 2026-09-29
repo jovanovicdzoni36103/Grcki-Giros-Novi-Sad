@@ -78,8 +78,3 @@ export function categories() {
   const cats = (state.data && state.data.catalog.categories) || [];
   return cats.slice().sort((a, b) => a.sort - b.sort);
 }
-
-export function productsIn(categoryId) {
-  const list = (state.data && state.data.catalog.products) || [];
-  return list.filter((p) => p.categoryId === categoryId && p.active !== false).sort((a, b) => a.sort - b.sort);
-}

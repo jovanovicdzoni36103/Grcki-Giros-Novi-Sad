@@ -4,6 +4,13 @@
  * Shared verbatim by the browser bundle, Node tests and Google Apps Script (copied to Shared_Scheduling.gs).
  * Works purely on Europe/Belgrade wall-clock values: { date: 'YYYY-MM-DD', minutes: 0..1439 }.
  * Business windows may cross midnight (09:00–01:00 is stored as 540–1500 on the business date).
+ *
+ * Rules (owner-editable in SETTINGS / HOURS):
+ * - Ordering is possible only while the shop is open, not in its break, not paused, and the mode is on.
+ * - ŠTO PRE stops asap_cutoff_min before closing and before the break.
+ * - Scheduled slots: every slot_interval_min, up to preorder_days × 24 h ahead, never in the past,
+ *   never outside the (delivery) window, never inside the break, and never earlier than the kitchen
+ *   (re)opening + the minimum preparation estimate.
  */
 (function (root, factory) {
   var api = factory();
@@ -95,6 +102,7 @@
   }
 
   function toNumber(value, fallback) {
+    if (value === '' || value === null || value === undefined) return fallback;
     var n = Number(value);
     return isFinite(n) ? n : fallback;
   }
@@ -108,6 +116,18 @@
     return fallback;
   }
 
+  function dayRow(row) {
+    return {
+      closed: toBool(row.closed, false),
+      open: row.open || '',
+      close: row.close || '',
+      delivery_open: row.delivery_open || '',
+      delivery_close: row.delivery_close || '',
+      break_start: row.break_start || '',
+      break_end: row.break_end || ''
+    };
+  }
+
   /**
    * Builds the normalized scheduling config from flat settings + hours rows + special rows.
    * Same function on both sides so the browser and the server can never disagree on defaults.
@@ -118,41 +138,33 @@
     (hoursRows || []).forEach(function (row) {
       var dow = toNumber(row.dow, 0);
       if (dow < 1 || dow > 7) return;
-      hours[dow] = {
-        closed: toBool(row.closed, false),
-        open: row.open || '',
-        close: row.close || '',
-        delivery_open: row.delivery_open || '',
-        delivery_close: row.delivery_close || ''
-      };
+      hours[dow] = dayRow(row);
     });
     var special = {};
     (specialRows || []).forEach(function (row) {
       if (!row || !row.date || !toBool(row.active, true)) return;
-      special[row.date] = {
-        closed: toBool(row.closed, false),
-        open: row.open || '',
-        close: row.close || '',
-        delivery_open: row.delivery_open || '',
-        delivery_close: row.delivery_close || '',
-        label: row.label || ''
-      };
+      var r = dayRow(row);
+      r.label = row.label || '';
+      special[row.date] = r;
     });
+    var deliveryEtaMin = toNumber(s.delivery_eta_min, 45);
+    var pickupEtaMin = toNumber(s.pickup_eta_min, 15);
     return {
       hours: hours,
       special: special,
       orderingEnabled: toBool(s.ordering_enabled, true),
       deliveryEnabled: toBool(s.delivery_enabled, true),
       pickupEnabled: toBool(s.pickup_enabled, true),
-      deliveryEtaMin: toNumber(s.delivery_eta_min, 60),
-      pickupEtaMin: toNumber(s.pickup_eta_min, 15),
-      pickupEtaMax: toNumber(s.pickup_eta_max, 30),
-      extraWaitMin: toNumber(s.extra_wait_min, 0),
-      asapCutoffMin: toNumber(s.asap_cutoff_min, 15),
-      slotFirstOffsetMin: toNumber(s.slot_first_offset_min, 60),
+      deliveryEtaMin: deliveryEtaMin,
+      deliveryEtaMax: Math.max(deliveryEtaMin, toNumber(s.delivery_eta_max, deliveryEtaMin)),
+      pickupEtaMin: pickupEtaMin,
+      pickupEtaMax: Math.max(pickupEtaMin, toNumber(s.pickup_eta_max, pickupEtaMin)),
+      extraWaitMin: Math.max(0, toNumber(s.extra_wait_min, 0)),
+      asapCutoffMin: Math.max(0, toNumber(s.asap_cutoff_min, 15)),
+      slotFirstOffsetMin: Math.max(0, toNumber(s.slot_first_offset_min, 30)),
       slotIntervalMin: Math.max(5, toNumber(s.slot_interval_min, 30)),
-      slotRoundMin: Math.max(1, toNumber(s.slot_round_min, 15)),
-      preorderMaxAheadMin: toNumber(s.preorder_max_ahead_min, 120),
+      slotRoundMin: Math.max(1, toNumber(s.slot_round_min, 30)),
+      preorderDays: Math.max(0, Math.min(14, toNumber(s.preorder_days, 7))),
       rolloverHour: toNumber(s.business_day_rollover_hour, 6)
     };
   }
@@ -165,21 +177,43 @@
     return { open: open, close: close };
   }
 
-  /** Store and delivery windows for one business date (special hours win over the weekly table). */
+  /** A break inside the store window, in the same business minutes as the window (may be after midnight). */
+  function normalizeBreak(src, store) {
+    if (!store) return null;
+    var start = parseHM(src.break_start);
+    var end = parseHM(src.break_end);
+    if (start === null || end === null) return null;
+    if (start < store.open) start += 1440;
+    if (end <= start) end += 1440;
+    if (start < store.open || end > store.close || end - start < 5) return null;
+    return { start: start, end: end };
+  }
+
+  /** Store, delivery and break windows for one business date (special hours win over the weekly table). */
   function windowsFor(dateStr, cfg) {
     var special = cfg.special[dateStr];
     var src = special || cfg.hours[dowOf(dateStr)];
     if (!src || src.closed) {
-      return { closed: true, store: null, delivery: null, special: !!special, label: special ? special.label : '' };
+      return { closed: true, store: null, delivery: null, brk: null, special: !!special, label: special ? special.label : '' };
     }
     var store = normalizeWindow(src.open, src.close);
     var delivery = normalizeWindow(src.delivery_open, src.delivery_close);
     if (store && delivery) {
+      if (delivery.open < store.open && delivery.open + 1440 < store.close) {
+        delivery = { open: delivery.open + 1440, close: delivery.close + 1440 };
+      }
       // Delivery can never run outside the store's own window.
       delivery = { open: Math.max(delivery.open, store.open), close: Math.min(delivery.close, store.close) };
       if (delivery.close <= delivery.open) delivery = null;
     }
-    return { closed: !store, store: store, delivery: store ? delivery : null, special: !!special, label: special ? special.label : '' };
+    return {
+      closed: !store,
+      store: store,
+      delivery: store ? delivery : null,
+      brk: normalizeBreak(src, store),
+      special: !!special,
+      label: special ? special.label : ''
+    };
   }
 
   function modeWindow(dateStr, cfg, mode) {
@@ -197,10 +231,7 @@
   }
 
   function etaFor(cfg, mode) {
-    if (mode === 'delivery') {
-      var d = cfg.deliveryEtaMin + cfg.extraWaitMin;
-      return { min: d, max: d };
-    }
+    if (mode === 'delivery') return { min: cfg.deliveryEtaMin + cfg.extraWaitMin, max: cfg.deliveryEtaMax + cfg.extraWaitMin };
     return { min: cfg.pickupEtaMin + cfg.extraWaitMin, max: cfg.pickupEtaMax + cfg.extraWaitMin };
   }
 
@@ -228,24 +259,92 @@
     return null;
   }
 
+  /** Mode window split around the break: [{ from, to, kitchenFrom }]. kitchenFrom = when cooking (re)starts. */
+  function segmentsFor(dateStr, cfg, mode) {
+    var w = windowsFor(dateStr, cfg);
+    var win = mode === 'delivery' ? w.delivery : w.store;
+    if (!win) return [];
+    var parts = [{ from: win.open, to: win.close, kitchenFrom: w.store.open }];
+    if (w.brk) {
+      parts = [];
+      if (win.open < w.brk.start) parts.push({ from: win.open, to: Math.min(win.close, w.brk.start), kitchenFrom: w.store.open });
+      if (win.close > w.brk.end) parts.push({ from: Math.max(win.open, w.brk.end), to: win.close, kitchenFrom: w.brk.end });
+    }
+    return parts;
+  }
+
+  function dayLabel(nowParts, cfg, businessDate) {
+    var diff = daysBetween(businessContext(nowParts, cfg).date, businessDate);
+    if (diff === 0) return 'Danas';
+    if (diff === 1) return 'Sutra';
+    return DAY_SHORT[dowOf(businessDate)] + ' ' + formatDateShort(businessDate);
+  }
+
+  /** Slot value sent to the server: calendar date + time, e.g. '2026-09-24 18:30'. */
+  function slotValue(businessDate, minutes) {
+    var cal = minutes >= 1440 ? dateAdd(businessDate, 1) : businessDate;
+    return cal + ' ' + formatHM(minutes);
+  }
+
+  /** Parses a slot value into business date + business minutes. */
+  function parseSlot(value, cfg) {
+    var m = String(value || '').match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/);
+    if (!m) return null;
+    var minutes = parseHM(m[2]);
+    if (minutes === null || minutes >= 1440) return null;
+    if (minutes < cfg.rolloverHour * 60) return { businessDate: dateAdd(m[1], -1), minutes: minutes + 1440, calendarDate: m[1], time: m[2] };
+    return { businessDate: m[1], minutes: minutes, calendarDate: m[1], time: m[2] };
+  }
+
+  /**
+   * Scheduled slots for the next preorder_days, grouped by business day.
+   * ctx = { date, t } is the business "now"; graceMin lets the server accept a slot the browser showed a few minutes ago.
+   */
+  function scheduleDays(nowParts, cfg, mode, ctx, graceMin) {
+    var grace = graceMin || 0;
+    var eta = etaFor(cfg, mode);
+    var lead = Math.max(cfg.slotFirstOffsetMin, eta.max);
+    var earliest = ctx.t + lead - grace; // relative to ctx.date
+    var bound = ctx.t + cfg.preorderDays * 1440; // "do 7 dana unapred"
+    var days = [];
+    for (var i = 0; i <= cfg.preorderDays; i++) {
+      var d = dateAdd(ctx.date, i);
+      var offset = i * 1440;
+      var slots = [];
+      segmentsFor(d, cfg, mode).forEach(function (seg) {
+        var first = Math.max(seg.from, seg.kitchenFrom + eta.min, earliest - offset);
+        var last = seg.to - cfg.asapCutoffMin;
+        for (var m = ceilTo(first, cfg.slotRoundMin); m <= last && m + offset <= bound; m += cfg.slotIntervalMin) {
+          slots.push({ value: slotValue(d, m), time: formatHM(m), minutes: m, afterMidnight: m >= 1440 });
+        }
+      });
+      if (slots.length) days.push({ date: d, label: dayLabel(nowParts, cfg, d), slots: slots });
+    }
+    return days;
+  }
+
   /**
    * Availability for one mode at a given wall-clock moment.
-   * state: open | before_open | closing | closed | closed_day | paused | disabled
+   * state: open | before_open | break | closing | closed | closed_day | paused | disabled
    */
   function availability(nowParts, cfg, mode) {
     var ctx = businessContext(nowParts, cfg);
     var t = ctx.t;
     var eta = etaFor(cfg, mode);
-    var w = modeWindow(ctx.date, cfg, mode);
+    var all = windowsFor(ctx.date, cfg);
+    var w = mode === 'delivery' ? all.delivery : all.store;
+    var brk = all.brk && w && all.brk.end > w.open && all.brk.start < w.close ? all.brk : null;
     var result = {
       mode: mode,
       businessDate: ctx.date,
       nowMin: t,
       window: w ? { open: w.open, close: w.close, openLabel: formatHM(w.open), closeLabel: formatHM(w.close) } : null,
+      breakWindow: brk ? { start: brk.start, end: brk.end, label: formatHM(brk.start) + '–' + formatHM(brk.end) } : null,
       lastOrder: w ? formatHM(w.close - cfg.asapCutoffMin) : null,
       state: 'closed',
       canOrder: false,
-      asap: { available: false, etaMin: eta.min, etaMax: eta.max, readyAt: null, readyLabel: '' },
+      asap: { available: false, etaMin: eta.min, etaMax: eta.max, readyAt: null, readyLabel: '', readyMaxLabel: '' },
+      days: [],
       slots: [],
       next: null
     };
@@ -274,17 +373,22 @@
       result.next = findNextOpening(nowParts, cfg, mode, ctx.date, false);
       return result;
     }
+    if (brk && t >= brk.start - cfg.asapCutoffMin && t < brk.end) {
+      var resume = Math.max(brk.end, w.open);
+      result.state = 'break';
+      result.next = { date: ctx.date, minutes: resume, label: openingLabel(nowParts, ctx.date, resume) };
+      return result;
+    }
+    if (brk && t < brk.start) result.lastOrder = formatHM(brk.start - cfg.asapCutoffMin);
 
     result.state = 'open';
     var ready = ceilTo(t + eta.min, 5);
-    result.asap = { available: true, etaMin: eta.min, etaMax: eta.max, readyAt: ready, readyLabel: formatHM(ready) };
-
-    var lead = Math.max(cfg.slotFirstOffsetMin, eta.min);
-    var first = ceilTo(t + lead, cfg.slotRoundMin);
-    var last = Math.min(w.close, ceilTo(t + cfg.preorderMaxAheadMin, cfg.slotRoundMin));
-    for (var m = first; m <= last; m += cfg.slotIntervalMin) {
-      result.slots.push({ value: formatHM(m), minutes: m, label: formatHM(m) });
-    }
+    var readyMax = ceilTo(t + eta.max, 5);
+    result.asap = { available: true, etaMin: eta.min, etaMax: eta.max, readyAt: ready, readyLabel: formatHM(ready), readyMaxLabel: formatHM(readyMax) };
+    result.days = scheduleDays(nowParts, cfg, mode, ctx, 0);
+    result.slots = result.days.reduce(function (list, d) {
+      return list.concat(d.slots);
+    }, []);
     result.canOrder = true;
     return result;
   }
@@ -307,13 +411,14 @@
       pickup: pickup,
       open: anyOpen,
       paused: !cfg.orderingEnabled,
+      onBreak: delivery.state === 'break' || pickup.state === 'break',
       next: next,
       storeWindow: windowsFor(delivery.businessDate, cfg).store
     };
   }
 
   /**
-   * Server-side check of the requested time. `when` is 'asap' or 'HH:MM'.
+   * Server-side check of the requested time. `when` is 'asap' or a slot value ('YYYY-MM-DD HH:MM').
    * graceMin tolerates a slot the browser computed a few minutes earlier.
    */
   function validateWhen(nowParts, cfg, mode, when, graceMin) {
@@ -324,22 +429,41 @@
     if (av.state !== 'open') return { ok: false, code: 'CLOSED', reason: av.state, availability: av };
 
     if (when === 'asap') {
-      return { ok: true, asap: true, promisedMin: av.asap.readyAt, promisedLabel: av.asap.readyLabel, availability: av };
+      return { ok: true, asap: true, promisedMin: av.asap.readyAt, promisedLabel: av.asap.readyLabel, scheduledDate: '', scheduledTime: '', availability: av };
     }
-    var m = parseHM(when);
-    if (m === null) return { ok: false, code: 'SLOT_UNAVAILABLE', reason: 'invalid', availability: av };
-    if (m < cfg.rolloverHour * 60) m += 1440;
-    var eta = etaFor(cfg, mode);
-    var lead = Math.max(cfg.slotFirstOffsetMin, eta.min);
-    var earliest = av.nowMin + lead - grace;
-    var latest = Math.min(av.window.close, ceilTo(av.nowMin + cfg.preorderMaxAheadMin, cfg.slotRoundMin) + grace);
-    if (m < earliest || m > latest || m > av.window.close) {
-      return { ok: false, code: 'SLOT_UNAVAILABLE', reason: 'out_of_range', availability: av };
-    }
-    return { ok: true, asap: false, promisedMin: m, promisedLabel: formatHM(m), availability: av };
+    var slot = parseSlot(when, cfg);
+    if (!slot) return { ok: false, code: 'SLOT_UNAVAILABLE', reason: 'invalid', availability: av };
+    var ctx = businessContext(nowParts, cfg);
+    var days = scheduleDays(nowParts, cfg, mode, ctx, grace);
+    var match = null;
+    days.forEach(function (d) {
+      if (d.date !== slot.businessDate) return;
+      d.slots.forEach(function (s) {
+        if (s.minutes === slot.minutes) match = { day: d, slot: s };
+      });
+    });
+    if (!match) return { ok: false, code: 'SLOT_UNAVAILABLE', reason: 'out_of_range', availability: av };
+    return {
+      ok: true,
+      asap: false,
+      promisedMin: slot.minutes,
+      promisedLabel: slot.time,
+      scheduledDate: slot.calendarDate,
+      scheduledTime: slot.time,
+      scheduledBusinessDate: slot.businessDate,
+      dayLabel: match.day.label,
+      availability: av
+    };
   }
 
-  /** Compact weekly summary: [{ days: 'Pon–Sub', store: '09:00–01:00', delivery: '10:00–00:00' }, { days: 'Ned', closed: true }]. */
+  /** Human label for a scheduled slot: 'danas u 18:30', 'sutra u 12:00', 'pet 25.09. u 19:00'. */
+  function slotLabel(nowParts, cfg, value) {
+    var slot = parseSlot(value, cfg);
+    if (!slot) return String(value || '');
+    return openingLabel(nowParts, slot.businessDate, slot.minutes);
+  }
+
+  /** Compact weekly summary: [{ days: 'Pon–Sub', store: '09:00–01:00', delivery: '10:00–00:00', brk: '' }, { days: 'Ned', closed: true }]. */
   function weeklySummary(cfg) {
     var rows = [];
     for (var dow = 1; dow <= 7; dow++) {
@@ -352,12 +476,14 @@
       } else {
         var s = normalizeWindow(h.open, h.close);
         var d = normalizeWindow(h.delivery_open, h.delivery_close);
+        var b = normalizeBreak(h, s);
         row = {
           closed: false,
           store: formatHM(s.open) + '–' + formatHM(s.close),
-          delivery: d ? formatHM(d.open) + '–' + formatHM(d.close) : ''
+          delivery: d ? formatHM(d.open) + '–' + formatHM(d.close) : '',
+          brk: b ? formatHM(b.start) + '–' + formatHM(b.end) : ''
         };
-        key = row.store + '|' + row.delivery;
+        key = row.store + '|' + row.delivery + '|' + row.brk;
       }
       var prev = rows[rows.length - 1];
       if (prev && prev.key === key && prev.to === dow - 1) {
@@ -371,7 +497,7 @@
     }
     return rows.map(function (r) {
       var days = r.from === r.to ? DAY_NAMES[r.from] : DAY_SHORT[r.from] + '–' + DAY_SHORT[r.to];
-      return { days: days, from: r.from, to: r.to, closed: r.closed, store: r.store || '', delivery: r.delivery || '' };
+      return { days: days, from: r.from, to: r.to, closed: r.closed, store: r.store || '', delivery: r.delivery || '', brk: r.brk || '' };
     });
   }
 
@@ -390,8 +516,13 @@
     buildConfig: buildConfig,
     windowsFor: windowsFor,
     businessContext: businessContext,
+    etaFor: etaFor,
     availability: availability,
     snapshot: snapshot,
+    scheduleDays: scheduleDays,
+    parseSlot: parseSlot,
+    slotValue: slotValue,
+    slotLabel: slotLabel,
     validateWhen: validateWhen,
     weeklySummary: weeklySummary,
     openingLabel: openingLabel

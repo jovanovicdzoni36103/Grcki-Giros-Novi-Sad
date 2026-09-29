@@ -33,6 +33,10 @@ export function startAvailability() {
 export function statusLine(snap) {
   if (!snap) return { open: false, text: '' };
   if (snap.paused) return { open: false, text: 'Poručivanje je pauzirano' };
+  if (snap.onBreak && !snap.open) {
+    const resume = [snap.pickup, snap.delivery].find((a) => a.state === 'break');
+    return { open: false, text: `Pauza · poručivanje ponovo ${resume && resume.next ? resume.next.label : 'uskoro'}` };
+  }
   if (snap.open) {
     // Compare business minutes, not strings: 00:45 (after midnight) is later than 23:45.
     const latest = [snap.pickup, snap.delivery].filter((a) => a.canOrder && a.window).sort((a, b) => b.window.close - a.window.close)[0];

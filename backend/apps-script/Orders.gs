@@ -1,46 +1,38 @@
 /**
  * Grčki Giros — order pipeline.
- *   validate → idempotency → time → prices → cash → rate limit →
+ *   validate → idempotency → time → zone → prices → cash → rate limit →
  *   [lock: number, write ORDERS + ORDER_ITEMS, CRM] → emails → log → response
  * Anything after the write can fail without losing the order: it is already saved and numbered.
+ * A new order is NEW until the shop confirms or rejects it (accept_timeout_min, default 5 min).
  */
 
-var CLOSED_MESSAGES_ = {
-  before_open: function (av) {
-    return 'Još ne primamo porudžbine. Otvaramo ' + (av.next ? av.next.label : 'uskoro') + '.';
-  },
-  closed_day: function (av) {
-    return 'Trenutno ne radimo. Otvaramo ' + (av.next ? av.next.label : 'uskoro') + '.';
-  },
-  closing: function (av) {
-    return 'Za danas smo završili sa poručivanjem. Otvaramo ' + (av.next ? av.next.label : 'uskoro') + '.';
-  },
-  closed: function (av) {
-    return 'Trenutno ne radimo. Otvaramo ' + (av.next ? av.next.label : 'uskoro') + '.';
-  }
-};
+var CLOSED_LEAD_ = 'Trenutno ne primamo porudžbine.';
 
 function closedMessage_(reason, mode, availability, settings, parts, cfg) {
   if (reason === 'paused') return (settings.pause_message || 'Trenutno ne primamo porudžbine preko sajta.') + ' Pozovite nas: ' + settings.phone_display + '.';
-  if (reason === 'disabled') return mode === 'delivery' ? 'Dostava trenutno nije dostupna. Izaberite preuzimanje u lokalu.' : 'Preuzimanje trenutno nije dostupno.';
+  if (reason === 'disabled') {
+    return mode === 'delivery' ? 'Dostava je trenutno isključena. Izaberite preuzimanje u lokalu.' : 'Preuzimanje u lokalu je trenutno isključeno. Izaberite dostavu.';
+  }
+  var next = availability.next ? availability.next.label : 'uskoro';
+  if (reason === 'break') return CLOSED_LEAD_ + ' Pauza je u toku, poručivanje ponovo ' + next + '.';
   if (mode === 'delivery') {
     var pickup = GG_Scheduling.availability(parts, cfg, 'pickup');
     if (pickup.canOrder) return 'Dostava trenutno ne radi. Preuzimanje u lokalu je moguće do ' + pickup.lastOrder + '.';
   }
-  var fn = CLOSED_MESSAGES_[reason] || CLOSED_MESSAGES_.closed;
-  return fn(availability);
+  return CLOSED_LEAD_ + ' Poručivanje ponovo ' + next + '.';
 }
 
+/** Cart lines exactly as typed values; anything of the wrong type becomes a value the price check refuses. */
 function normalizeItems_(items) {
   if (!Array.isArray(items)) return [];
   return items.slice(0, 60).map(function (it) {
-    var i = it || {};
+    var i = it && typeof it === 'object' && !Array.isArray(it) ? it : {};
     return {
-      productId: String(i.productId || '').slice(0, 60),
-      qty: Number(i.qty),
+      productId: typeof i.productId === 'string' ? i.productId.slice(0, 60) : '',
+      qty: typeof i.qty === 'number' || typeof i.qty === 'string' ? Number(i.qty) : NaN,
       options: Array.isArray(i.options)
         ? i.options.slice(0, 40).map(function (o) {
-            return String(o).slice(0, 60);
+            return typeof o === 'string' ? o.slice(0, 60) : '';
           })
         : [],
       note: GG_Validation.clean(i.note, GG_Validation.LIMITS.lineNote)
@@ -51,6 +43,12 @@ function normalizeItems_(items) {
 function detectChannel_(meta) {
   var c = String((meta && meta.channel) || '').toLowerCase().replace(/[^a-z0-9_.-]/g, '').slice(0, 30);
   return c || 'direct';
+}
+
+/** 'četvrtak 24.09. u 18:30' — absolute, so it stays true in emails read the next day. */
+function scheduledText_(dateIso, time) {
+  if (!dateIso) return '';
+  return GG_Scheduling.DAY_NAMES[GG_Scheduling.dowOf(dateIso)].toLowerCase() + ' ' + GG_Scheduling.formatDateShort(dateIso) + ' u ' + time;
 }
 
 function createOrder_(payload, ctx) {
@@ -68,6 +66,27 @@ function createOrder_(payload, ctx) {
     return prior;
   }
 
+  try {
+    return createNewOrder_(p, settings, started);
+  } catch (err) {
+    // A retry whose first answer was lost (and the cache evicted) must get that order back, not
+    // "closed", "rate limited" or "price changed" because something moved in the meantime.
+    if (err && err.expected && err.code !== 'BUSY') {
+      var saved = null;
+      try {
+        saved = findResponseByRequestId_(p.requestId, settings);
+      } catch (ignored) {}
+      if (saved) {
+        log_('INFO', 'order.create', 'DUPLICATE', 'Ponovljen zahtev (iz tabele), vraćena ista porudžbina #' + saved.publicNumber, { orderId: saved.orderId });
+        saved.duplicate = true;
+        return saved;
+      }
+    }
+    throw err;
+  }
+}
+
+function createNewOrder_(p, settings, started) {
   var contact = GG_Validation.validateOrderContact(p);
   if (!contact.ok) {
     var firstField = Object.keys(contact.errors)[0];
@@ -78,28 +97,28 @@ function createOrder_(payload, ctx) {
   // Time: always the server's clock and the owner's current config.
   var cfg = schedulingConfig_();
   var parts = nowParts_();
-  var when = p.when === 'asap' ? 'asap' : String(p.when || '');
+  var when = p.when === 'asap' ? 'asap' : typeof p.when === 'string' ? p.when : '';
   var wv = GG_Scheduling.validateWhen(parts, cfg, v.mode, when, 10);
   if (!wv.ok) {
     if (wv.code === 'CLOSED') throw apiError_('CLOSED', closedMessage_(wv.reason, v.mode, wv.availability, settings, parts, cfg));
-    throw apiError_('SLOT_UNAVAILABLE', 'Izabrani termin više nije dostupan. Izaberite novi termin.', {
-      field: 'when',
-      data: { slots: wv.availability.slots.map(function (s) { return s.value; }), asap: wv.availability.asap.available }
-    });
+    throw apiError_('SLOT_UNAVAILABLE', 'Izabrani termin više nije dostupan. Izaberite novi termin.', { field: 'when' });
   }
 
-  // Zone (only when the owner switched zones on).
+  // Zone: the guest picks a neighbourhood from the owner's list; anything else is not delivered to.
   var zone = null;
   if (v.mode === 'delivery' && toBool_(settings.zones_enabled, false)) {
+    if (!v.zone) throw apiError_('VALIDATION', 'Izaberite naselje za dostavu.', { field: 'address.zone' });
     zone = getZones_().filter(function (z) {
       return z.id === v.zone;
     })[0];
-    if (!zone) throw apiError_('VALIDATION', 'Izaberite naselje za dostavu.', { field: 'address.zone' });
+    if (!zone) {
+      throw apiError_('ZONE_UNAVAILABLE', 'Dostava u izabrano naselje trenutno nije dostupna. Izaberite drugo naselje ili preuzimanje u lokalu.', { field: 'address.zone' });
+    }
   }
 
   // Prices come from the sheet, never from the browser.
   var index = catalogIndex_();
-  var minOrder = v.mode === 'delivery' ? Math.max(toNum_(settings.min_order_delivery, 0), zone ? zone.minOrder : 0) : toNum_(settings.min_order_pickup, 0);
+  var minOrder = v.mode === 'delivery' ? deliveryMinimum_(zone, settings) : toNum_(settings.min_order_pickup, 0);
   var cart = GG_Pricing.computeCart(index, normalizeItems_(p.items), {
     mode: v.mode,
     feeMode: settings.delivery_fee_mode,
@@ -115,10 +134,11 @@ function createOrder_(payload, ctx) {
     if (first.code === 'ITEM_UNAVAILABLE') {
       throw apiError_('ITEM_UNAVAILABLE', first.message + ' Uklonite ga iz korpe i pošaljite ponovo.', { data: { productId: first.productId } });
     }
+    if (first.shortfall) throw apiError_('MIN_ORDER', first.message, { field: 'items', data: { minOrder: minOrder, shortfall: first.shortfall } });
     throw apiError_('VALIDATION', first.message, { field: first.field || 'items' });
   }
   if (toNum_(p.clientTotal, -1) !== cart.total) {
-    throw apiError_('PRICE_CHANGED', 'Cene su se u međuvremenu promenile. Novi iznos je ' + GG_Money.formatRSD(cart.total) + '. Proverite korpu i potvrdite ponovo.', {
+    throw apiError_('PRICE_CHANGED', 'Cene ili dostava su se u međuvremenu promenile. Novi iznos je ' + GG_Money.formatRSD(cart.total) + '. Proverite korpu i potvrdite ponovo.', {
       data: { subtotal: cart.subtotal, deliveryFee: cart.deliveryFee, total: cart.total }
     });
   }
@@ -148,9 +168,10 @@ function createOrder_(payload, ctx) {
       return again;
     }
     var counterBefore = counterState_();
-    var num = nextOrderNumber_(lock, toNum_(settings.order_number_max, 100));
+    var num = nextOrderNumber_(lock, toNum_(settings.order_number_start, 1001));
     var created = now_();
     var businessDate = wv.availability.businessDate;
+    var acceptMin = Math.max(1, toNum_(settings.accept_timeout_min, 5));
     order = {
       id: buildOrderId_(businessDate, num.publicNumber, num.seq),
       publicNumber: num.publicNumber,
@@ -158,6 +179,7 @@ function createOrder_(payload, ctx) {
       businessDate: businessDate,
       createdAt: created,
       createdIso: isoLocal_(created),
+      acceptByIso: isoLocal_(new Date(created.getTime() + acceptMin * 60000)),
       mode: v.mode,
       type: ORDER_TYPE[v.mode],
       status: STATUS.NEW,
@@ -166,6 +188,7 @@ function createOrder_(payload, ctx) {
         street: v.address.street,
         number: v.address.number,
         apt: v.address.apt,
+        floor: v.address.floor,
         note: v.address.note,
         zoneId: zone ? zone.id : '',
         zoneName: zone ? zone.name : ''
@@ -180,6 +203,8 @@ function createOrder_(payload, ctx) {
           categoryName: cat.name || '',
           kind: l.product.kind || 'item',
           qty: l.qty,
+          basePrice: Number(l.product.price) || 0,
+          optionsPrice: l.optionsTotal,
           unitPrice: l.unitPrice,
           lineTotal: l.lineTotal,
           options: l.options,
@@ -195,7 +220,9 @@ function createOrder_(payload, ctx) {
       total: cart.total,
       cash: cash,
       change: change,
-      when: wv.asap ? 'asap' : wv.promisedLabel,
+      when: wv.asap ? 'asap' : 'scheduled',
+      scheduledDate: wv.scheduledDate || '',
+      scheduledTime: wv.scheduledTime || '',
       promisedLabel: wv.promisedLabel,
       etaMin: wv.availability.asap.etaMin,
       etaMax: wv.availability.asap.etaMax,
@@ -241,14 +268,28 @@ function createOrder_(payload, ctx) {
   return response;
 }
 
+/** ORDERS "Requested Time": ŠTO PRE or HH:MM (the date lives in its own column). */
 function whenLabel_(order) {
-  return order.when === 'asap' ? 'ŠTO PRE' : order.when;
+  return order.when === 'asap' ? 'ŠTO PRE' : order.scheduledTime;
+}
+
+/** Full human sentence: 'ŠTO PRE' or 'ZAKAZANO četvrtak 24.09. u 18:30'. */
+function whenText_(order) {
+  return order.when === 'asap' ? 'ŠTO PRE' : 'ZAKAZANO ' + scheduledText_(order.scheduledDate, order.scheduledTime);
 }
 
 function addressLine_(order) {
   if (order.mode !== 'delivery') return '';
   var a = order.address;
   return (a.street + ' ' + a.number).trim();
+}
+
+/** 'stan 12, 3. sprat' from the two optional fields. */
+function aptFloorText_(address) {
+  var parts = [];
+  if (address.apt) parts.push(/^\d/.test(address.apt) ? 'stan ' + address.apt : address.apt);
+  if (address.floor) parts.push(/^\d+$/.test(address.floor) ? address.floor + '. sprat' : 'sprat ' + address.floor);
+  return parts.join(', ');
 }
 
 function itemsText_(lines) {
@@ -276,7 +317,8 @@ function writeOrder_(order) {
       Phone: order.customer.phone,
       Email: order.customer.email,
       Address: addressLine_(order),
-      'Apartment/Floor': order.address.apt,
+      Apartment: order.address.apt,
+      Floor: order.address.floor,
       Zone: order.address.zoneName,
       'Delivery Note': order.address.note,
       'Order Note': order.note,
@@ -288,10 +330,10 @@ function writeOrder_(order) {
       'Cash Provided': order.cash,
       'Change Required': order.change,
       'Requested Time': whenLabel_(order),
+      'Scheduled Date': order.scheduledDate,
+      'Scheduled Time': order.scheduledTime,
       'Promised Time': order.promisedLabel,
-      'Actual Time': '',
-      'Accepted At': '',
-      'Completed At': '',
+      'Accept By': order.acceptByIso,
       Source: 'website',
       Channel: order.channel,
       'Request ID': order.requestId,
@@ -303,7 +345,7 @@ function writeOrder_(order) {
       'Location ID': order.locationId
     }
   ]);
-  // The order itself is saved at this point; line items only feed statistics and self-heal nightly.
+  // The order itself is saved at this point; line items feed statistics and self-heal nightly.
   try {
     appendObjects_(SHEETS.ORDER_ITEMS, itemRowsFor_(order.id, order.businessDate, order.publicNumber, order.type, order.status, order.createdIso, order.lines));
   } catch (itemsErr) {
@@ -325,9 +367,12 @@ function itemRowsFor_(orderId, businessDate, publicNumber, type, status, created
       Category: l.categoryName,
       Kind: l.kind,
       Qty: l.qty,
+      'Base Price': l.basePrice === undefined ? '' : l.basePrice,
+      'Options Price': l.optionsPrice === undefined ? '' : l.optionsPrice,
       'Unit Price': l.unitPrice,
       'Line Total': l.lineTotal,
       Options: l.summary,
+      'Option IDs': (l.options || []).join(', '),
       Removed: l.removedSummary,
       Note: l.note,
       'Order Type': type,
@@ -358,6 +403,11 @@ function repairOrderItems_() {
   return missing.length;
 }
 
+function statusUrl_(order, settings) {
+  var site = String(settings.site_url || '').replace(/\/$/, '');
+  return site + '/porudzbina/?id=' + encodeURIComponent(order.id) + '&t=' + encodeURIComponent(order.statusToken);
+}
+
 /** What the browser gets back (also cached for idempotent retries). */
 function orderResponse_(order, settings) {
   return {
@@ -367,14 +417,21 @@ function orderResponse_(order, settings) {
     status: order.status,
     businessDate: order.businessDate,
     createdAt: order.createdIso,
+    acceptBy: order.acceptByIso,
     mode: order.mode,
     when: order.when,
     whenLabel: whenLabel_(order),
+    whenText: whenText_(order),
+    scheduledDate: order.scheduledDate,
+    scheduledTime: order.scheduledTime,
     promisedTime: order.promisedLabel,
     etaMin: order.etaMin,
     etaMax: order.etaMax,
     customer: { name: order.customer.name, phoneDisplay: order.customer.phoneDisplay || order.customer.phone, email: order.customer.email },
-    address: order.mode === 'delivery' ? { line: addressLine_(order), apt: order.address.apt, zone: order.address.zoneName, note: order.address.note } : null,
+    address:
+      order.mode === 'delivery'
+        ? { line: addressLine_(order), apt: order.address.apt, floor: order.address.floor, aptFloor: aptFloorText_(order.address), zone: order.address.zoneName, note: order.address.note }
+        : null,
     note: order.note,
     items: order.lines.map(function (l) {
       return { name: l.name, qty: l.qty, lineTotal: l.lineTotal, summary: l.summary, removedSummary: l.removedSummary, note: l.note };
@@ -394,7 +451,12 @@ function orderResponse_(order, settings) {
   };
 }
 
-/** Rebuilds an order object from its ORDERS row (idempotency fallback, panel, emails). */
+function textCell_(value) {
+  if (value instanceof Date) return isoLocal_(value);
+  return String(value === null || value === undefined ? '' : value);
+}
+
+/** Rebuilds an order object from its ORDERS row (idempotency fallback, admin, emails). */
 function orderFromRow_(r) {
   var lines = [];
   try {
@@ -406,18 +468,28 @@ function orderFromRow_(r) {
   var requested = String(r['Requested Time'] || '');
   var phone = String(r.Phone || '');
   var phoneNorm = GG_Validation.normalizePhone(phone);
+  var scheduledDate = r['Scheduled Date'] instanceof Date ? fmt_(r['Scheduled Date'], 'yyyy-MM-dd') : String(r['Scheduled Date'] || '');
   return {
     row: r._row,
     id: String(r['Internal Order ID']),
     publicNumber: toNum_(r['Public Order Number'], 0),
-    businessDate: String(r['Business Date']),
+    businessDate: textDate_(r['Business Date']),
     createdAt: created,
     createdIso: String(r['Created At'] || isoLocal_(created)),
+    acceptByIso: textCell_(r['Accept By']),
     mode: mode,
     type: String(r['Order Type']),
     status: String(r.Status || STATUS.NEW),
     customer: { name: String(r['Customer Name'] || ''), phone: phone, phoneDisplay: phoneNorm.ok ? phoneNorm.display : phone, email: String(r.Email || '') },
-    address: { street: addressLine, number: '', apt: String(r['Apartment/Floor'] || ''), note: String(r['Delivery Note'] || ''), zoneId: '', zoneName: String(r.Zone || '') },
+    address: {
+      street: addressLine,
+      number: '',
+      apt: String(r.Apartment || ''),
+      floor: String(r.Floor || ''),
+      note: String(r['Delivery Note'] || ''),
+      zoneId: '',
+      zoneName: String(r.Zone || '')
+    },
     note: String(r['Order Note'] || ''),
     lines: lines,
     itemCount: toNum_(r['Items Count'], 0),
@@ -426,27 +498,46 @@ function orderFromRow_(r) {
     total: toNum_(r.Total, 0),
     cash: r['Cash Provided'] === '' ? '' : toNum_(r['Cash Provided'], ''),
     change: r['Change Required'] === '' ? '' : toNum_(r['Change Required'], ''),
-    when: requested === 'ŠTO PRE' ? 'asap' : requested,
+    when: requested === 'ŠTO PRE' || !scheduledDate ? 'asap' : 'scheduled',
+    scheduledDate: scheduledDate,
+    scheduledTime: String(r['Scheduled Time'] || ''),
     promisedLabel: String(r['Promised Time'] || ''),
     requestId: String(r['Request ID'] || ''),
     statusToken: String(r['Status Token'] || ''),
     channel: String(r.Channel || ''),
     emailStatus: String(r['Email Status'] || ''),
-    acceptedAt: String(r['Accepted At'] || ''),
-    actualTime: String(r['Actual Time'] || ''),
-    updatedAt: String(r['Updated At'] || ''),
+    confirmedAt: textCell_(r['Confirmed At']),
+    preparingAt: textCell_(r['Preparing At']),
+    readyAt: textCell_(r['Ready At']),
+    completedAt: textCell_(r['Completed At']),
+    rejectedAt: textCell_(r['Rejected At']),
+    updatedAt: textCell_(r['Updated At']),
     locationId: String(r['Location ID'] || '')
   };
 }
 
-function findResponseByRequestId_(requestId, settings) {
-  var tail = readTail_(SHEETS.ORDERS, 80);
+/**
+ * "Did my earlier attempt arrive?" — asked by the checkout after a send whose answer never came
+ * (lost connection, page refreshed mid-send). Never creates anything. The request id is a random
+ * UUID only that browser knows, so it works as the key to its own order.
+ */
+function lookupOrder_(payload) {
+  var p = payload || {};
+  if (!validRequestId_(p.requestId)) throw apiError_('BAD_REQUEST', 'Zahtev nije ispravan.');
+  var hit = idempotencyGet_(p.requestId);
+  if (hit) return { found: true, order: hit };
+  // An attempt being written right now holds the script lock: wait for it to finish before reading.
+  var lock = LockService.getScriptLock();
+  if (lock.tryLock(8000)) lock.releaseLock();
+  var saved = findResponseByRequestId_(p.requestId, getSettings_(), 400);
+  return saved ? { found: true, order: saved } : { found: false };
+}
+
+function findResponseByRequestId_(requestId, settings, depth) {
+  var tail = readTail_(SHEETS.ORDERS, depth || 80);
   for (var i = tail.length - 1; i >= 0; i--) {
     if (String(tail[i]['Request ID']) === requestId) {
-      var order = orderFromRow_(tail[i]);
-      order.address.street = String(tail[i].Address || '');
-      var response = orderResponse_(order, settings);
-      response.address = order.mode === 'delivery' ? { line: String(tail[i].Address || ''), apt: order.address.apt, zone: order.address.zoneName, note: order.address.note } : null;
+      var response = orderResponse_(orderFromRow_(tail[i]), settings);
       idempotencyPut_(requestId, response);
       return response;
     }
@@ -454,37 +545,53 @@ function findResponseByRequestId_(requestId, settings) {
   return null;
 }
 
+/** True when a NEW order has waited longer than accept_timeout_min. */
+function isOverdue_(order, nowMs) {
+  if (order.status !== STATUS.NEW || !order.acceptByIso) return false;
+  var deadline = Date.parse(order.acceptByIso);
+  return isFinite(deadline) && (nowMs || now_().getTime()) > deadline;
+}
+
 /** Guest polling: needs the order id and its random status token. */
 function orderStatus_(params) {
   var id = String((params && params.id) || '').slice(0, 40);
   var token = String((params && params.t) || '').slice(0, 64);
-  if (!/^GG-\d{8}-\d{1,3}-[0-9A-F]{4,}$/.test(id) || !token) throw apiError_('BAD_REQUEST', 'Nepoznata porudžbina.');
+  if (!ORDER_ID_PATTERN.test(id) || !token) throw apiError_('BAD_REQUEST', 'Nepoznata porudžbina.');
   var cache = CacheService.getScriptCache();
   var hit = cache.get('st:' + id);
   var info = hit ? JSON.parse(hit) : null;
   if (!info) {
     var rows = findRows_(SHEETS.ORDERS, 'Internal Order ID', id);
     if (!rows.length) throw apiError_('BAD_REQUEST', 'Nepoznata porudžbina.');
-    var r = readRow_(SHEETS.ORDERS, rows[0]);
+    var o = orderFromRow_(readRow_(SHEETS.ORDERS, rows[0]));
     info = {
-      token: String(r['Status Token']),
-      status: String(r.Status),
-      publicNumber: toNum_(r['Public Order Number'], 0),
-      updatedAt: String(r['Updated At'] || ''),
-      promisedTime: String(r['Promised Time'] || ''),
-      actualTime: String(r['Actual Time'] || ''),
-      mode: r['Order Type'] === 'DELIVERY' ? 'delivery' : 'pickup'
+      token: o.statusToken,
+      status: o.status,
+      publicNumber: o.publicNumber,
+      mode: o.mode,
+      when: o.when,
+      whenText: whenText_(o),
+      promisedTime: o.promisedLabel,
+      acceptBy: o.acceptByIso,
+      createdAt: o.createdIso,
+      confirmedAt: o.confirmedAt,
+      readyAt: o.readyAt,
+      completedAt: o.completedAt,
+      rejectedAt: o.rejectedAt,
+      updatedAt: o.updatedAt,
+      total: o.total,
+      feedbackGiven: o.status === STATUS.COMPLETED ? feedbackExists_(o.id) : false
     };
-    cache.put('st:' + id, JSON.stringify(info), 20);
+    cache.put('st:' + id, JSON.stringify(info), 15);
   }
   if (!safeEqual_(info.token, token)) throw apiError_('BAD_REQUEST', 'Nepoznata porudžbina.');
-  return {
-    status: info.status,
-    publicNumber: info.publicNumber,
-    updatedAt: info.updatedAt,
-    promisedTime: info.promisedTime,
-    actualTime: info.actualTime,
-    mode: info.mode,
-    serverNow: now_().getTime()
-  };
+  var nowMs = now_().getTime();
+  var out = {};
+  Object.keys(info).forEach(function (k) {
+    if (k !== 'token') out[k] = info[k];
+  });
+  out.overdue = isOverdue_({ status: info.status, acceptByIso: info.acceptBy }, nowMs);
+  out.feedbackAllowed = info.status === STATUS.COMPLETED && !info.feedbackGiven;
+  out.serverNow = nowMs;
+  return out;
 }

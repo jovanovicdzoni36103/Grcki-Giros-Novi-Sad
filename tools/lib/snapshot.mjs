@@ -26,9 +26,23 @@ export function snapshotFromSeed(seed, root) {
   return {
     version,
     business,
-    hours: seed.hours.map((h) => ({ dow: h.dow, day: h.day, open: h.open, close: h.close, delivery_open: h.delivery_open, delivery_close: h.delivery_close, closed: !!h.closed })),
+    hours: seed.hours.map((h) => ({
+      dow: h.dow,
+      day: h.day,
+      open: h.open,
+      close: h.close,
+      delivery_open: h.delivery_open,
+      delivery_close: h.delivery_close,
+      break_start: h.break_start || '',
+      break_end: h.break_end || '',
+      closed: !!h.closed
+    })),
     specialHours: seed.specialHours.filter((s) => s.active),
-    zones: zonesOn ? seed.zones.filter((z) => z.active !== false).map((z) => ({ id: z.id, name: z.name, areas: z.areas.split(',').map((s) => s.trim()), fee: z.fee, minOrder: z.min_order })) : [],
+    zones: zonesOn
+      ? seed.zones
+          .filter((z) => z.active !== false)
+          .map((z) => ({ id: z.id, name: z.name, areas: z.areas.split(',').map((s) => s.trim()), fee: z.fee, minOrder: z.min_order === '' || z.min_order === undefined ? Number(all.min_order_delivery) || 0 : z.min_order }))
+      : [],
     catalog,
     recs: {}
   };

@@ -31,7 +31,7 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
 // --- Bundles -----------------------------------------------------------------
-const pageEntries = ['home', 'menu', 'checkout', 'contact', 'jobs', 'panel', 'basic'];
+const pageEntries = ['home', 'menu', 'checkout', 'contact', 'jobs', 'admin', 'basic'];
 const js = await build({
   entryPoints: Object.fromEntries(pageEntries.map((p) => [p, path.join(root, `src/scripts/pages/${p}.js`)])),
   absWorkingDir: root,
@@ -50,7 +50,7 @@ const js = await build({
 });
 
 const css = await build({
-  entryPoints: { main: path.join(root, 'src/styles/main.css'), panel: path.join(root, 'src/styles/panel.css') },
+  entryPoints: { main: path.join(root, 'src/styles/main.css'), admin: path.join(root, 'src/styles/admin.css') },
   absWorkingDir: root,
   bundle: true,
   minify: !dev,
@@ -129,7 +129,7 @@ const pageModules = [
   await import(pathToFileURL(path.join(root, 'src/site/pages/jobs.js')))
 ];
 const misc = await import(pathToFileURL(path.join(root, 'src/site/pages/misc.js')));
-pageModules.push(misc.privacy, misc.notFound, misc.panel);
+pageModules.push(misc.privacy, misc.notFound, misc.admin, misc.panelRedirect);
 
 const sitemap = [];
 for (const mod of pageModules) {
@@ -150,7 +150,7 @@ writeFileSync(
     .map((p) => `  <url><loc>${ctx.site.url}${p}</loc><lastmod>${today}</lastmod><changefreq>${p === '/meni/' ? 'daily' : 'weekly'}</changefreq><priority>${p === '/' ? '1.0' : p === '/meni/' ? '0.9' : '0.6'}</priority></url>`)
     .join('\n')}\n</urlset>\n`
 );
-writeFileSync(path.join(dist, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /panel/\nDisallow: /porudzbina/\n\nSitemap: ${ctx.site.url}/sitemap.xml\n`);
+writeFileSync(path.join(dist, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /panel/\nDisallow: /porudzbina/\n\nSitemap: ${ctx.site.url}/sitemap.xml\n`);
 writeFileSync(
   path.join(dist, 'site.webmanifest'),
   JSON.stringify(
@@ -174,7 +174,7 @@ writeFileSync(
 // Cloudflare Pages / Netlify cache headers: hashed bundles forever, the rest revalidates.
 writeFileSync(
   path.join(dist, '_headers'),
-  `/assets/js/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/img/*\n  Cache-Control: public, max-age=86400\n/assets/data/*\n  Cache-Control: public, max-age=300\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  X-Frame-Options: SAMEORIGIN\n/panel/*\n  X-Robots-Tag: noindex\n`
+  `/assets/js/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/img/*\n  Cache-Control: public, max-age=86400\n/assets/data/*\n  Cache-Control: public, max-age=300\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  X-Frame-Options: SAMEORIGIN\n/admin/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n/panel/*\n  X-Robots-Tag: noindex\n`
 );
 
 // --- Budget report ------------------------------------------------------------------

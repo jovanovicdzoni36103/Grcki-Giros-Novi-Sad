@@ -1,4 +1,4 @@
-/* Shop panel (tablet, landscape first). High contrast, big touch targets, no decoration. */
+/* Admin panel (tablet in the kitchen first, then phone and desktop). High contrast, big touch targets, no decoration. */
 
 body.page-panel {
   background: #eef1f5;
@@ -224,7 +224,7 @@ body.has-new .col--new h2 {
 
 @media (min-width: 900px) {
   .board {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -286,18 +286,18 @@ body.has-new .col--new h2 {
   }
 }
 
-.pcard--accepted,
+.pcard--confirmed,
 .pcard--preparing {
   box-shadow: 0 1px 0 var(--line), inset 5px 0 0 var(--aegean);
 }
 
 .pcard--ready,
-.pcard--out_for_delivery {
+.pcard--completed {
   box-shadow: 0 1px 0 var(--line), inset 5px 0 0 var(--olive);
 }
 
-.pcard--cancelled,
-.pcard--failed {
+.pcard--rejected,
+.pcard--rejected-x {
   box-shadow: 0 1px 0 var(--line), inset 5px 0 0 var(--tomato);
 }
 

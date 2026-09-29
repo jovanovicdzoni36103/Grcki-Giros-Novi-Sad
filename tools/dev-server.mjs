@@ -22,6 +22,7 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
   '.woff2': 'font/woff2',
   '.xml': 'application/xml',
@@ -44,6 +45,7 @@ function devSettings(e) {
   set('contact_email_recipients', 'info@grckigiros.test');
   set('jobs_email_recipients', 'posao@grckigiros.test, vlasnik@grckigiros.test');
   set('site_url', `http://localhost:${port}`);
+  set('image_url_template', `http://localhost:${port}/__drive/{id}`);
   const rc = e.sheet('REPORT_CONFIG');
   const r = rc.data.find((row, i) => i > 0 && row && row[0] === 'report_recipients');
   if (r) r[1] = 'izvestaji@grckigiros.test';
@@ -149,8 +151,15 @@ http
     try {
       if (url.pathname === '/api') return await api(req, res, url);
       if (url.pathname.startsWith('/__outbox')) return outbox(res, url);
+      if (url.pathname.startsWith('/__drive/')) {
+        // Stand-in for the public Google Drive link of an uploaded menu photo.
+        const file = emu.state.driveFiles.find((f) => f.id === url.pathname.split('/')[2]);
+        if (!file || file.sharing !== 'ANYONE_WITH_LINK') return send(res, 404, 'Not found', 'text/plain');
+        res.writeHead(200, { 'Content-Type': file.type, 'Cache-Control': 'public, max-age=3600' });
+        return res.end(Buffer.from(file.data, 'base64'));
+      }
       if (url.pathname === '/__state') {
-        const names = ['ORDERS', 'ORDER_ITEMS', 'CUSTOMERS', 'SYSTEM_LOG', 'ERROR_LOG', 'CONTACT', 'JOBS', 'DAILY_STATS'];
+        const names = ['ORDERS', 'ORDER_ITEMS', 'CUSTOMERS', 'FEEDBACK', 'PRODUCTS', 'CATEGORIES', 'OPTION_GROUPS', 'OPTIONS', 'ZONES', 'HOURS', 'SETTINGS', 'SYSTEM_LOG', 'ERROR_LOG', 'CONTACT', 'JOBS', 'DAILY_STATS'];
         return send(res, 200, JSON.stringify({ properties: emu.state.properties, outbox: emu.state.outbox.length, sheets: Object.fromEntries(names.map((n) => [n, emu.rows(n)])) }, null, 1));
       }
       if (url.pathname === '/__reset') {
@@ -181,4 +190,4 @@ http
       send(res, 500, JSON.stringify({ error: err.message }));
     }
   })
-  .listen(port, () => console.log(`Grčki Giros dev server → http://localhost:${port}  (outbox: /__outbox, state: /__state, panel PIN 123456)`));
+  .listen(port, () => console.log(`Grčki Giros dev server → http://localhost:${port}  (admin: /admin/ PIN 123456, outbox: /__outbox, state: /__state)`));

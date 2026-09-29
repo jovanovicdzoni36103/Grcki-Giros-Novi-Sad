@@ -8,12 +8,13 @@ function onOpen() {
     .createMenu('Grčki Giros')
     .addItem('1. Prvo podešavanje (tabele + podaci)', 'menuSetup')
     .addItem('2. Instaliraj automatiku (izveštaji, dashboard)', 'menuInstallTriggers')
-    .addItem('3. Postavi PIN za panel…', 'menuSetPanelPin')
+    .addItem('3. Postavi PIN za admin panel…', 'menuSetPanelPin')
     .addSeparator()
     .addItem('Osveži dashboard sada', 'refreshDashboard')
     .addItem('Pošalji test porudžbinu (email)', 'menuSendTestOrderEmail')
     .addItem('Pošalji dnevni izveštaj za juče', 'menuSendDailyReport')
     .addItem('Podesi sledeći broj porudžbine…', 'menuSetNextOrderNumber')
+    .addItem('Vrati brojač na početak (samo pre puštanja)', 'menuResetOrderCounter')
     .addItem('Stanje sistema', 'menuSystemStatus')
     .addToUi();
 }
@@ -34,7 +35,7 @@ function menuInstallTriggers() {
 
 function menuSetPanelPin() {
   var ui = SpreadsheetApp.getUi();
-  var res = ui.prompt('PIN za panel', 'Unesite novi PIN (6 do 8 cifara). Radnici ga unose na tabletu.', ui.ButtonSet.OK_CANCEL);
+  var res = ui.prompt('PIN za admin panel', 'Unesite novi PIN (6 do 8 cifara). Unosi se na adresi /admin/ (tablet, telefon ili računar u lokalu).', ui.ButtonSet.OK_CANCEL);
   if (res.getSelectedButton() !== ui.Button.OK) return;
   setPanelPin_(res.getResponseText());
   ui.alert('PIN je sačuvan.');
@@ -47,6 +48,16 @@ function menuSetNextOrderNumber() {
   if (res.getSelectedButton() !== ui.Button.OK) return;
   setNextOrderNumber_(res.getResponseText());
   ui.alert('Sledeća porudžbina dobija broj ' + res.getResponseText().trim() + '.');
+}
+
+function menuResetOrderCounter() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var next = resetOrderCounter_();
+    ui.alert('Brojač je vraćen. Sledeća porudžbina dobija broj ' + next + '.');
+  } catch (err) {
+    ui.alert(err.message);
+  }
 }
 
 function menuSendTestOrderEmail() {
@@ -82,7 +93,7 @@ function systemStatus_() {
     'Porudžbine: ' + (toBool_(settings.ordering_enabled, true) ? 'UKLJUČENE' : 'PAUZIRANE'),
     'Test režim emailova: ' + (toBool_(settings.test_mode, true) ? 'DA (emailovi idu samo test primaocu)' : 'NE'),
     'Preostala email kvota danas: ' + quota,
-    'PIN za panel: ' + (props.getProperty('PANEL_PIN_HASH') ? 'podešen' : 'NIJE podešen'),
+    'PIN za admin panel: ' + (props.getProperty('PANEL_PIN_HASH') ? 'podešen' : 'NIJE podešen'),
     'Okidači: ' + (triggers.length ? triggers.join(', ') : 'NISU instalirani'),
     'Poslednji dnevni izveštaj: ' + (props.getProperty('LAST_DAILY_REPORT') || '—')
   ];
@@ -109,7 +120,7 @@ function seedRowsFor_(key) {
       });
     case 'HOURS':
       return s.hours.map(function (h) {
-        return { dow: h.dow, day: h.day, open: h.open, close: h.close, delivery_open: h.delivery_open, delivery_close: h.delivery_close, closed: !!h.closed };
+        return { dow: h.dow, day: h.day, open: h.open, close: h.close, delivery_open: h.delivery_open, delivery_close: h.delivery_close, break_start: h.break_start || '', break_end: h.break_end || '', closed: !!h.closed };
       });
     case 'SPECIAL_HOURS':
       return s.specialHours.map(function (h) {
@@ -177,7 +188,7 @@ var TAB_COLORS_ = {
   DASHBOARD: '#1B4F8C', ORDERS: '#F5A623', ORDER_ITEMS: '#F5A623', CUSTOMERS: '#F5A623',
   PRODUCTS: '#4C7A3A', CATEGORIES: '#4C7A3A', OPTION_GROUPS: '#4C7A3A', OPTIONS: '#4C7A3A',
   SETTINGS: '#16202E', HOURS: '#16202E', SPECIAL_HOURS: '#16202E', ZONES: '#16202E', REPORT_CONFIG: '#16202E',
-  SYSTEM_LOG: '#999999', ERROR_LOG: '#D1432B'
+  FEEDBACK: '#F5A623', SYSTEM_LOG: '#999999', ERROR_LOG: '#D1432B'
 };
 
 function ensureSheet_(key) {
@@ -339,16 +350,17 @@ function reconcileTriggers_() {
 function sampleOrder_(settings) {
   var created = now_();
   return {
-    id: 'GG-' + fmt_(created, 'yyyyMMdd') + '-37-TEST',
-    publicNumber: 37,
+    id: 'GG-' + fmt_(created, 'yyyyMMdd') + '-1042-TEST',
+    publicNumber: 1042,
     businessDate: businessDateOf_(created),
     createdAt: created,
     createdIso: isoLocal_(created),
+    acceptByIso: isoLocal_(new Date(created.getTime() + 5 * 60000)),
     mode: 'delivery',
     type: 'DELIVERY',
     status: 'NEW',
     customer: { name: 'Test Kupac', phone: '+381641234567', phoneDisplay: '064 123 4567', email: '' },
-    address: { street: 'Bulevar oslobođenja', number: '12a', apt: 'stan 4, sprat 2', note: 'Interfon ne radi, pozvati.', zoneId: '', zoneName: '' },
+    address: { street: 'Bulevar oslobođenja', number: '12a', apt: '4', floor: '2', note: 'Interfon ne radi, pozvati.', zoneId: 'ns-grad', zoneName: 'Novi Sad — grad' },
     note: 'Bez luka u oba.',
     lines: [
       { name: 'Klasik', qty: 2, lineTotal: 1240, summary: 'Pileće · Tzatziki · Paradajz · Origano', removedSummary: 'BEZ: ljubičasti luk', note: '' },
@@ -361,6 +373,8 @@ function sampleOrder_(settings) {
     cash: 2000,
     change: 310,
     when: 'asap',
+    scheduledDate: '',
+    scheduledTime: '',
     promisedLabel: fmt_(new Date(created.getTime() + 60 * 60000), 'HH:mm'),
     statusToken: 'test',
     channel: 'test',
