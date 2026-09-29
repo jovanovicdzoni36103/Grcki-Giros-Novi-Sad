@@ -30,7 +30,8 @@ Na stranici se dodavanjem `?__now=2026-09-23T14:23:00%2B02:00` pomera vreme back
 ## Struktura
 
 ```
-data/seed.json                 početni meni (DEMO), podešavanja, radno vreme, zone
+data/seed.json                 pravi meni lokala (29.09.2026), podešavanja, radno vreme, zone
+tests/fixtures/seed.demo.json  nepromenljiv demo meni na kome rade svi testovi
 src/scripts/shared/*.cjs       logika koju dele sajt i Apps Script (vreme i termini, cene, validacija, novac)
 src/scripts/core|ui|pages/     frontend moduli (pages/admin.js = admin panel)
 src/site/                      build-time šabloni stranica (prerender, SEO, JSON-LD)

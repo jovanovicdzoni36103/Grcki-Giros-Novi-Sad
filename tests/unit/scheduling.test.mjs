@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const S = require('../../src/scripts/shared/scheduling.cjs');
-const seed = JSON.parse(readFileSync(new URL('../../data/seed.json', import.meta.url), 'utf8'));
+const seed = JSON.parse(readFileSync(new URL('../fixtures/seed.demo.json', import.meta.url), 'utf8'));
 
 const settings = Object.fromEntries(seed.settings.map((s) => [s.key, s.value]));
 const cfg = (overrides = {}, special = [], hours = seed.hours) => S.buildConfig({ ...settings, ...overrides }, hours, special);

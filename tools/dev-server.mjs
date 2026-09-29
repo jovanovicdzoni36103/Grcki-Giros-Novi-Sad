@@ -1,9 +1,10 @@
 // Local server: serves dist/ and answers /api with the real Apps Script code running in the emulator.
-//   node tools/dev-server.mjs [--port 5190] [--fresh]
+//   node tools/dev-server.mjs [--port 5190] [--fresh] [--seed tests/fixtures/seed.demo.json]
 // Dev-only query params on /api: __now=ISO pins the backend clock, __fail=sheets|email|lock|exception|slow|network.
 // Inspect: /__outbox (emails), /__state (sheets as JSON), /__reset (fresh spreadsheet).
 import http from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEmulator } from './gas-emulator/index.mjs';
@@ -14,6 +15,12 @@ const args = process.argv.slice(2);
 const port = Number(args[args.indexOf('--port') + 1]) || Number(process.env.PORT) || 5190;
 const dist = path.join(root, args.includes('--dist') ? args[args.indexOf('--dist') + 1] : 'dist');
 const stateFile = path.join(root, `.data/emulator-${port}.json`);
+// Another menu than data/seed.json for a fresh spreadsheet (E2E tests use the demo fixture).
+const seedFile = args.includes('--seed') ? path.join(root, args[args.indexOf('--seed') + 1]) : null;
+const seed = seedFile ? JSON.parse(readFileSync(seedFile, 'utf8')) : undefined;
+// The saved spreadsheet remembers which menu it was created from: a changed seed starts a fresh one.
+const seedHash = createHash('md5').update(readFileSync(seedFile || path.join(root, 'data/seed.json'))).digest('hex');
+const seedHashFile = stateFile.replace(/\.json$/, '.seed');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -53,16 +60,19 @@ function devSettings(e) {
 }
 
 function fresh() {
-  emu = createEmulator({ now: null });
+  emu = createEmulator({ now: null, seed });
   emu.run('setup');
   devSettings(emu);
   emu.state.cache.clear();
   emu.save(stateFile);
+  writeFileSync(seedHashFile, seedHash);
 }
 
 function boot() {
-  emu = createEmulator({ now: null });
-  if (args.includes('--fresh') || !emu.load(stateFile)) fresh();
+  emu = createEmulator({ now: null, seed });
+  const sameMenu = existsSync(seedHashFile) && readFileSync(seedHashFile, 'utf8') === seedHash;
+  if (!sameMenu && existsSync(stateFile)) console.log('Meni (seed) je promenjen: lokalna tabela se pravi iznova.');
+  if (args.includes('--fresh') || !sameMenu || !emu.load(stateFile)) fresh();
 }
 boot();
 

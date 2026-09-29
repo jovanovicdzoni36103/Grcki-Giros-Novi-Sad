@@ -30,7 +30,7 @@ export const ART_VARIANTS = {
   bag: { symbol: 'bag', bg: '#F2EBDD' }
 };
 
-const CATEGORY_FALLBACK = { giros: 'wrap', porcije: 'plate', paketi: 'bundle-1', prilozi: 'fries', salate: 'salad', sosovi: 'sauce-white', pice: 'can-red' };
+const CATEGORY_FALLBACK = { giros: 'wrap', porcije: 'plate', paketi: 'bundle-1', akcije: 'bundle-1', rostilj: 'plate', prilozi: 'fries', salate: 'salad', sosovi: 'sauce-white', pice: 'can-red' };
 
 export function artFor(product) {
   return ART_VARIANTS[product.art] || ART_VARIANTS[CATEGORY_FALLBACK[product.categoryId]] || ART_VARIANTS.bag;

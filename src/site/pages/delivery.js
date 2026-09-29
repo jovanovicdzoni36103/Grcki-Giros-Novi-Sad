@@ -86,7 +86,7 @@ export function render(ctx) {
       <h2>${iconSvg(a, 'store')}Preuzimanje</h2>
       <dl class="facts">
         <div><dt>Vreme</dt><dd>${esc(b.pickup_eta_min)}–${esc(b.pickup_eta_max)} minuta</dd></div>
-        <div><dt>Adresa</dt><dd>${esc(b.address_street)}, ${esc(b.address_city)}</dd></div>
+        <div><dt>Adresa</dt><dd>${esc(b.address_street)}, ${esc(b.address_city)}${b.address_note ? `<br><span class="small">${esc(b.address_note)}</span>` : ''}</dd></div>
         <div><dt>Radno vreme</dt><dd>${esc(ctx.hoursLine)}</dd></div>
         <div><dt>Cena</dt><dd>bez troška</dd></div>
         <div><dt>Plaćanje</dt><dd>gotovinom na kasi</dd></div>

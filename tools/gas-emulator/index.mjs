@@ -523,6 +523,8 @@ export function createEmulator(options = {}) {
     sandbox.GG_NOW_OVERRIDE = emu.now;
     const context = vm.createContext(sandbox);
     for (const s of scripts) s.runInContext(context);
+    // Tests run against a fixed demo menu (tests/fixtures), not the shop's real, changing one.
+    if (options.seed) context.SEED = JSON.parse(JSON.stringify(options.seed));
     if (typeof context[fn] !== 'function') throw new Error(`No Apps Script function ${fn}`);
     return context[fn](...args);
   }

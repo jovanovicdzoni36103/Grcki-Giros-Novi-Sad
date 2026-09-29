@@ -10,7 +10,7 @@ export const NAV = [
 ];
 
 export function brand(ctx, { tag = 'a' } = {}) {
-  const inner = `<svg class="brand__mark" aria-hidden="true"><use href="${ctx.assets.icons}#i-meander"/></svg><span class="brand__word">Grčki Giros<small>Novi Sad · 2021</small></span>`;
+  const inner = `<img class="brand__mark" src="/assets/img/logo-112.png" alt="" width="48" height="56"><span class="brand__word">Grčki Giros<small>Novi Sad · 2021</small></span>`;
   return tag === 'a' ? `<a class="brand" href="/" aria-label="Grčki Giros — početna">${inner}</a>` : `<span class="brand">${inner}</span>`;
 }
 
@@ -55,13 +55,13 @@ export function footer(ctx) {
   <div class="container">
     <div class="footer-grid">
       <div>
-        <p class="footer-lead">Pravi grčki giros. Pita stiže iz Atine.</p>
+        <p class="footer-lead">Grčki, ali domaćinski. Pita stiže iz Atine.</p>
         <a class="footer-phone" href="tel:${esc(b.phone_e164)}" data-track="footer">${esc(b.phone_display)}</a>
         <p style="margin-top:0.4rem">Porudžbine telefonom i online</p>
       </div>
       <div>
         <h2>Lokal</h2>
-        <p>${esc(b.address_street)}<br>${esc(b.postal_code)} ${esc(b.address_city)}</p>
+        <p>${esc(b.address_street)}${b.address_note ? ` <span class="small">(${esc(b.address_note)})</span>` : ''}<br>${esc(b.postal_code)} ${esc(b.address_city)}</p>
         <p style="margin-top:0.8rem"><a class="social" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.map_query || b.address_street + ', ' + b.address_city)}" target="_blank" rel="noopener">${iconSvg(a, 'map')}Otvori u mapama</a></p>
         ${b.instagram_url ? `<p style="margin-top:0.4rem"><a class="social" href="${esc(b.instagram_url)}" target="_blank" rel="noopener">${iconSvg(a, 'instagram')}Instagram</a></p>` : ''}
       </div>
@@ -69,6 +69,7 @@ export function footer(ctx) {
         <h2>Radno vreme</h2>
         <dl class="hours-list" data-hours>${hoursRows(ctx.weekly)}</dl>
         <p class="small" style="margin-top:0.6rem">Dostava ${esc(ctx.deliveryLine)}</p>
+        ${b.hours_note ? `<p class="small" style="margin-top:0.4rem">${esc(b.hours_note)}</p>` : ''}
       </div>
       <div>
         <h2>Sajt</h2>

@@ -59,15 +59,15 @@ Datum: 23.09.2026. Izvori, redom težine:
 
 | # | Nedostaje | Stanje u sistemu |
 |---|---|---|
-| N1–N3 | meni, kategorije, cene | Demo meni sa cenama benchmarkovanim na novosadskom tržištu (gyros.rs cenovnik: giros 450–800, porcija 1.000, pomfrit 220–270, sok 200). Označen `demo` u `PRODUCTS`. Zamena = unos u Sheets, bez koda. |
+| N1–N3 | meni, kategorije, cene | **Stiglo 29.09.2026** (rukom pisan meni): giros veliki/mali/porcija/vege, akcije, pljeskavice i roštilj, pomfrit, premazi, piće. U `data/seed.json`; demo meni je premešten u `tests/fixtures/seed.demo.json` i služi samo testovima. |
 | N4 | naziv lokala | Nije potreban (jedan lokal). |
-| N5, N8 | Lokal 2 | Van obima (D1). |
+| N5, N8 | Lokal 2 | Adresa stigla (Bulevar kralja Petra I 61). Prikazuje se samo kao informacija na stranici Kontakt (`SETTINGS.second_location`); poručivanje i dalje ide preko jednog lokala (D1). |
 | N6 | jela bez dostave | Kolona `delivery` u `PRODUCTS`. |
-| N7, N14 | fotografije | Kolona `image`; ilustracije kao fallback (D15). |
+| N7, N14 | fotografije | Stiglo: giros, pljeskavica, gurmanska, banjalučki ćevap, kobasica, ražanj, logo. Ostali proizvodi koriste ilustracije (D15). |
 | N9 | plata | Polje se prikazuje samo ako je uneto u `SETTINGS.job_salary`. |
-| N10 | cena promo komboja | Demo 720 RSD, označeno. |
+| N10 | cena promo komboja | Giros veliki + Coca-Cola 650, giros mali + Coca-Cola 550, pljeskavica velika + Coca-Cola 550. |
 | N11, N12 | zone, agencija | `ZONES` + `delivery_fee_mode` (D7, D8). |
-| N13 | extra meso | Demo 300 RSD (gyros.rs: 350). |
+| N13 | extra meso | „Meso plus 100 g“ 330 RSD. |
 | N15 | pomfrit | D5. |
 
 ## 4. gyros.rs — šta je korisno, šta popravljamo

@@ -40,7 +40,7 @@ export function render(ctx) {
     <div class="map-box" data-map data-query="${esc(b.map_query || '')}">
       <div class="map-box__fallback">
         <span class="map-box__pin">${iconSvg(a, 'store')}</span>
-        <p><strong>${esc(b.business_name)}</strong><br>${esc(b.address_street)}, ${esc(b.postal_code)} ${esc(b.address_city)}</p>
+        <p><strong>${esc(b.business_name)}</strong><br>${esc(b.address_street)}, ${esc(b.postal_code)} ${esc(b.address_city)}${b.address_note ? `<br>${esc(b.address_note)}` : ''}</p>
         <div class="cluster" style="justify-content:center">
           <button type="button" class="btn btn--blue btn--sm" data-load-map><span class="btn__label">Prikaži mapu</span></button>
           <a class="btn btn--ghost btn--sm" href="${maps}" target="_blank" rel="noopener"><span class="btn__label">Google Maps</span></a>
@@ -51,10 +51,12 @@ export function render(ctx) {
     <div class="visit__card">
       <a class="phone-big" href="tel:${esc(b.phone_e164)}" data-track="contact">${iconSvg(a, 'phone')}${esc(b.phone_display)}</a>
       <dl class="hours-list" data-hours data-hours-delivery>${hoursRows(ctx.weekly, { deliveryColumn: true })}</dl>
+      ${b.hours_note ? `<p class="small muted" style="margin-top:0.6rem">${esc(b.hours_note)}</p>` : ''}
       <dl class="facts">
         ${b.email_public ? `<div><dt>Email</dt><dd><a href="mailto:${esc(b.email_public)}">${esc(b.email_public)}</a></dd></div>` : ''}
         ${b.instagram_url ? `<div><dt>Instagram</dt><dd><a href="${esc(b.instagram_url)}" target="_blank" rel="noopener">@${esc(b.instagram_url.replace(/\/$/, '').split('/').pop())}</a></dd></div>` : ''}
         <div><dt>Plaćanje</dt><dd>gotovina</dd></div>
+        ${b.second_location ? `<div><dt>Drugi lokal</dt><dd>${esc(b.second_location)}<br><span class="small">Online porudžbine pripremamo u lokalu ${esc(b.address_street)}.</span></dd></div>` : ''}
       </dl>
     </div>
   </div>

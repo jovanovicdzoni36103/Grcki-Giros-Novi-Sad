@@ -2,8 +2,8 @@
 
 Stanje: 29.09.2026. Dokazi:
 
-- `npm test`: **228 testova** (76 unit + 152 Apps Script u emulatoru, od toga 48 napadačkih u `tests/gas/audit.test.mjs`)
-- `npm run test:e2e`: **26 tokova** u pravom Chrome-u (uz proveru konzole i svakog neuspelog mrežnog zahteva), izveštaj i screenshotovi u `tests/e2e/artifacts/`
+- `npm test`: **237 testova** (81 unit + 156 Apps Script u emulatoru, od toga 48 napadačkih u `tests/gas/audit.test.mjs`). Testovi rade na nepromenljivom demo meniju (`tests/fixtures/seed.demo.json`); pravi meni iz `data/seed.json` ima svoje provere (`tests/unit/seed.test.mjs`, `tests/gas/real-menu.test.mjs`, E 11)
+- `npm run test:e2e`: **27 tokova** u pravom Chrome-u (uz proveru konzole i svakog neuspelog mrežnog zahteva), izveštaj i screenshotovi u `tests/e2e/artifacts/`
 
 **Važno ograničenje:** backend je testiran tako što se **pravi `.gs` kod** izvršava u lokalnom emulatoru Google servisa (Sheets, LockService, CacheService, Properties, MailApp, Drive, okidači). Na pravom Google nalogu **nije** pokrenut. Za to treba deploy na nalogu lokala (docs/SETUP.md, ~45 min). Sve što zavisi od pravog Google-a je u sekciji „Nije testirano“.
 

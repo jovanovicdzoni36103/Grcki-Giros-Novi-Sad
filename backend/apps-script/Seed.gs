@@ -270,6 +270,31 @@ var SEED = {
    "key": "image_url_template",
    "value": "https://lh3.googleusercontent.com/d/{id}=w900",
    "note": "Adresa slike iz Google Drive-a ({id} = ID fajla). Ne menjati"
+  },
+  {
+   "key": "address_note",
+   "value": "kod stadiona „Karađorđe“",
+   "note": "Orijentir uz adresu (prazno = ne prikazuje se)"
+  },
+  {
+   "key": "hours_note",
+   "value": "Ne radimo za vreme kolektivnog godišnjeg odmora (leti i zimi) i za praznike.",
+   "note": "Napomena ispod radnog vremena (prazno = ne prikazuje se)"
+  },
+  {
+   "key": "job_phone_display",
+   "value": "063 877 33 63",
+   "note": "Telefon za posao na stranici /posao/ (prazno = telefon lokala)"
+  },
+  {
+   "key": "job_phone_e164",
+   "value": "+381638773363",
+   "note": "Isti broj u formatu +381…"
+  },
+  {
+   "key": "second_location",
+   "value": "Bulevar kralja Petra I 61, Novi Sad",
+   "note": "Drugi lokal, samo kao informacija na stranici Kontakt (prazno = ne prikazuje se). Online porudžbine ostaju u lokalu iz address_street."
   }
  ],
  "hours": [
@@ -454,50 +479,36 @@ var SEED = {
    {
     "id": "giros",
     "name": "Giros",
-    "description": "U piti koja stiže iz Atine. Pomfrit ide unutra, osim ako ne kažete drugačije.",
+    "description": "Pileće, svinjsko ili mix — u grčkoj piti, sa pomfritom unutra.",
     "sort": 1,
     "active": true
    },
    {
-    "id": "porcije",
-    "name": "Porcije",
-    "description": "Isto meso, ali na tanjiru i sa viljuškom.",
+    "id": "akcije",
+    "name": "Akcije",
+    "description": "Uz Coca-Colu u limenci, povoljnije nego odvojeno.",
     "sort": 2,
     "active": true
    },
    {
-    "id": "paketi",
-    "name": "Paketi",
-    "description": "Giros sa društvom. Povoljnije nego kad se uzima pojedinačno.",
+    "id": "rostilj",
+    "name": "Sa roštilja",
+    "description": "Pljeskavice, banjalučki ćevap i kobasica sa sirom.",
     "sort": 3,
     "active": true
    },
    {
     "id": "prilozi",
     "name": "Prilozi",
-    "description": "Pomfrit se prži kad ga poručiš.",
+    "description": "Pomfrit i premazi.",
     "sort": 4,
-    "active": true
-   },
-   {
-    "id": "salate",
-    "name": "Salate",
-    "description": "Sveže seckano, bez preliva koji prekrije ukus.",
-    "sort": 5,
-    "active": true
-   },
-   {
-    "id": "sosovi",
-    "name": "Sosovi",
-    "description": "Za umakanje, za pomfrit, za sutra.",
-    "sort": 6,
     "active": true
    },
    {
     "id": "pice",
     "name": "Piće",
     "description": "Hladno.",
-    "sort": 7,
+    "sort": 5,
     "active": true
    }
   ],
@@ -514,26 +525,15 @@ var SEED = {
     "sort": 1
    },
    {
-    "id": "pita",
-    "name": "Pita",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
-    "display": "info",
-    "hint": "Stiže iz Atine.",
-    "sort": 2
-   },
-   {
-    "id": "sosovi",
-    "name": "Sosovi",
+    "id": "premazi",
+    "name": "Premazi",
     "type": "multi",
     "required": false,
     "min": 0,
     "max": 0,
     "display": "chips",
     "hint": "Bez doplate, koliko god želite.",
-    "sort": 3
+    "sort": 2
    },
    {
     "id": "salate",
@@ -544,7 +544,7 @@ var SEED = {
     "max": 0,
     "display": "chips",
     "hint": "Bez doplate.",
-    "sort": 4
+    "sort": 3
    },
    {
     "id": "zacini",
@@ -554,8 +554,8 @@ var SEED = {
     "min": 0,
     "max": 0,
     "display": "chips",
-    "hint": "",
-    "sort": 5
+    "hint": "Originalni začini iz Grčke.",
+    "sort": 4
    },
    {
     "id": "pomfrit-u-piti",
@@ -565,67 +565,45 @@ var SEED = {
     "min": 0,
     "max": 1,
     "display": "toggle",
-    "hint": "Grčki način. Isključite ako ga ne želite unutra.",
+    "hint": "Isključite ako giros želite bez pomfrita.",
+    "sort": 5
+   },
+   {
+    "id": "pakovanje",
+    "name": "Pakovanje",
+    "type": "multi",
+    "required": false,
+    "min": 0,
+    "max": 1,
+    "display": "chips",
+    "hint": "Bez pite: meso, premaz, pomfrit i salate u ketering stiroporu, ista cena.",
     "sort": 6
    },
    {
-    "id": "dodaci",
-    "name": "Dodaci",
+    "id": "dodatno",
+    "name": "Dodatno",
     "type": "multi",
     "required": false,
     "min": 0,
     "max": 0,
     "display": "chips",
-    "hint": "Uz doplatu.",
+    "hint": "",
     "sort": 7
    },
    {
-    "id": "sok",
-    "name": "Sok 0.33 l",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
+    "id": "uz-pomfrit",
+    "name": "Uz pomfrit",
+    "type": "multi",
+    "required": false,
+    "min": 0,
+    "max": 0,
     "display": "chips",
-    "hint": "",
+    "hint": "Bez doplate.",
     "sort": 8
    },
    {
-    "id": "duo-meso-1",
-    "name": "Prvi giros — meso",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
-    "display": "cards",
-    "hint": "",
-    "sort": 1
-   },
-   {
-    "id": "duo-meso-2",
-    "name": "Drugi giros — meso",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
-    "display": "cards",
-    "hint": "",
-    "sort": 2
-   },
-   {
-    "id": "duo-sok-1",
-    "name": "Prvi sok",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
-    "display": "chips",
-    "hint": "",
-    "sort": 8
-   },
-   {
-    "id": "duo-sok-2",
-    "name": "Drugi sok",
+    "id": "premaz-izbor",
+    "name": "Premaz",
     "type": "single",
     "required": true,
     "min": 1,
@@ -635,26 +613,26 @@ var SEED = {
     "sort": 9
    },
    {
-    "id": "fam-meso",
-    "name": "Meso za četiri girosa",
-    "type": "single",
-    "required": true,
-    "min": 1,
-    "max": 1,
-    "display": "cards",
-    "hint": "",
-    "sort": 1
-   },
-   {
-    "id": "fam-sok",
-    "name": "Četiri soka",
+    "id": "pakovanje-pica",
+    "name": "Pakovanje",
     "type": "single",
     "required": true,
     "min": 1,
     "max": 1,
     "display": "chips",
     "hint": "",
-    "sort": 8
+    "sort": 10
+   },
+   {
+    "id": "joy-ukus",
+    "name": "Ukus",
+    "type": "single",
+    "required": true,
+    "min": 1,
+    "max": 1,
+    "display": "chips",
+    "hint": "",
+    "sort": 11
    }
   ],
   "options": [
@@ -675,72 +653,64 @@ var SEED = {
     "available": true
    },
    {
-    "id": "meso-mesano",
+    "id": "meso-mix",
     "groupId": "meso",
-    "name": "Mešano",
+    "name": "Mix",
     "price": 0,
     "sort": 3,
     "available": true
    },
    {
-    "id": "pita-atina",
-    "groupId": "pita",
-    "name": "Pita iz Atine",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "sos-tzatziki",
-    "groupId": "sosovi",
-    "name": "Tzatziki",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "sos-pavlaka",
-    "groupId": "sosovi",
+    "id": "pr-pavlaka",
+    "groupId": "premazi",
     "name": "Pavlaka",
+    "price": 0,
+    "sort": 1,
+    "available": true
+   },
+   {
+    "id": "pr-caciki",
+    "groupId": "premazi",
+    "name": "Caciki (tzatziki)",
     "price": 0,
     "sort": 2,
     "available": true
    },
    {
-    "id": "sos-urnebes",
-    "groupId": "sosovi",
-    "name": "Urnebes",
+    "id": "pr-tirokafteri",
+    "groupId": "premazi",
+    "name": "Tirokafteri",
     "price": 0,
     "sort": 3,
     "available": true
    },
    {
-    "id": "sos-tirokafteri",
-    "groupId": "sosovi",
-    "name": "Tirokafteri",
+    "id": "pr-urnebes",
+    "groupId": "premazi",
+    "name": "Urnebes",
     "price": 0,
     "sort": 4,
     "available": true
    },
    {
-    "id": "sos-kecap",
-    "groupId": "sosovi",
-    "name": "Kečap",
+    "id": "pr-kecap",
+    "groupId": "premazi",
+    "name": "Kečap blagi",
     "price": 0,
     "sort": 5,
     "available": true
    },
    {
-    "id": "sos-majonez",
-    "groupId": "sosovi",
+    "id": "pr-majonez",
+    "groupId": "premazi",
     "name": "Majonez",
     "price": 0,
     "sort": 6,
     "available": true
    },
    {
-    "id": "sos-senf",
-    "groupId": "sosovi",
+    "id": "pr-senf",
+    "groupId": "premazi",
     "name": "Senf",
     "price": 0,
     "sort": 7,
@@ -763,35 +733,11 @@ var SEED = {
     "available": true
    },
    {
-    "id": "sal-luk",
+    "id": "sal-vitaminska",
     "groupId": "salate",
-    "name": "Ljubičasti luk",
+    "name": "Vitaminska",
     "price": 0,
     "sort": 3,
-    "available": true
-   },
-   {
-    "id": "sal-zelena",
-    "groupId": "salate",
-    "name": "Zelena salata",
-    "price": 0,
-    "sort": 4,
-    "available": true
-   },
-   {
-    "id": "sal-mix",
-    "groupId": "salate",
-    "name": "Mix salata",
-    "price": 0,
-    "sort": 5,
-    "available": true
-   },
-   {
-    "id": "sal-kupus",
-    "groupId": "salate",
-    "name": "Kupus",
-    "price": 0,
-    "sort": 6,
     "available": true
    },
    {
@@ -799,37 +745,61 @@ var SEED = {
     "groupId": "salate",
     "name": "Ljubičasti kupus",
     "price": 0,
+    "sort": 4,
+    "available": true
+   },
+   {
+    "id": "sal-beli-kupus",
+    "groupId": "salate",
+    "name": "Beli kupus",
+    "price": 0,
+    "sort": 5,
+    "available": true
+   },
+   {
+    "id": "sal-luk",
+    "groupId": "salate",
+    "name": "Ljubičasti luk",
+    "price": 0,
+    "sort": 6,
+    "available": true
+   },
+   {
+    "id": "sal-zelena",
+    "groupId": "salate",
+    "name": "Zelena salata",
+    "price": 0,
     "sort": 7,
-    "available": true
-   },
-   {
-    "id": "zac-origano",
-    "groupId": "zacini",
-    "name": "Origano",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "zac-so",
-    "groupId": "zacini",
-    "name": "Morska so",
-    "price": 0,
-    "sort": 2,
     "available": true
    },
    {
     "id": "zac-biber",
     "groupId": "zacini",
-    "name": "Biber",
+    "name": "Crni biber",
     "price": 0,
-    "sort": 3,
+    "sort": 1,
     "available": true
    },
    {
     "id": "zac-paprika",
     "groupId": "zacini",
-    "name": "Tucana ljuta paprika",
+    "name": "Tucana žuta paprika",
+    "price": 0,
+    "sort": 2,
+    "available": true
+   },
+   {
+    "id": "zac-morska-so",
+    "groupId": "zacini",
+    "name": "Morska so",
+    "price": 0,
+    "sort": 3,
+    "available": true
+   },
+   {
+    "id": "zac-origano",
+    "groupId": "zacini",
+    "name": "Grčki origano",
     "price": 0,
     "sort": 4,
     "available": true
@@ -843,209 +813,145 @@ var SEED = {
     "available": true
    },
    {
+    "id": "pak-stiropor",
+    "groupId": "pakovanje",
+    "name": "Bez pite — u ketering stiroporu",
+    "price": 0,
+    "sort": 1,
+    "available": true
+   },
+   {
     "id": "dod-meso",
-    "groupId": "dodaci",
-    "name": "Extra meso",
-    "price": 300,
+    "groupId": "dodatno",
+    "name": "Meso plus 100 g",
+    "price": 330,
     "sort": 1,
     "available": true
    },
    {
-    "id": "sok-cola",
-    "groupId": "sok",
-    "name": "Coca-Cola",
+    "id": "uzp-kecap",
+    "groupId": "uz-pomfrit",
+    "name": "Kečap blagi",
     "price": 0,
     "sort": 1,
     "available": true
    },
    {
-    "id": "sok-zero",
-    "groupId": "sok",
-    "name": "Coca-Cola Zero",
+    "id": "uzp-majonez",
+    "groupId": "uz-pomfrit",
+    "name": "Majonez",
     "price": 0,
     "sort": 2,
     "available": true
    },
    {
-    "id": "sok-fanta",
-    "groupId": "sok",
-    "name": "Fanta",
+    "id": "uzp-senf",
+    "groupId": "uz-pomfrit",
+    "name": "Senf",
     "price": 0,
     "sort": 3,
     "available": true
    },
    {
-    "id": "sok-sprite",
-    "groupId": "sok",
-    "name": "Sprite",
+    "id": "uzp-so",
+    "groupId": "uz-pomfrit",
+    "name": "So",
     "price": 0,
     "sort": 4,
     "available": true
    },
    {
-    "id": "d1-pilece",
-    "groupId": "duo-meso-1",
-    "name": "Pileće",
+    "id": "pi-pavlaka",
+    "groupId": "premaz-izbor",
+    "name": "Pavlaka",
     "price": 0,
     "sort": 1,
     "available": true
    },
    {
-    "id": "d1-svinjsko",
-    "groupId": "duo-meso-1",
-    "name": "Svinjsko",
+    "id": "pi-caciki",
+    "groupId": "premaz-izbor",
+    "name": "Caciki (tzatziki)",
     "price": 0,
     "sort": 2,
     "available": true
    },
    {
-    "id": "d1-mesano",
-    "groupId": "duo-meso-1",
-    "name": "Mešano",
+    "id": "pi-tirokafteri",
+    "groupId": "premaz-izbor",
+    "name": "Tirokafteri",
     "price": 0,
     "sort": 3,
     "available": true
    },
    {
-    "id": "d2-pilece",
-    "groupId": "duo-meso-2",
-    "name": "Pileće",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "d2-svinjsko",
-    "groupId": "duo-meso-2",
-    "name": "Svinjsko",
-    "price": 0,
-    "sort": 2,
-    "available": true
-   },
-   {
-    "id": "d2-mesano",
-    "groupId": "duo-meso-2",
-    "name": "Mešano",
-    "price": 0,
-    "sort": 3,
-    "available": true
-   },
-   {
-    "id": "ds1-cola",
-    "groupId": "duo-sok-1",
-    "name": "Coca-Cola",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "ds1-zero",
-    "groupId": "duo-sok-1",
-    "name": "Coca-Cola Zero",
-    "price": 0,
-    "sort": 2,
-    "available": true
-   },
-   {
-    "id": "ds1-fanta",
-    "groupId": "duo-sok-1",
-    "name": "Fanta",
-    "price": 0,
-    "sort": 3,
-    "available": true
-   },
-   {
-    "id": "ds1-sprite",
-    "groupId": "duo-sok-1",
-    "name": "Sprite",
+    "id": "pi-urnebes",
+    "groupId": "premaz-izbor",
+    "name": "Urnebes",
     "price": 0,
     "sort": 4,
     "available": true
    },
    {
-    "id": "ds2-cola",
-    "groupId": "duo-sok-2",
-    "name": "Coca-Cola",
+    "id": "pi-kecap",
+    "groupId": "premaz-izbor",
+    "name": "Kečap blagi",
+    "price": 0,
+    "sort": 5,
+    "available": true
+   },
+   {
+    "id": "pi-majonez",
+    "groupId": "premaz-izbor",
+    "name": "Majonez",
+    "price": 0,
+    "sort": 6,
+    "available": true
+   },
+   {
+    "id": "pi-senf",
+    "groupId": "premaz-izbor",
+    "name": "Senf",
+    "price": 0,
+    "sort": 7,
+    "available": true
+   },
+   {
+    "id": "pp-limenka",
+    "groupId": "pakovanje-pica",
+    "name": "Limenka 0,33 l",
     "price": 0,
     "sort": 1,
     "available": true
    },
    {
-    "id": "ds2-zero",
-    "groupId": "duo-sok-2",
-    "name": "Coca-Cola Zero",
+    "id": "pp-flasa",
+    "groupId": "pakovanje-pica",
+    "name": "Flaša 0,5 l",
     "price": 0,
     "sort": 2,
     "available": true
    },
    {
-    "id": "ds2-fanta",
-    "groupId": "duo-sok-2",
-    "name": "Fanta",
-    "price": 0,
-    "sort": 3,
-    "available": true
-   },
-   {
-    "id": "ds2-sprite",
-    "groupId": "duo-sok-2",
-    "name": "Sprite",
-    "price": 0,
-    "sort": 4,
-    "available": true
-   },
-   {
-    "id": "fam-mix",
-    "groupId": "fam-meso",
-    "name": "2 pileća + 2 svinjska",
+    "id": "joy-narandza",
+    "groupId": "joy-ukus",
+    "name": "Narandža",
     "price": 0,
     "sort": 1,
     "available": true
    },
    {
-    "id": "fam-pilece",
-    "groupId": "fam-meso",
-    "name": "4 × pileće",
+    "id": "joy-multivitamin",
+    "groupId": "joy-ukus",
+    "name": "Multivitamin",
     "price": 0,
     "sort": 2,
     "available": true
    },
    {
-    "id": "fam-svinjsko",
-    "groupId": "fam-meso",
-    "name": "4 × svinjsko",
-    "price": 0,
-    "sort": 3,
-    "available": true
-   },
-   {
-    "id": "fam-mesano",
-    "groupId": "fam-meso",
-    "name": "4 × mešano",
-    "price": 0,
-    "sort": 4,
-    "available": true
-   },
-   {
-    "id": "fs-cola",
-    "groupId": "fam-sok",
-    "name": "4 × Coca-Cola",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
-    "id": "fs-zero",
-    "groupId": "fam-sok",
-    "name": "4 × Coca-Cola Zero",
-    "price": 0,
-    "sort": 2,
-    "available": true
-   },
-   {
-    "id": "fs-mix",
-    "groupId": "fam-sok",
-    "name": "2 Coca-Cola + 2 Fanta",
+    "id": "joy-visnja",
+    "groupId": "joy-ukus",
+    "name": "Višnja",
     "price": 0,
     "sort": 3,
     "available": true
@@ -1053,14 +959,8 @@ var SEED = {
   ],
   "products": [
    {
-    "id": "klasik",
-    "categoryId": "giros",
-    "name": "Klasik",
-    "description": "Pileće meso, tzatziki, paradajz, ljubičasti luk i pomfrit u piti. Onaj koji svi prvo probaju.",
-    "price": 620,
     "comparePrice": 0,
-    "art": "wrap",
-    "image": "",
+    "image": "/assets/img/menu/giros.webp",
     "tags": [
      "popular",
      "recommended"
@@ -1071,44 +971,40 @@ var SEED = {
     "pickup": true,
     "groups": [
      "meso",
-     "pita",
-     "sosovi",
+     "premazi",
      "salate",
      "zacini",
      "pomfrit-u-piti",
-     "dodaci"
+     "pakovanje",
+     "dodatno"
     ],
     "defaults": [
-     "meso-pilece",
-     "pita-atina",
-     "sos-tzatziki",
+     "pr-caciki",
      "sal-paradajz",
      "sal-luk",
-     "zac-origano",
      "pup-da"
     ],
     "pairs": [
      "coca-cola",
-     "tzatziki-100",
-     "pomfrit-mali"
+     "pomfrit",
+     "premaz-100"
     ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "giros",
     "sort": 1,
-    "demo": true
+    "id": "giros-veliki",
+    "name": "Giros veliki",
+    "description": "120 g mesa u grčkoj piti, sa pomfritom. Premaze, salate i začine birate sami, bez doplate.",
+    "price": 550,
+    "art": "wrap"
    },
    {
-    "id": "ljutko",
-    "categoryId": "giros",
-    "name": "Ljutko",
-    "description": "Svinjsko meso, urnebes, tirokafteri, ljubičasti luk i tucana ljuta paprika. Ljut, ali pošteno.",
-    "price": 640,
     "comparePrice": 0,
-    "art": "wrap-spicy",
-    "image": "",
+    "image": "/assets/img/menu/giros.webp",
     "tags": [
-     "spicy",
      "popular"
     ],
     "badge": "",
@@ -1117,45 +1013,40 @@ var SEED = {
     "pickup": true,
     "groups": [
      "meso",
-     "pita",
-     "sosovi",
+     "premazi",
      "salate",
      "zacini",
      "pomfrit-u-piti",
-     "dodaci"
+     "pakovanje",
+     "dodatno"
     ],
     "defaults": [
-     "meso-svinjsko",
-     "pita-atina",
-     "sos-urnebes",
-     "sos-tirokafteri",
+     "pr-caciki",
+     "sal-paradajz",
      "sal-luk",
-     "zac-paprika",
      "pup-da"
     ],
     "pairs": [
-     "coca-cola-zero",
-     "tirokafteri-100",
-     "voda"
+     "coca-cola",
+     "pomfrit"
     ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "giros",
     "sort": 2,
-    "demo": true
+    "id": "giros-mali",
+    "name": "Giros mali",
+    "description": "80 g mesa u grčkoj piti, sa pomfritom. Premaze, salate i začine birate sami, bez doplate.",
+    "price": 450,
+    "art": "wrap"
    },
    {
-    "id": "atina",
-    "categoryId": "giros",
-    "name": "Atina",
-    "description": "Mešano meso, tzatziki, paradajz, krastavac, origano i morska so. Onako kako se jede u Atini.",
-    "price": 660,
     "comparePrice": 0,
-    "art": "wrap-atina",
     "image": "",
     "tags": [
-     "recommended",
-     "new"
+     "family"
     ],
     "badge": "",
     "available": true,
@@ -1163,123 +1054,30 @@ var SEED = {
     "pickup": true,
     "groups": [
      "meso",
-     "pita",
-     "sosovi",
+     "premazi",
      "salate",
      "zacini",
-     "pomfrit-u-piti",
-     "dodaci"
+     "dodatno"
     ],
-    "defaults": [
-     "meso-mesano",
-     "pita-atina",
-     "sos-tzatziki",
-     "sal-paradajz",
-     "sal-krastavac",
-     "zac-origano",
-     "zac-so",
-     "pup-da"
-    ],
+    "defaults": [],
     "pairs": [
-     "tzatziki-100",
-     "fanta",
-     "mix-salata"
+     "coca-cola",
+     "pomfrit"
     ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "giros",
     "sort": 3,
-    "demo": true
+    "id": "giros-porcija",
+    "name": "Giros porcija",
+    "description": "250 g mesa po izboru. Premazi, salate i začini po želji, bez doplate.",
+    "price": 950,
+    "art": "plate"
    },
    {
-    "id": "slozi-svoj",
-    "categoryId": "giros",
-    "name": "Složi svoj",
-    "description": "Meso, sosovi, salate i začini po vašem izboru. Mi samo pazimo da se pita zatvori.",
-    "price": 620,
     "comparePrice": 0,
-    "art": "wrap-custom",
-    "image": "",
-    "tags": [],
-    "badge": "Po tvom",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [
-     "meso",
-     "pita",
-     "sosovi",
-     "salate",
-     "zacini",
-     "pomfrit-u-piti",
-     "dodaci"
-    ],
-    "defaults": [
-     "pita-atina",
-     "pup-da"
-    ],
-    "pairs": [
-     "coca-cola",
-     "pomfrit-mali",
-     "tzatziki-100"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 4,
-    "demo": true
-   },
-   {
-    "id": "giros-max",
-    "categoryId": "giros",
-    "name": "Giros MAX",
-    "description": "Dupla porcija mesa u istoj piti. Za dane kad je obična glad premala.",
-    "price": 820,
-    "comparePrice": 0,
-    "art": "wrap-max",
-    "image": "",
-    "tags": [
-     "popular"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [
-     "meso",
-     "pita",
-     "sosovi",
-     "salate",
-     "zacini",
-     "pomfrit-u-piti",
-     "dodaci"
-    ],
-    "defaults": [
-     "meso-pilece",
-     "pita-atina",
-     "sos-tzatziki",
-     "sal-paradajz",
-     "sal-luk",
-     "pup-da"
-    ],
-    "pairs": [
-     "coca-cola",
-     "pomfrit-veliki"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 5,
-    "demo": true
-   },
-   {
-    "id": "vege-pita",
-    "categoryId": "giros",
-    "name": "Vege pita",
-    "description": "Pita iz Atine, pomfrit, tzatziki, paradajz, krastavac i zelena salata. Bez mesa, bez kompromisa.",
-    "price": 390,
-    "comparePrice": 0,
-    "art": "wrap-veg",
     "image": "",
     "tags": [
      "vegetarian"
@@ -1289,113 +1087,72 @@ var SEED = {
     "delivery": true,
     "pickup": true,
     "groups": [
-     "pita",
-     "sosovi",
+     "premazi",
      "salate",
      "zacini",
      "pomfrit-u-piti"
     ],
     "defaults": [
-     "pita-atina",
-     "sos-tzatziki",
+     "pr-caciki",
      "sal-paradajz",
-     "sal-krastavac",
-     "sal-zelena",
+     "sal-luk",
      "pup-da"
     ],
     "pairs": [
-     "mix-salata",
-     "sprite"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 6,
-    "demo": true
-   },
-   {
-    "id": "giros-porcija",
-    "categoryId": "porcije",
-    "name": "Giros porcija",
-    "description": "Meso, pomfrit, pita, tzatziki i salata na tanjiru. Porcija za ozbiljnu glad.",
-    "price": 990,
-    "comparePrice": 0,
-    "art": "plate",
-    "image": "",
-    "tags": [
-     "popular"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [
-     "meso",
-     "sosovi",
-     "salate",
-     "dodaci"
-    ],
-    "defaults": [
-     "meso-pilece",
-     "sos-tzatziki",
-     "sal-paradajz",
-     "sal-krastavac",
-     "sal-luk"
-    ],
-    "pairs": [
-     "tzatziki-100",
      "coca-cola"
     ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
-    "sort": 1,
-    "demo": true
+    "demo": false,
+    "categoryId": "giros",
+    "sort": 4,
+    "id": "vege-veliki",
+    "name": "Vege veliki",
+    "description": "Grčka pita sa premazima, salatama i pomfritom — bez mesa.",
+    "price": 450,
+    "art": "wrap-veg"
    },
    {
-    "id": "giros-box",
-    "categoryId": "porcije",
-    "name": "Giros box",
-    "description": "Meso i pomfrit u kutiji, sos po izboru. Bez pite, bez čekanja.",
-    "price": 740,
     "comparePrice": 0,
-    "art": "box",
     "image": "",
-    "tags": [],
+    "tags": [
+     "vegetarian"
+    ],
     "badge": "",
     "available": true,
     "delivery": true,
     "pickup": true,
     "groups": [
-     "meso",
-     "sosovi",
+     "premazi",
+     "salate",
      "zacini",
-     "dodaci"
+     "pomfrit-u-piti"
     ],
     "defaults": [
-     "meso-pilece",
-     "sos-tzatziki",
-     "zac-origano"
+     "pr-caciki",
+     "sal-paradajz",
+     "sal-luk",
+     "pup-da"
     ],
     "pairs": [
-     "coca-cola",
-     "tzatziki-100"
+     "coca-cola"
     ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
-    "sort": 2,
-    "demo": true
+    "demo": false,
+    "categoryId": "giros",
+    "sort": 5,
+    "id": "vege-mali",
+    "name": "Vege mali",
+    "description": "Manja grčka pita sa premazima, salatama i pomfritom — bez mesa.",
+    "price": 350,
+    "art": "wrap-veg"
    },
    {
-    "id": "giros-sok",
-    "categoryId": "paketi",
-    "name": "Giros + sok",
-    "description": "Giros složen po vašem ukusu i sok 0.33. Najbrža odluka dana.",
-    "price": 720,
-    "comparePrice": 820,
-    "art": "bundle-1",
-    "image": "",
+    "comparePrice": 700,
+    "image": "/assets/img/menu/giros.webp",
     "tags": [
      "promo",
      "value"
@@ -1406,506 +1163,328 @@ var SEED = {
     "pickup": true,
     "groups": [
      "meso",
-     "pita",
-     "sosovi",
+     "premazi",
      "salate",
      "zacini",
      "pomfrit-u-piti",
-     "sok"
+     "pakovanje",
+     "dodatno"
     ],
     "defaults": [
-     "pita-atina",
-     "sos-tzatziki",
+     "pr-caciki",
      "sal-paradajz",
      "sal-luk",
-     "pup-da",
-     "sok-cola"
+     "pup-da"
     ],
-    "pairs": [
-     "pomfrit-mali"
-    ],
-    "bundleHint": "cat:giros+cat:pice",
-    "includes": "1 giros · sok 0.33",
+    "pairs": [],
+    "bundleHint": "p:giros-veliki+p:coca-cola",
+    "includes": "Giros veliki · Coca-Cola limenka 0,33 l",
     "kind": "bundle",
+    "demo": false,
+    "categoryId": "akcije",
     "sort": 1,
-    "demo": true
+    "id": "akcija-giros-veliki",
+    "name": "Giros veliki + Coca-Cola",
+    "description": "Giros veliki složen po vašem ukusu i Coca-Cola u limenci.",
+    "price": 650,
+    "art": "bundle-1"
    },
    {
-    "id": "giros-duo",
-    "categoryId": "paketi",
-    "name": "Giros Duo",
-    "description": "Dva girosa, veliki pomfrit i dva soka. Za dvoje, ili za jednog vrlo gladnog.",
-    "price": 1690,
-    "comparePrice": 1930,
-    "art": "bundle-2",
-    "image": "",
+    "comparePrice": 600,
+    "image": "/assets/img/menu/giros.webp",
     "tags": [
+     "promo",
      "value"
     ],
-    "badge": "",
+    "badge": "Akcija",
     "available": true,
     "delivery": true,
     "pickup": true,
     "groups": [
-     "duo-meso-1",
-     "duo-meso-2",
-     "pita",
-     "sosovi",
+     "meso",
+     "premazi",
      "salate",
+     "zacini",
      "pomfrit-u-piti",
-     "duo-sok-1",
-     "duo-sok-2"
+     "pakovanje",
+     "dodatno"
     ],
     "defaults": [
-     "pita-atina",
-     "sos-tzatziki",
+     "pr-caciki",
      "sal-paradajz",
      "sal-luk",
-     "pup-da",
-     "ds1-cola",
-     "ds2-cola"
+     "pup-da"
     ],
-    "pairs": [
-     "tzatziki-300"
-    ],
-    "bundleHint": "",
-    "includes": "2 girosa · veliki pomfrit · 2 soka 0.33",
+    "pairs": [],
+    "bundleHint": "p:giros-mali+p:coca-cola",
+    "includes": "Giros mali · Coca-Cola limenka 0,33 l",
     "kind": "bundle",
+    "demo": false,
+    "categoryId": "akcije",
     "sort": 2,
-    "demo": true
+    "id": "akcija-giros-mali",
+    "name": "Giros mali + Coca-Cola",
+    "description": "Giros mali složen po vašem ukusu i Coca-Cola u limenci.",
+    "price": 550,
+    "art": "bundle-1"
    },
    {
-    "id": "porodicni-box",
-    "categoryId": "paketi",
-    "name": "Porodični box",
-    "description": "Četiri girosa, dva velika pomfrita i četiri soka. Večera za celu ekipu, bez pranja sudova.",
-    "price": 3290,
-    "comparePrice": 3860,
-    "art": "bundle-4",
-    "image": "",
+    "comparePrice": 600,
+    "image": "/assets/img/menu/pljeskavica.webp",
     "tags": [
-     "family",
+     "promo",
      "value"
     ],
-    "badge": "",
+    "badge": "Akcija",
     "available": true,
     "delivery": true,
     "pickup": true,
     "groups": [
-     "fam-meso",
-     "pita",
-     "sosovi",
-     "salate",
-     "pomfrit-u-piti",
-     "fam-sok"
+     "premazi",
+     "salate"
     ],
-    "defaults": [
-     "fam-mix",
-     "pita-atina",
-     "sos-tzatziki",
-     "sal-paradajz",
-     "sal-luk",
-     "pup-da",
-     "fs-cola"
-    ],
-    "pairs": [
-     "tzatziki-300",
-     "mix-salata"
-    ],
-    "bundleHint": "",
-    "includes": "4 girosa · 2 velika pomfrita · 4 soka 0.33",
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "p:pljeskavica-velika+p:coca-cola",
+    "includes": "Pljeskavica velika · Coca-Cola limenka 0,33 l",
     "kind": "bundle",
+    "demo": false,
+    "categoryId": "akcije",
     "sort": 3,
-    "demo": true
+    "id": "akcija-pljeskavica",
+    "name": "Pljeskavica velika + Coca-Cola",
+    "description": "Pljeskavica velika (200 g) i Coca-Cola u limenci.",
+    "price": 550,
+    "art": "plate"
    },
    {
-    "id": "pomfrit-mali",
-    "categoryId": "prilozi",
-    "name": "Pomfrit mali",
-    "description": "Prži se kad ga poručiš, soli se morskom solju.",
-    "price": 230,
     "comparePrice": 0,
-    "art": "fries",
-    "image": "",
+    "image": "/assets/img/menu/pljeskavica.webp",
     "tags": [
-     "vegetarian"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [
-     "tzatziki-100",
-     "urnebes-100"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 1,
-    "demo": true
-   },
-   {
-    "id": "pomfrit-veliki",
-    "categoryId": "prilozi",
-    "name": "Pomfrit veliki",
-    "description": "Isti pomfrit, više za deljenje.",
-    "price": 290,
-    "comparePrice": 0,
-    "art": "fries",
-    "image": "",
-    "tags": [
-     "vegetarian"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [
-     "tzatziki-100",
-     "urnebes-100"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 2,
-    "demo": true
-   },
-   {
-    "id": "pomfrit-feta",
-    "categoryId": "prilozi",
-    "name": "Pomfrit sa fetom",
-    "description": "Pomfrit, izmrvljena feta i origano.",
-    "price": 360,
-    "comparePrice": 0,
-    "art": "fries-feta",
-    "image": "",
-    "tags": [
-     "vegetarian",
-     "new"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [
-     "tzatziki-100"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 3,
-    "demo": true
-   },
-   {
-    "id": "extra-pita",
-    "categoryId": "prilozi",
-    "name": "Pita iz Atine",
-    "description": "Ista pita, sama. Za umakanje u tzatziki.",
-    "price": 90,
-    "comparePrice": 0,
-    "art": "pita",
-    "image": "",
-    "tags": [
-     "vegetarian"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [
-     "tzatziki-100"
-    ],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 4,
-    "demo": true
-   },
-   {
-    "id": "mix-salata",
-    "categoryId": "salate",
-    "name": "Mix salata",
-    "description": "Paradajz, krastavac, zelena salata, ljubičasti kupus i luk.",
-    "price": 290,
-    "comparePrice": 0,
-    "art": "salad",
-    "image": "",
-    "tags": [
-     "vegetarian"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 1,
-    "demo": true
-   },
-   {
-    "id": "kupus-salata",
-    "categoryId": "salate",
-    "name": "Kupus salata",
-    "description": "Sitno seckan beli i ljubičasti kupus.",
-    "price": 220,
-    "comparePrice": 0,
-    "art": "salad-cabbage",
-    "image": "",
-    "tags": [
-     "vegetarian"
-    ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 2,
-    "demo": true
-   },
-   {
-    "id": "tzatziki-100",
-    "categoryId": "sosovi",
-    "name": "Tzatziki 100 g",
-    "description": "Jogurt, krastavac i beli luk.",
-    "price": 120,
-    "comparePrice": 0,
-    "art": "sauce-white",
-    "image": "",
-    "tags": [
-     "vegetarian",
      "popular"
     ],
     "badge": "",
     "available": true,
     "delivery": true,
     "pickup": true,
-    "groups": [],
+    "groups": [
+     "premazi",
+     "salate"
+    ],
     "defaults": [],
-    "pairs": [],
+    "pairs": [
+     "pomfrit",
+     "coca-cola"
+    ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "rostilj",
     "sort": 1,
-    "demo": true
+    "id": "pljeskavica-velika",
+    "name": "Pljeskavica velika",
+    "description": "200 g. Premazi i salate po želji, bez doplate.",
+    "price": 450,
+    "art": "plate"
    },
    {
-    "id": "urnebes-100",
-    "categoryId": "sosovi",
-    "name": "Urnebes 100 g",
-    "description": "Sir i ljuta paprika. Za one kojima je Ljutko malo.",
-    "price": 120,
     "comparePrice": 0,
-    "art": "sauce-red",
-    "image": "",
-    "tags": [
-     "vegetarian",
-     "spicy"
-    ],
+    "image": "/assets/img/menu/pljeskavica.webp",
+    "tags": [],
     "badge": "",
     "available": true,
     "delivery": true,
     "pickup": true,
-    "groups": [],
+    "groups": [
+     "premazi",
+     "salate"
+    ],
     "defaults": [],
-    "pairs": [],
+    "pairs": [
+     "pomfrit",
+     "coca-cola"
+    ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "rostilj",
     "sort": 2,
-    "demo": true
+    "id": "pljeskavica-mala",
+    "name": "Pljeskavica mala",
+    "description": "150 g. Premazi i salate po želji, bez doplate.",
+    "price": 400,
+    "art": "plate"
    },
    {
-    "id": "tirokafteri-100",
-    "categoryId": "sosovi",
-    "name": "Tirokafteri 100 g",
-    "description": "Grčki ljuti namaz od feta sira.",
-    "price": 140,
     "comparePrice": 0,
-    "art": "sauce-orange",
-    "image": "",
-    "tags": [
-     "vegetarian",
-     "spicy"
+    "image": "/assets/img/menu/gurmanska.webp",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "premazi",
+     "salate"
     ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
     "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 3,
-    "demo": true
-   },
-   {
-    "id": "tzatziki-300",
-    "categoryId": "sosovi",
-    "name": "Tzatziki 300 g",
-    "description": "Za društvo, ili za sutra.",
-    "price": 290,
-    "comparePrice": 0,
-    "art": "sauce-white",
-    "image": "",
-    "tags": [
-     "vegetarian",
-     "family"
+    "pairs": [
+     "pomfrit",
+     "coca-cola"
     ],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
-    "sort": 4,
-    "demo": true
-   },
-   {
-    "id": "coca-cola",
-    "categoryId": "pice",
-    "name": "Coca-Cola 0.33 l",
-    "description": "",
-    "price": 200,
-    "comparePrice": 0,
-    "art": "can-red",
-    "image": "",
-    "tags": [],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 1,
-    "demo": true
-   },
-   {
-    "id": "coca-cola-zero",
-    "categoryId": "pice",
-    "name": "Coca-Cola Zero 0.33 l",
-    "description": "",
-    "price": 200,
-    "comparePrice": 0,
-    "art": "can-black",
-    "image": "",
-    "tags": [],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
-    "sort": 2,
-    "demo": true
-   },
-   {
-    "id": "fanta",
-    "categoryId": "pice",
-    "name": "Fanta 0.33 l",
-    "description": "",
-    "price": 200,
-    "comparePrice": 0,
-    "art": "can-orange",
-    "image": "",
-    "tags": [],
-    "badge": "",
-    "available": true,
-    "delivery": true,
-    "pickup": true,
-    "groups": [],
-    "defaults": [],
-    "pairs": [],
-    "bundleHint": "",
-    "includes": "",
-    "kind": "item",
+    "demo": false,
+    "categoryId": "rostilj",
     "sort": 3,
-    "demo": true
+    "id": "gurmanska",
+    "name": "Gurmanska pljeskavica",
+    "description": "200 g. Premazi i salate po želji, bez doplate.",
+    "price": 500,
+    "art": "plate"
    },
    {
-    "id": "sprite",
-    "categoryId": "pice",
-    "name": "Sprite 0.33 l",
-    "description": "",
-    "price": 200,
     "comparePrice": 0,
-    "art": "can-green",
-    "image": "",
+    "image": "/assets/img/menu/banjalucki-cevap.webp",
     "tags": [],
     "badge": "",
     "available": true,
     "delivery": true,
     "pickup": true,
-    "groups": [],
+    "groups": [
+     "premazi",
+     "salate"
+    ],
     "defaults": [],
-    "pairs": [],
+    "pairs": [
+     "pomfrit",
+     "coca-cola"
+    ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "rostilj",
     "sort": 4,
-    "demo": true
+    "id": "banjalucki-cevap",
+    "name": "Banjalučki ćevap",
+    "description": "200 g. Premazi i salate po želji, bez doplate.",
+    "price": 600,
+    "art": "plate"
    },
    {
-    "id": "voda",
-    "categoryId": "pice",
-    "name": "Negazirana voda 0.5 l",
-    "description": "",
-    "price": 150,
     "comparePrice": 0,
-    "art": "bottle",
-    "image": "",
+    "image": "/assets/img/menu/kobasica.webp",
     "tags": [],
     "badge": "",
     "available": true,
     "delivery": true,
     "pickup": true,
-    "groups": [],
+    "groups": [
+     "premazi",
+     "salate"
+    ],
     "defaults": [],
-    "pairs": [],
+    "pairs": [
+     "pomfrit",
+     "coca-cola"
+    ],
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "rostilj",
     "sort": 5,
-    "demo": true
+    "id": "kobasica-sa-sirom",
+    "name": "Kobasica sa sirom",
+    "description": "200 g, dva komada. Premazi i salate po želji, bez doplate.",
+    "price": 600,
+    "art": "plate"
    },
    {
-    "id": "gazirana",
-    "categoryId": "pice",
-    "name": "Gazirana voda 0.5 l",
-    "description": "",
-    "price": 150,
     "comparePrice": 0,
-    "art": "bottle-sparkling",
+    "image": "",
+    "tags": [
+     "popular"
+    ],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "uz-pomfrit"
+    ],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "prilozi",
+    "sort": 1,
+    "id": "pomfrit",
+    "name": "Pomfrit porcija",
+    "description": "Na pomfrit može premaz bez doplate: kečap blagi, majonez, senf ili so.",
+    "price": 230,
+    "art": "fries"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "premaz-izbor"
+    ],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "prilozi",
+    "sort": 2,
+    "id": "premaz-100",
+    "name": "Premaz 100 g",
+    "description": "Dodatni premaz, za giros ili za umakanje.",
+    "price": 190,
+    "art": "sauce-white"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "pakovanje-pica"
+    ],
+    "defaults": [
+     "pp-limenka"
+    ],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 1,
+    "id": "coca-cola",
+    "name": "Coca-Cola",
+    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "price": 150,
+    "art": "can-red"
+   },
+   {
+    "comparePrice": 0,
     "image": "",
     "tags": [],
     "badge": "",
@@ -1918,8 +1497,254 @@ var SEED = {
     "bundleHint": "",
     "includes": "",
     "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 2,
+    "id": "coca-cola-zero",
+    "name": "Coca-Cola Zero 0,33 l",
+    "description": "Limenka.",
+    "price": 150,
+    "art": "can-black"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "pakovanje-pica"
+    ],
+    "defaults": [
+     "pp-limenka"
+    ],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 3,
+    "id": "fanta",
+    "name": "Fanta",
+    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "price": 150,
+    "art": "can-orange"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "pakovanje-pica"
+    ],
+    "defaults": [
+     "pp-limenka"
+    ],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 4,
+    "id": "sprite",
+    "name": "Sprite",
+    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "price": 150,
+    "art": "can-green"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 5,
+    "id": "schweppes",
+    "name": "Schweppes 0,5 l",
+    "description": "Flaša.",
+    "price": 150,
+    "art": "bottle"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
     "sort": 6,
-    "demo": true
+    "id": "ultra",
+    "name": "Ultra 0,25 l",
+    "description": "Limenka.",
+    "price": 150,
+    "art": "can-black"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [
+     "joy-ukus"
+    ],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 7,
+    "id": "joy",
+    "name": "Joy sok 0,5 l",
+    "description": "Narandža, multivitamin ili višnja.",
+    "price": 150,
+    "art": "bottle"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 8,
+    "id": "rosa",
+    "name": "Rosa negazirana 0,5 l",
+    "description": "",
+    "price": 150,
+    "art": "bottle"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 9,
+    "id": "knjaz-milos",
+    "name": "Knjaz Miloš gazirana 0,5 l",
+    "description": "",
+    "price": 150,
+    "art": "bottle-sparkling"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 10,
+    "id": "pivo-alfa",
+    "name": "Pivo Alfa 0,5 l",
+    "description": "Limenka. Samo za punoletne.",
+    "price": 300,
+    "art": "can-black"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 11,
+    "id": "pivo-tuborg",
+    "name": "Pivo Tuborg 0,5 l",
+    "description": "Limenka. Samo za punoletne.",
+    "price": 250,
+    "art": "can-green"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "pice",
+    "sort": 12,
+    "id": "pivo-lav",
+    "name": "Pivo Lav 0,5 l",
+    "description": "Limenka. Samo za punoletne.",
+    "price": 250,
+    "art": "can-red"
    }
   ]
  }

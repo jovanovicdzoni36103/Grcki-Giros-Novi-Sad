@@ -119,7 +119,7 @@ function render() {
         }</span></div>`
       : `<div class="totals__row"><span>Preuzimanje u lokalu</span><span>${Money.formatRSD(0)}</span></div>`;
   const totalText = view.needsZone ? `${Money.formatRSD(view.subtotal)} + dostava` : Money.formatRSD(view.total);
-  foot.innerHTML = `${hint ? `<div class="hint-card">${icon('spark')}<span>Povoljnije u paketu: <strong>${esc(hint.name)}</strong> — ušteda ${Money.formatRSD(hint.saving)}.</span><button type="button" class="text-btn" data-hint="${esc(hint.productId)}">Pogledaj</button></div>` : ''}
+  foot.innerHTML = `${hint ? `<div class="hint-card">${icon('spark')}<span>Povoljnije kao akcija: <strong>${esc(hint.name)}</strong> — ušteda ${Money.formatRSD(hint.saving)}.</span><button type="button" class="text-btn" data-hint="${esc(hint.productId)}">Pogledaj</button></div>` : ''}
     ${blocking ? `<div class="notice notice--error" style="margin-bottom:0.8rem">${icon('alert')}<span>${esc(blocking.message)}</span></div>` : ''}
     <div class="totals">
       <div class="totals__row"><span>Međuzbir</span><span>${Money.formatRSD(view.subtotal)}</span></div>

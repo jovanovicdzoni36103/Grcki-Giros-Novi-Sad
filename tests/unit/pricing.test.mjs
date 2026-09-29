@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const P = require('../../src/scripts/shared/pricing.cjs');
-const seed = JSON.parse(readFileSync(new URL('../../data/seed.json', import.meta.url), 'utf8'));
+const seed = JSON.parse(readFileSync(new URL('../fixtures/seed.demo.json', import.meta.url), 'utf8'));
 const index = P.buildIndex(seed.catalog);
 const defaults = (id) => P.defaultOptions(index, index.products[id]);
 

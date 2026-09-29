@@ -6,3 +6,4 @@ tests/e2e/artifacts/
 .DS_Store
 .clasprc.json
 dist-prod/
+dist-real/

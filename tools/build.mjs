@@ -1,6 +1,7 @@
 // Static build: prerendered HTML pages + esbuild bundles + assets → dist/
 //   node tools/build.mjs            production (uses site.config.json apiUrl)
 //   node tools/build.mjs --dev      local dev server API (/api), dev helpers enabled
+//   --seed <file>                   prerender another menu than data/seed.json (E2E uses the demo fixture)
 import { build } from 'esbuild';
 import { mkdirSync, rmSync, readFileSync, writeFileSync, cpSync, readdirSync, statSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
@@ -25,7 +26,8 @@ const config = JSON.parse(readFileSync(path.join(root, 'site.config.json'), 'utf
 const apiUrl = dev || !config.apiUrl ? '/api' : config.apiUrl;
 if (!dev && !config.apiUrl) console.warn('⚠ site.config.json apiUrl is empty: this build talks to /api (local dev server only).');
 
-const { data: snapshot, source } = loadSnapshot(root);
+const seedArg = process.argv.indexOf('--seed');
+const { data: snapshot, source } = loadSnapshot(root, seedArg > -1 ? process.argv[seedArg + 1] : null);
 
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
@@ -76,7 +78,7 @@ const cssOut = outputsByEntry(css.metafile);
 // --- Static assets ----------------------------------------------------------------
 cpSync(path.join(root, 'src/assets/fonts'), path.join(dist, 'assets/fonts'), { recursive: true });
 cpSync(path.join(root, 'src/assets/img'), path.join(dist, 'assets/img'), { recursive: true });
-for (const f of ['favicon.svg', 'favicon.png', 'apple-touch-icon.png']) {
+for (const f of ['favicon.png', 'favicon-64.png', 'apple-touch-icon.png']) {
   try {
     cpSync(path.join(root, 'src/assets/img', f), path.join(dist, f));
   } catch {
@@ -163,8 +165,8 @@ writeFileSync(
       theme_color: '#1B4F8C',
       lang: 'sr-Latn',
       icons: [
-        { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
-        { src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+        { src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+        { src: '/assets/img/icon-512.png', sizes: '512x512', type: 'image/png' }
       ]
     },
     null,

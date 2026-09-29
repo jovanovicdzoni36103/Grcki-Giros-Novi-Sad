@@ -47,9 +47,14 @@ test('JSON-LD parses and carries the expected types', { skip }, () => {
 });
 
 test('menu is in the HTML without JavaScript (PDF: radi bez JS-a za osnovni prikaz)', { skip }, () => {
-  const html = read('meni/index.html');
-  for (const name of ['Klasik', 'Ljutko', 'Atina', 'Giros porcija', 'Porodični box', 'Coca-Cola 0.33 l']) assert.ok(html.includes(name), name);
-  assert.match(html, /620 RSD/);
+  // Whatever menu the build was made from (real or the test fixture): every product with its price is in the HTML.
+  const html = read('meni/index.html').replace(/\u00a0/g, ' ');
+  const snapshot = JSON.parse(read('assets/data/snapshot.json'));
+  const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  for (const p of snapshot.catalog.products) {
+    assert.ok(html.includes(escape(p.name)), p.name);
+    assert.ok(html.includes(String(p.price).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' RSD'), `${p.name}: ${p.price} RSD`);
+  }
 });
 
 test('robots and sitemap: private pages excluded', { skip }, () => {

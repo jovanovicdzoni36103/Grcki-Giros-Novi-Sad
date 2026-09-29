@@ -164,7 +164,7 @@ var PUBLIC_SETTING_KEYS = [
   'slot_first_offset_min', 'slot_interval_min', 'slot_round_min', 'preorder_days', 'accept_timeout_min', 'business_day_rollover_hour', 'delivery_fee_mode',
   'delivery_fee_default', 'zones_enabled', 'free_delivery_threshold', 'min_order_delivery', 'min_order_pickup',
   'max_lines_per_order', 'max_qty_per_line', 'cash_max_over_total', 'job_active', 'job_title', 'job_salary',
-  'customer_confirmation_enabled'
+  'customer_confirmation_enabled', 'address_note', 'hours_note', 'job_phone_display', 'job_phone_e164', 'second_location'
 ];
 
 function publicSettings_() {

@@ -184,7 +184,7 @@ function renderLogin(message) {
   state.alarmTimer = null;
   document.body.classList.remove('has-new');
   root().innerHTML = `<div class="pin">
-    <div class="pin__brand"><svg class="brand__mark" aria-hidden="true"><use href="${env().assets.icons}#i-meander"/></svg><strong>Grčki Giros</strong><span>Admin panel</span></div>
+    <div class="pin__brand"><img class="brand__mark" src="/assets/img/logo-112.png" alt="" width="48" height="56"><strong>Grčki Giros</strong><span>Admin panel</span></div>
     <form class="pin__form" data-pin-form>
       <label class="pin__label" for="pin">Unesite PIN</label>
       <input class="pin__input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" pattern="[0-9]*" required>
@@ -229,7 +229,7 @@ function renderLogin(message) {
 
 function renderShell() {
   root().innerHTML = `<header class="pbar">
-      <div class="pbar__brand"><svg class="brand__mark" aria-hidden="true"><use href="${env().assets.icons}#i-meander"/></svg><strong>Grčki Giros</strong><span class="pbar__clock" data-clock></span></div>
+      <div class="pbar__brand"><img class="brand__mark" src="/assets/img/logo-112.png" alt="" width="48" height="56"><strong>Grčki Giros</strong><span class="pbar__clock" data-clock></span></div>
       <span class="pbar__conn" data-conn><i></i><span>Povezivanje…</span></span>
       <span class="pbar__shop" data-shop-state></span>
       <button type="button" class="icon-btn" data-sound aria-label="${state.sound ? 'Isključi zvuk' : 'Uključi zvuk'}" aria-pressed="${state.sound}">${icon(state.sound ? 'bell' : 'bell-off')}</button>

@@ -16,6 +16,8 @@ const SHOTS = path.join(ART, 'e2e');
 rmSync(SHOTS, { recursive: true, force: true });
 mkdirSync(SHOTS, { recursive: true });
 
+// Every flow is written against the fixed demo menu; the shop's real menu (data/seed.json) changes over time.
+const SEED = 'tests/fixtures/seed.demo.json';
 const PORT = 5191;
 const PERF_PORT = 5192;
 const BASE = `http://localhost:${PORT}`;
@@ -67,8 +69,8 @@ const setCell = (sheet, key, match, col, value) => getJSON(`${BASE}/__set?sheet=
 const lastOrder = async () => (await state()).sheets.ORDERS.at(-1);
 const nbsp = (s) => String(s || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 
-function startServer(port, extra = []) {
-  return spawn(process.execPath, [path.join(root, 'tools/dev-server.mjs'), '--port', String(port), '--fresh', ...extra], { cwd: root, stdio: 'ignore' });
+function startServer(port, extra = [], { seed = SEED } = {}) {
+  return spawn(process.execPath, [path.join(root, 'tools/dev-server.mjs'), '--port', String(port), '--fresh', ...(seed ? ['--seed', seed] : []), ...extra], { cwd: root, stdio: 'ignore' });
 }
 
 async function waitFor(url, tries = 60) {
@@ -86,8 +88,8 @@ async function waitFor(url, tries = 60) {
 
 // -----------------------------------------------------------------------------
 console.log('building (dev + production)…');
-execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--dev'], { cwd: root, stdio: 'inherit' });
-execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--out', 'dist-prod'], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--dev', '--seed', SEED], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--out', 'dist-prod', '--seed', SEED], { cwd: root, stdio: 'inherit' });
 
 const server = startServer(PORT);
 const perfServer = startServer(PERF_PORT, ['--dist', 'dist-prod']);
@@ -1115,6 +1117,55 @@ await test('Tok 10 — performanse produkcionog builda: telefon, Fast 4G, CPU 4�
     await context.close();
   }
   lines.forEach(note);
+});
+
+// -----------------------------------------------------------------------------
+// FLOW 11 — the shop's real menu (data/seed.json), on its own build and server
+// -----------------------------------------------------------------------------
+await test('Tok 11 — pravi meni: fotografije, giros sa izborom mesa i „Meso plus“, Coca-Cola u flaši, preuzimanje', async () => {
+  const REAL_PORT = 5193;
+  execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--dev', '--out', 'dist-real'], { cwd: root, stdio: 'ignore' });
+  const realServer = startServer(REAL_PORT, ['--dist', 'dist-real'], { seed: null });
+  try {
+    const REAL = `http://localhost:${REAL_PORT}`;
+    await waitFor(REAL + '/');
+    const page = await newPage(mobile);
+    await page.goto(`${REAL}/meni/${q('2026-09-30T18:00:00+02:00')}`);
+    await page.waitForFunction(() => !!document.querySelector('[data-cat-nav] .chip'));
+    const cats = await page.$$eval('[data-cat-nav] .chip', (els) => els.map((e) => e.textContent.replace(/\d+/g, '').trim()));
+    expect(cats.join('|') === 'Giros|Akcije|Sa roštilja|Prilozi|Piće', 'categories: ' + cats.join('|'));
+    await page.locator('[data-product="kobasica-sa-sirom"]').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-product] img')].every((i) => i.complete && i.naturalWidth > 0));
+    await page.click('[data-open-product="giros-veliki"]');
+    await page.waitForSelector('.sheet.is-open [data-sheet-add]');
+    await page.click('.sheet label[for="o-0-meso-mix"]');
+    await page.click('.sheet label:has(input[value="dod-meso"]) .chip');
+    const price = nbsp(await page.textContent('.sheet [data-add-price]'));
+    expect(price === '880 RSD', 'Giros veliki + Meso plus: ' + price);
+    await page.click('.sheet [data-sheet-add]');
+    await page.waitForSelector('.sheet:not(.is-open)', { state: 'attached' });
+    await page.click('[data-open-product="coca-cola"]');
+    await page.waitForSelector('.sheet.is-open [data-sheet-add]');
+    await page.click('.sheet label:has(input[value="pp-flasa"]) .chip');
+    await page.click('.sheet [data-sheet-add]');
+    await page.waitForSelector('.sheet:not(.is-open)', { state: 'attached' });
+    await page.goto(`${REAL}/porudzbina/`);
+    await page.waitForSelector('[data-checkout-form]');
+    await page.click('label[for="mode-pickup"]');
+    await page.fill('[name="name"]', 'Ana Anić');
+    await page.fill('[name="phone"]', '064 555 1212');
+    await human(page);
+    await page.click('[data-submit]');
+    await page.waitForSelector('.confirm .ticket__number');
+    const st = await getJSON(`${REAL}/__state`);
+    const order = st.sheets.ORDERS.at(-1);
+    expect(order.Total === 1030 && /Giros veliki/.test(order['Order Items']) && /Mix/.test(order['Order Items']) && /Meso plus 100 g/.test(order['Order Items']) && /Flaša 0,5 l/.test(order['Order Items']), 'order row: ' + order.Total + ' ' + order['Order Items']);
+    expect(!page.errors.length && !page.badRequests.length, 'console/network: ' + [...page.errors, ...page.badRequests].join(' | '));
+    await shot(page, '11-real-menu-confirmation');
+    note(`Kategorije: ${cats.join(', ')} · Giros veliki (Mix) + Meso plus = 880 RSD · Coca-Cola flaša 0,5 · ukupno 1.030 RSD · #${order['Public Order Number']}`);
+  } finally {
+    realServer.kill();
+  }
 });
 
 await browser.close();

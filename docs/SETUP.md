@@ -44,7 +44,7 @@ U tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
    - `min_order_delivery` (500)
    - `customer_status_emails` (TRUE)
    - `image_url_template`
-4. List **ZONES**: prave zone, cene i minimum. Seed zone su **DEMO** dok agencija ne potvrdi cene.
+4. List **ZONES**: prave zone, cene i minimum. Seed zone su **DEMO** dok agencija ne potvrdi cene. Meni (PRODUCTS, OPTIONS…) je pravi, sa rukom pisanog menija od 29.09.2026.
 5. List **REPORT_CONFIG**: `report_recipients`.
 6. U Apps Script editoru: **Deploy ▸ New deployment ▸ Web app**, *Execute as: Me*, *Who has access: Anyone*. Kopirajte URL koji se završava sa `/exec`.
 7. **Grčki Giros ▸ 2. Instaliraj automatiku**: dnevni izveštaj ~01:00, nedeljni ponedeljkom, mesečni 1. u mesecu, dashboard na 10 min, noćno održavanje ~04:30.

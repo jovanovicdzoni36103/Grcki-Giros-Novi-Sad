@@ -1,12 +1,16 @@
 import { createEmulator } from '../../tools/gas-emulator/index.mjs';
 import { syncGas } from '../../tools/gas-sync.mjs';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+/** The fixed demo menu every test is written against (the real one in data/seed.json changes with the shop). */
+export const DEMO_SEED = JSON.parse(readFileSync(new URL('../fixtures/seed.demo.json', import.meta.url), 'utf8'));
 
 syncGas({ quiet: true });
 
 /** Fresh emulator with the spreadsheet set up and a pinned clock (Wednesday 23.09.2026 14:23 Belgrade). */
-export function freshBackend({ now = '2026-09-23T14:23:00+02:00', settings = {} } = {}) {
-  const emu = createEmulator({ now });
+export function freshBackend({ now = '2026-09-23T14:23:00+02:00', settings = {}, seed = DEMO_SEED } = {}) {
+  const emu = createEmulator({ now, seed });
   emu.run('setup');
   const overrides = { test_mode: 'FALSE', order_email_recipients: 'kuhinja@grckigiros.test, vlasnik@grckigiros.test, smena@grckigiros.test', ...settings };
   setSettings(emu, overrides);

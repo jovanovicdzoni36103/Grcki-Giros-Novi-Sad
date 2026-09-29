@@ -28,6 +28,7 @@ const form = {
   timing: 'asap', // 'asap' | 'later'
   when: 'asap', // 'asap' | slot value 'YYYY-MM-DD HH:MM'
   day: '',
+  dayChosen: false, // the guest picked a day; until then the first day follows the (server-corrected) schedule
   cashChoice: null, // 'exact' | number | 'custom'
   cashCustom: '',
   startedAt: 0,
@@ -203,7 +204,8 @@ function renderWhen(mode, snap) {
   }
   if (!av.days.length) form.timing = 'asap';
   const days = av.days;
-  if (!days.find((d) => d.date === form.day)) form.day = days.length ? days[0].date : '';
+  // Before the server's clock arrives the schedule runs on the phone's clock: never keep a day picked from that.
+  if (!form.dayChosen || !days.find((d) => d.date === form.day)) form.day = days.length ? days[0].date : '';
   const asapMeta = mode === 'delivery' ? `stiže za ${etaText(av)}` : `spremno za ${etaText(av)}`;
   const timingChip = (value, title, meta, disabled) =>
     `<label class="when-choice"><input class="chip-input" type="radio" name="timing" value="${value}" ${form.timing === value ? 'checked' : ''} ${disabled ? 'disabled' : ''}><span class="chip when-chip"><strong>${title}</strong><small>${esc(meta)}</small></span></label>`;
@@ -934,6 +936,7 @@ function wire() {
   });
   on(root, 'change', '[name="day"]', (e, el) => {
     form.day = el.value;
+    form.dayChosen = true;
     form.when = '';
     update();
   });

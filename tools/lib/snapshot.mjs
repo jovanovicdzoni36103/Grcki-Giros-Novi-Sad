@@ -48,7 +48,8 @@ export function snapshotFromSeed(seed, root) {
   };
 }
 
-export function loadSnapshot(root) {
+export function loadSnapshot(root, seedPath = null) {
+  if (seedPath) return { source: seedPath, data: snapshotFromSeed(JSON.parse(readFileSync(path.join(root, seedPath), 'utf8')), root) };
   const live = path.join(root, 'data/snapshot.json');
   if (existsSync(live)) return { source: 'data/snapshot.json', data: JSON.parse(readFileSync(live, 'utf8')) };
   const seed = JSON.parse(readFileSync(path.join(root, 'data/seed.json'), 'utf8'));

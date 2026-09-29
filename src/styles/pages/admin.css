@@ -29,8 +29,8 @@ body.page-panel {
 }
 
 .pin__brand .brand__mark {
-  width: 44px;
-  height: 44px;
+  width: auto;
+  height: 64px;
   color: var(--aegean);
 }
 
@@ -131,8 +131,8 @@ body.page-panel {
 }
 
 .pbar__brand .brand__mark {
-  width: 28px;
-  height: 28px;
+  width: auto;
+  height: 30px;
   color: var(--gold);
 }
 

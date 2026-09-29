@@ -50,6 +50,7 @@ export function render(ctx) {
         ${b.job_salary ? `<div><dt>Plata</dt><dd>${esc(b.job_salary)}</dd></div>` : ''}
         <div><dt>Lokacija</dt><dd>${esc(b.address_street)}, ${esc(b.address_city)}</dd></div>
         <div><dt>Šta sledi</dt><dd>vlasnik vas zove u najkraćem roku</dd></div>
+        ${b.job_phone_display ? `<div><dt>Telefon za posao</dt><dd><a href="tel:${esc(b.job_phone_e164 || b.job_phone_display)}">${esc(b.job_phone_display)}</a></dd></div>` : ''}
       </dl>
     </article>
     <form class="form-card" data-job-form novalidate>

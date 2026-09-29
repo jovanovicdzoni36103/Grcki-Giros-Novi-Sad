@@ -452,10 +452,20 @@
 
 .sheet__foot .btn {
   flex: 1;
+  min-width: 0;
   justify-content: space-between;
 }
 
+/* "Izaberi: meso" + the price on a 375 px phone: the label wraps, the price never gets cut. */
+.sheet__foot .btn .btn__label {
+  min-width: 0;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.15;
+}
+
 .sheet__foot .btn .num {
+  flex: none;
   font-size: 1.05rem;
 }
 

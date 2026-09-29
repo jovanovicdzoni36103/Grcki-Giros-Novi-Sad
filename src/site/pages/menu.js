@@ -7,8 +7,8 @@ export const meta = {
   path: '/meni/',
   out: 'meni/index.html',
   script: 'menu',
-  title: 'Meni | Grčki Giros Novi Sad — giros, pita, sosevi',
-  description: 'Digitalni meni Grčkog Girosa: giros u piti iz Atine, porcije, paketi, prilozi, sosevi i piće. Cene u dinarima, poručivanje online za dostavu ili preuzimanje.',
+  title: 'Meni | Grčki Giros Novi Sad — giros, pljeskavice, pomfrit',
+  description: 'Meni Grčkog Girosa: giros u grčkoj piti (pileći, svinjski, mix), pljeskavice, banjalučki ćevap, pomfrit i piće. Poručite online za dostavu ili preuzimanje.',
   bodyClass: 'page-menu',
   headerFixed: true,
   schema: (ctx) => [menu(ctx), breadcrumbs(ctx, [{ name: 'Meni', path: '/meni/' }])]
@@ -66,7 +66,7 @@ export function render(ctx) {
       <p class="kicker">Meni · Novi Sad</p>
       <h1 class="h1" style="margin-top:0.8rem" data-split>Meni <span>i poručivanje</span></h1>
     </div>
-    <p class="lead">Giros u piti iz Atine, porcije, paketi i sve što ide uz njih. Prvo izaberite dostavu ili preuzimanje — vreme i cenu vidite odmah.</p>
+    <p class="lead">Giros u grčkoj piti, pljeskavice sa roštilja i sve što ide uz njih. Prvo izaberite dostavu ili preuzimanje — vreme i cenu vidite odmah.</p>
   </div>
 </section>
 

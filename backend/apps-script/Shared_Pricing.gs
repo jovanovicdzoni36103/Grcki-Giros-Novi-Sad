@@ -171,9 +171,14 @@
       picked.forEach(function (o) {
         optionsTotal += Number(o.price) || 0;
       });
-      var removed = (index.optionsByGroup[gid] || []).filter(function (o) {
-        return defaults[o.id] && !seen[o.id];
-      });
+      // A default that was switched for another choice of a single-choice group (limenka → flaša) is replaced,
+      // not left out: only multi-choice groups (and an emptied single choice) produce "BEZ …".
+      var removed =
+        group.type === 'single' && count > 0
+          ? []
+          : (index.optionsByGroup[gid] || []).filter(function (o) {
+              return defaults[o.id] && !seen[o.id];
+            });
       selections.push({
         groupId: gid,
         groupName: group.name,
