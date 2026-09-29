@@ -11,23 +11,25 @@ Lokal ──► /admin/ (tablet, telefon, računar) ─────────�
 
 ## 0. Pre početka
 
-- Google nalog lokala na kome će biti tabela i sa kog idu emailovi. **Preporuka: Google Workspace** (1.500 email primalaca dnevno). Besplatan Gmail ima limit od **100 primalaca dnevno**. Svaka porudžbina troši 1 primaoca po adresi iz `order_email_recipients` i, ako je kupac ostavio email, još do 3 (primljena, potvrđena, spremna/odbijena). Sa jednom kuhinjskom adresom to je ~25–50 porudžbina dnevno. Poslednjih 10 slanja u danu čuva se za kuhinju: emailovi kupcima tada prestaju prvi, a kuhinjska karta ide bar prvom primaocu. Sve se loguje, a admin panel na Pregledu i Novim porudžbinama upozorava kad ostane manje od 25. Porudžbine se uvek vide u admin panelu, nezavisno od emaila.
+- Google nalog lokala na kome će biti tabela i sa kog idu emailovi. **Preporuka: Google Workspace** (1.500 email primalaca dnevno). Besplatan Gmail ima limit od **100 primalaca dnevno**. Svaka porudžbina troši 1 primaoca po popunjenoj adresi iz `EMAIL_1`…`EMAIL_4` i, ako je kupac ostavio email, još do 3 (primljena, potvrđena, spremna/odbijena). Sa jednom kuhinjskom adresom to je ~25–50 porudžbina dnevno. Poslednjih 10 slanja u danu čuva se za kuhinju: emailovi kupcima tada prestaju prvi, a kuhinjska karta ide bar prvom primaocu. Sve se loguje, a admin panel na Pregledu i Novim porudžbinama upozorava kad ostane manje od 25. Porudžbine se uvek vide u admin panelu, nezavisno od emaila.
 - Node.js 20+ na računaru koji pravi build.
 
 ## 1. Google Sheets + Apps Script
 
-Preko `clasp` (zvanični Google alat):
+Preko `clasp` (zvanični Google alat, već je u `devDependencies`). Tabela već postoji, pa se skripta **vezuje za nju**: `--parentId` je ID iz adrese tabele. Ne koristiti `--type sheets`, to pravi novu, praznu tabelu.
 
 ```powershell
-npm install -g @google/clasp
-clasp login
-cd backend/apps-script
-clasp create --type sheets --title "Grčki Giros — porudžbine" --rootDir .
-cd ../..
-npm run build            # generiše Shared_*.gs i Seed.gs
-cd backend/apps-script
-clasp push
+npm install
+npx clasp login
+npx clasp create-script --parentId <ID-tabele> --rootDir backend/apps-script
+npm run build
+npx clasp push --force
+npx clasp create-deployment --description "v1"
 ```
+
+Pre prvog `clasp push` uključite **Apps Script API** na script.google.com/home/usersettings. `npm run build` generiše `Shared_*.gs` i `Seed.gs`. `create-deployment` ispisuje deployment ID, a Web App adresa je `https://script.google.com/macros/s/<deploymentId>/exec`. U editoru (**Deploy ▸ Manage deployments**) proverite *Execute as: Me*, *Who has access: Anyone*. `.clasp.json` u korenu projekta čuva `scriptId` i `rootDir`.
+
+Trenutna instalacija (30.09.2026): tabela `199ZuKxJ1hxpUqTZsDV65E7a484UZ7mVdQqmEdNowthI`, deployment `AKfycbzOPrgRpv8TJ4hiQVoWn850kPJMzVW2R1Sl1z2sukQR-di_dwtyn374gXQBStE91_yeAw`.
 
 Bez clasp-a: napravite Google tabelu → **Extensions ▸ Apps Script** → za svaki `.gs` fajl iz `backend/apps-script/` napravite fajl istog imena i nalepite sadržaj (`appsscript.json` se vidi kad u Project Settings uključite „Show manifest file“).
 
@@ -35,7 +37,7 @@ U tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
 
 1. **Grčki Giros ▸ 1. Prvo podešavanje**. Google traži dozvole: Sheets, slanje emaila, Drive (fotografije menija i CV), okidači. Pravi se 23 lista sa podacima iz `data/seed.json`, uključujući FEEDBACK i kolone za pauzu u HOURS.
 2. **Grčki Giros ▸ 3. Postavi PIN za admin panel**: 6 do 8 cifara.
-3. List **SETTINGS**: proverite `order_email_recipients`, `site_url`, `phone_*`, `address_*`. `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili vlasniku skripte ako je prazno). Novi ključevi i njihove početne vrednosti:
+3. List **SETTINGS**: `EMAIL_1`…`EMAIL_4` su adrese za sva obaveštenja lokala (porudžbine, kontakt, prijave za posao sa CV-jem u prilogu, izveštaji). `EMAIL_1` je obavezan, prazan slot se preskače bez greške, a novoupisana adresa važi bez izmene koda. Zatim `site_url`, `phone_*`, `address_*`. `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili vlasniku skripte ako je prazno). Novi ključevi i njihove početne vrednosti:
    - `order_number_start` (1001)
    - `accept_timeout_min` (5)
    - `preorder_days` (7)
@@ -45,11 +47,13 @@ U tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
    - `customer_status_emails` (TRUE)
    - `image_url_template`
 4. List **ZONES**: prave zone, cene i minimum. Seed zone su **DEMO** dok agencija ne potvrdi cene. Meni (PRODUCTS, OPTIONS…) je pravi, sa rukom pisanog menija od 29.09.2026.
-5. List **REPORT_CONFIG**: `report_recipients`.
+5. Izveštaji idu na iste `EMAIL_1`…`EMAIL_4` adrese; poseban spisak primalaca više ne postoji.
 6. U Apps Script editoru: **Deploy ▸ New deployment ▸ Web app**, *Execute as: Me*, *Who has access: Anyone*. Kopirajte URL koji se završava sa `/exec`.
 7. **Grčki Giros ▸ 2. Instaliraj automatiku**: dnevni izveštaj ~01:00, nedeljni ponedeljkom, mesečni 1. u mesecu, dashboard na 10 min, noćno održavanje ~04:30.
 
-Kasnije izmene koda: `clasp push`, pa **Deploy ▸ Manage deployments ▸ Edit ▸ New version** (URL ostaje isti).
+Kasnije izmene koda: `npm run build`, `npx clasp push --force`, pa `npx clasp update-deployment <deploymentId>` (URL ostaje isti).
+
+Izmene u listovima (SETTINGS, HOURS, PRODUCTS…) važe odmah kad ih okidač `onEdit` uhvati, a najkasnije za 60 s (keš). Brisanje ćelije tasterom Delete ne pokrene uvek `onEdit`, pa tada važi tih 60 s.
 
 ## 2. Sajt
 
@@ -101,6 +105,6 @@ Kada sve prođe:
 
 - Apps Script ne vidi IP adresu ni Origin zaglavlje. Zaštita čine rate-limit po telefonu i globalno, honeypot, minimalno vreme popunjavanja, idempotencija i serverska validacija svega.
 - Jedna porudžbina u isto vreme: upis i broj idu pod `LockService` script lock (čeka do 20 s). Pri velikom broju istovremenih porudžbina ostali dobijaju „pokušajte ponovo za nekoliko sekundi“, ne duplikat.
-- Hladan start Apps Script-a je 1–3 s. Meni se zato prikazuje odmah iz keša ili snapshot-a, a slanje porudžbine ima jasan status i bezbedan ponovni pokušaj.
+- Apps Script odgovara sporo: izmereno 30.09.2026. bootstrap 2,3–6,4 s, porudžbina 5–8 s (upis i emailovi), CV prijava ~8 s. Na hladnom startu i duže. Meni se zato prikazuje odmah iz keša ili snapshot-a, a slanje porudžbine ima jasan status i bezbedan ponovni pokušaj.
 - Admin panel proverava nove porudžbine na svakih 10 s (`panel_poll_seconds`). Zvuk radi samo dok je panel otvoren u pregledaču. Email je rezervni kanal.
 - Okidači imaju ±15 minuta tolerancije (Google).

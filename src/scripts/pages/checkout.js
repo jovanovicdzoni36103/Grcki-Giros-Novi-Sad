@@ -101,7 +101,7 @@ function renderForm() {
   const mode = currentMode();
   form.startedAt = performance.now();
   form.whenKey = form.payKey = form.asideKey = form.zoneKey = '';
-  if (!cart.zone() && saved.zone) cart.setZone(saved.zone);
+  if (!cart.zone() && saved.zone) cart.setZone(saved.zone, saved.zoneArea);
   app().innerHTML = `
   <form class="checkout-form" data-checkout-form novalidate>
     <div class="notice notice--closed" data-closed hidden></div>
@@ -197,7 +197,8 @@ function renderWhen(mode, snap) {
     return;
   }
   const values = av.slots.map((s) => s.value);
-  if (form.when !== 'asap' && !values.includes(form.when)) {
+  // '' = "Zakaži" chosen but no time picked yet: nothing was lost, so no toast.
+  if (form.when && form.when !== 'asap' && !values.includes(form.when)) {
     toast({ text: `Termin ${slotLabelFor(form.when)} više nije dostupan. Izaberite novi termin.`, icon: 'clock' });
     form.when = form.timing === 'later' && values.length ? '' : 'asap';
     if (!values.length) form.timing = 'asap';
@@ -354,7 +355,7 @@ function update() {
     renderEmpty();
     return;
   }
-  refreshModeMeta(app().querySelector('[data-mode-root]'), snap);
+  refreshModeMeta(app().querySelector('[data-mode-root]'), snap, mode);
   app().querySelectorAll('[data-delivery-only]').forEach((el) => (el.hidden = mode !== 'delivery'));
   app().querySelector('[data-step-pay]').textContent = mode === 'delivery' ? '5' : '4';
   app().querySelector('[data-step-note]').textContent = mode === 'delivery' ? '6' : '5';
@@ -666,7 +667,8 @@ function onPlaced(response, payload, view, { earlier } = {}) {
       apt: payload.address.apt || (payload.mode === 'delivery' ? '' : prev.apt || ''),
       floor: payload.address.floor || (payload.mode === 'delivery' ? '' : prev.floor || ''),
       addrNote: payload.address.note || '',
-      zone: payload.address.zone || prev.zone || ''
+      zone: payload.address.zone || prev.zone || '',
+      zoneArea: cart.zoneArea() || prev.zoneArea || ''
     });
   } else local.remove(CUSTOMER_KEY);
   cart.rememberLastOrder(response, payload.items);
@@ -963,7 +965,7 @@ function wire() {
   });
   on(root, 'input', '[name^="address."]', () => renderReview(currentMode(), cart.view(currentMode()), schedule()));
   on(root, 'change', '[name="address.zone"]', (e, el) => {
-    cart.setZone(el.value);
+    cart.setZone(el.value, el.selectedOptions[0]?.dataset.area);
     setFieldError('address.zone', '');
   });
   root.addEventListener(
@@ -1018,7 +1020,7 @@ async function init() {
   if (cart.itemCount() === 0) {
     renderEmpty();
   } else {
-    if (!cart.mode()) cart.setMode(defaultMode(schedule(), null));
+    rememberDefaultMode();
     renderForm();
     resolveEarlierSend();
   }
@@ -1030,9 +1032,15 @@ async function init() {
   });
   subscribe('availability', () => update());
   subscribe('catalog', () => {
+    rememberDefaultMode();
     form.zoneKey = '';
     update();
   });
+}
+
+/** The implicit mode is kept once the server's clock is known, so it does not flip if availability changes mid-checkout. */
+function rememberDefaultMode() {
+  if (!cart.mode() && catalog().live && cart.itemCount() > 0) cart.setMode(defaultMode(schedule(), null));
 }
 
 init();

@@ -177,9 +177,24 @@ var SEED = {
    "note": "Za koliko minuta lokal treba da prihvati ili odbije novu porudžbinu"
   },
   {
-   "key": "order_email_recipients",
-   "value": "milica.tontic70@gmail.com",
-   "note": "Ko dobija kartu porudžbine (zarezom odvojeno)"
+   "key": "EMAIL_1",
+   "value": "nikola.jovanovic.mef@gmail.com",
+   "note": "Email za obaveštenja (porudžbine, kontakt, CV prijave, izveštaji)"
+  },
+  {
+   "key": "EMAIL_2",
+   "value": "",
+   "note": "Dodatni email za obaveštenja (prazno = ne koristi se)"
+  },
+  {
+   "key": "EMAIL_3",
+   "value": "",
+   "note": "Dodatni email za obaveštenja (prazno = ne koristi se)"
+  },
+  {
+   "key": "EMAIL_4",
+   "value": "",
+   "note": "Dodatni email za obaveštenja (prazno = ne koristi se)"
   },
   {
    "key": "customer_confirmation_enabled",
@@ -192,18 +207,8 @@ var SEED = {
    "note": "Kupac sa emailom dobija: potvrđena, odbijena, spremna za preuzimanje"
   },
   {
-   "key": "contact_email_recipients",
-   "value": "milica.tontic70@gmail.com",
-   "note": "Poruke sa strane Kontakt"
-  },
-  {
-   "key": "jobs_email_recipients",
-   "value": "svetislavtontic@gmail.com, milica.tontic70@gmail.com",
-   "note": "Prijave za posao (PDF G40)"
-  },
-  {
    "key": "test_mode",
-   "value": "TRUE",
+   "value": "FALSE",
    "note": "TRUE = SVI emailovi idu samo na test_email_recipient, sa [TEST] u naslovu"
   },
   {
@@ -462,11 +467,6 @@ var SEED = {
    "key": "monthly_hour",
    "value": "3",
    "note": ""
-  },
-  {
-   "key": "report_recipients",
-   "value": "milica.tontic70@gmail.com",
-   "note": "Primaoci izveštaja (zarezom odvojeno)"
   },
   {
    "key": "dashboard_refresh_min",
@@ -960,7 +960,7 @@ var SEED = {
   "products": [
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "popular",
      "recommended"
@@ -1003,7 +1003,7 @@ var SEED = {
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "popular"
     ],
@@ -1040,7 +1040,7 @@ var SEED = {
     "name": "Giros mali",
     "description": "80 g mesa u grčkoj piti, sa pomfritom. Premaze, salate i začine birate sami, bez doplate.",
     "price": 450,
-    "art": "wrap"
+    "art": "wrap-mali"
    },
    {
     "comparePrice": 0,
@@ -1152,7 +1152,7 @@ var SEED = {
    },
    {
     "comparePrice": 700,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "promo",
      "value"
@@ -1191,7 +1191,7 @@ var SEED = {
    },
    {
     "comparePrice": 600,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "promo",
      "value"

@@ -12,7 +12,7 @@ const pdfBase64 = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF')
 
 describe('contact form', () => {
   test('saved to CONTACT and emailed with reply-to the sender', () => {
-    const emu = freshBackend({ settings: { contact_email_recipients: 'info@grckigiros.test' } });
+    const emu = freshBackend({ settings: { EMAIL_1: 'info@grckigiros.test', EMAIL_2: '', EMAIL_3: '' } });
     const r = contact(emu);
     assert.equal(r.ok, true, JSON.stringify(r.error));
     const [row] = emu.rows('CONTACT');
@@ -43,7 +43,7 @@ describe('contact form', () => {
 
 describe('job application', () => {
   test('with CV: stored in Drive, attached for both recipients, candidate confirmed', () => {
-    const emu = freshBackend();
+    const emu = freshBackend({ settings: { EMAIL_1: 'milica.tontic70@gmail.com', EMAIL_2: 'svetislavtontic@gmail.com', EMAIL_3: '' } });
     const r = job(emu, { cv: { name: 'cv.pdf', type: 'application/pdf', data: pdfBase64 } });
     assert.equal(r.ok, true, JSON.stringify(r.error));
     assert.equal(emu.state.driveFiles.length, 1);
@@ -67,6 +67,8 @@ describe('job application', () => {
     const huge = job(emu, { phone: '0621112288', cv: { name: 'cv.pdf', type: 'application/pdf', data: Buffer.alloc(4 * 1024 * 1024 + 10).toString('base64') } });
     assert.equal(huge.error.code, 'VALIDATION');
     assert.match(huge.error.message, /4 MB/);
+    const empty = job(emu, { phone: '0621112277', cv: { name: 'cv.pdf', type: 'application/pdf', data: '' } });
+    assert.deepEqual([empty.error.field, /prazan/.test(empty.error.message)], ['cv', true]);
   });
 
   test('phone is required', () => {
@@ -76,10 +78,33 @@ describe('job application', () => {
 });
 
 describe('email recipients live in SETTINGS, not in code', () => {
-  test('changing the sheet changes who gets the order ticket', () => {
+  test('comma separated lists are validated', () => {
     const emu = freshBackend();
-    setSettings(emu, { order_email_recipients: 'a@grckigiros.test,b@grckigiros.test' });
     const r = emu.run('recipients_', 'a@grckigiros.test, not-an-email, b@grckigiros.test');
     assert.deepEqual(JSON.parse(JSON.stringify(r)), ['a@grckigiros.test', 'b@grckigiros.test']);
+  });
+});
+
+describe('one submit per requestId (double click, retry racing the first copy)', () => {
+  test('a copy that arrives while the first still runs gets BUSY and stores nothing; later copies replay the result', () => {
+    const emu = freshBackend();
+    const requestId = randomUUID();
+    emu.state.cache.set('idem:job:' + requestId, { v: JSON.stringify({ pending: true }), exp: Infinity });
+    assert.equal(job(emu, { requestId }).error.code, 'BUSY');
+    assert.equal(emu.rows('JOBS').length, 0);
+    emu.state.cache.clear();
+    assert.equal(job(emu, { requestId }).ok, true);
+    assert.equal(job(emu, { requestId }).ok, true, 'replayed');
+    assert.equal(emu.rows('JOBS').length, 1);
+    const to = emu.state.outbox.filter((m) => /^Prijava za posao/.test(m.subject)).map((m) => m.to);
+    assert.equal(new Set(to).size, to.length, 'nobody got the application twice: ' + to.join(', '));
+  });
+
+  test('a failed run frees the id: the corrected retry with the same id goes through', () => {
+    const emu = freshBackend();
+    const requestId = randomUUID();
+    assert.equal(contact(emu, { requestId, message: '' }).error.code, 'VALIDATION');
+    assert.equal(contact(emu, { requestId }).ok, true);
+    assert.equal(emu.rows('CONTACT').length, 1);
   });
 });

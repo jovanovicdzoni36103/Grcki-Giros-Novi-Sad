@@ -29,6 +29,7 @@ function normalize(raw) {
     lines: Array.isArray(c.lines) ? c.lines.map(normalizeLine).filter(Boolean).slice(0, 30) : [],
     mode: c.mode === 'delivery' || c.mode === 'pickup' ? c.mode : null,
     zone: typeof c.zone === 'string' ? c.zone : '',
+    zoneArea: typeof c.zoneArea === 'string' ? c.zoneArea : '',
     updatedAt: c.updatedAt || 0
   };
 }
@@ -54,8 +55,14 @@ export function zone() {
   return cart.zone;
 }
 
-export function setZone(id) {
+/** Neighbourhood the guest picked: several share one zone id, so the select needs it to show the right one. */
+export function zoneArea() {
+  return cart.zoneArea;
+}
+
+export function setZone(id, area) {
   cart.zone = id || '';
+  cart.zoneArea = area || '';
   save();
 }
 

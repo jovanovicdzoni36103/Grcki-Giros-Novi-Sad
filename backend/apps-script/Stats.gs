@@ -27,7 +27,7 @@ function orderRecords_(rows) {
         subtotal: toNum_(r.Subtotal, 0),
         deliveryFee: toNum_(r['Delivery Cost'], 0),
         total: toNum_(r.Total, 0),
-        requested: String(r['Requested Time'] || ''),
+        requested: hmCell_(r['Requested Time']),
         phone: String(r.Phone || '')
       };
     })

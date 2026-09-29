@@ -207,7 +207,7 @@ describe('malformed and hostile requests', () => {
     const emu = freshBackend();
     adminSession(emu);
     const text = JSON.stringify(bootstrap(emu));
-    for (const secret of ['kuhinja@grckigiros.test', 'TOKEN_SECRET', 'PANEL_PIN', 'test_mode', 'order_email_recipients', 'rate_limit', 'image_url_template', 'jobs_email_recipients']) {
+    for (const secret of ['kuhinja@grckigiros.test', 'TOKEN_SECRET', 'PANEL_PIN', 'test_mode', 'EMAIL_1', 'rate_limit', 'image_url_template', 'jobs_email_recipients']) {
       assert.ok(!text.includes(secret), secret);
     }
   });

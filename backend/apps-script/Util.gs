@@ -193,8 +193,10 @@ function readTail_(name, n) {
 
 function cellValue_(value) {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return GG_Validation.sheetSafe(value);
-  return value;
+  if (typeof value !== 'string') return value;
+  // Sheets turns "18:00" and "2026-09-30" into time/date values (read back as 1899 dates); the apostrophe keeps them text.
+  if (/^\d{1,2}:\d{2}(:\d{2})?$|^\d{4}-\d{2}-\d{2}$/.test(value)) return "'" + value;
+  return GG_Validation.sheetSafe(value);
 }
 
 function objectToRow_(hi, obj) {

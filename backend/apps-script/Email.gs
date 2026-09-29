@@ -117,7 +117,7 @@ function emailStatusOf_(res, total) {
 }
 
 function sendOrderEmails_(order, settings) {
-  var kitchen = recipients_(settings.order_email_recipients);
+  var kitchen = notificationRecipients_(settings);
   var ticket = kitchenTicket_(order, settings);
   var res = deliverEmail_(kitchen, ticket.subject, ticket.html, ticket.text, { priorityFirst: true });
   var status = emailStatusOf_(res, kitchen.length);

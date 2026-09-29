@@ -7,6 +7,7 @@ export const ART_VARIANTS = {
   'wrap-atina': { symbol: 'wrap', bg: '#E3EBF6', style: '--veg-b:#8DBF55;--fleck:#4C7A3A' },
   'wrap-custom': { symbol: 'wrap', bg: '#FDF0D8', style: '--q:1' },
   'wrap-max': { symbol: 'wrap', bg: '#E5EEDD', style: '--max:1;--x2:1' },
+  'wrap-mali': { symbol: 'wrap', bg: '#E3EBF6', style: '--art-scale:0.84' },
   'wrap-veg': { symbol: 'wrap', bg: '#E5EEDD', style: '--meat:#F7C84A;--meat-2:#D69A1E;--veg-b:#8DBF55' },
   plate: { symbol: 'plate', bg: '#E3EBF6' },
   box: { symbol: 'box', bg: '#F2EBDD' },

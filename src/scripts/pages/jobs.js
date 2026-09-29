@@ -31,6 +31,7 @@ async function init() {
     }
     if (!TYPES.includes(f.type)) setError(form, 'cv', 'CV može biti PDF, Word ili slika (JPG, PNG).');
     else if (f.size > MAX) setError(form, 'cv', 'CV je veći od 4 MB.');
+    else if (!f.size) setError(form, 'cv', 'CV fajl je prazan. Izaberite drugi fajl.');
     fileLabel.textContent = `${f.name} · ${(f.size / 1024 / 1024).toFixed(1)} MB`;
   });
   bindForm(form, {
@@ -46,6 +47,7 @@ async function init() {
       const v = Validation.validateJobForm(p);
       if (p._file && !TYPES.includes(p._file.type)) v.errors.cv = 'CV može biti PDF, Word ili slika (JPG, PNG).';
       else if (p._file && p._file.size > MAX) v.errors.cv = 'CV je veći od 4 MB.';
+      else if (p._file && !p._file.size) v.errors.cv = 'CV fajl je prazan. Izaberite drugi fajl.';
       v.ok = Object.keys(v.errors).length === 0;
       delete p._file;
       return v;

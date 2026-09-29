@@ -58,11 +58,11 @@ test('what the server refuses on the real menu: no meat, no Joy flavour, two dri
 test('the shop edits a real product in the admin panel: its photo that ships with the site is kept', () => {
   const emu = freshBackend({ seed: REAL });
   const { call } = adminSession(emu);
-  const p = call('admin.catalog').data.products.find((x) => x.id === 'giros-veliki');
-  const saved = call('admin.product.save', { product: { ...p, price: 560 } });
+  const p = call('admin.catalog').data.products.find((x) => x.id === 'pljeskavica-velika');
+  const saved = call('admin.product.save', { product: { ...p, price: 460 } });
   assert.equal(saved.ok, true, JSON.stringify(saved.error));
-  const after = saved.data.catalog.products.find((x) => x.id === 'giros-veliki');
-  assert.deepEqual([after.price, after.image], [560, '/assets/img/menu/giros.webp']);
+  const after = saved.data.catalog.products.find((x) => x.id === 'pljeskavica-velika');
+  assert.deepEqual([after.price, after.image], [460, '/assets/img/menu/pljeskavica.webp']);
   for (const bad of ['/assets/img/../../x.webp', '/assets/img/a.webp"', 'javascript:alert(1)', '/etc/passwd', 'http://evil.example/x.png']) {
     assert.equal(call('admin.product.save', { product: { ...p, image: bad } }).error.field, 'image', bad);
   }

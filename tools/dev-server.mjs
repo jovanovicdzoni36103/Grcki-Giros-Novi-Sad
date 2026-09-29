@@ -47,15 +47,14 @@ function devSettings(e) {
     const row = sh.data.find((r, i) => i > 0 && r && r[0] === k);
     if (row) row[1] = v;
   };
+  // Local emails land in /__outbox, never in a real inbox.
   set('test_mode', 'FALSE');
-  set('order_email_recipients', 'kuhinja@grckigiros.test, vlasnik@grckigiros.test');
-  set('contact_email_recipients', 'info@grckigiros.test');
-  set('jobs_email_recipients', 'posao@grckigiros.test, vlasnik@grckigiros.test');
+  set('EMAIL_1', 'kuhinja@grckigiros.test');
+  set('EMAIL_2', 'vlasnik@grckigiros.test');
+  set('EMAIL_3', '');
+  set('EMAIL_4', '');
   set('site_url', `http://localhost:${port}`);
   set('image_url_template', `http://localhost:${port}/__drive/{id}`);
-  const rc = e.sheet('REPORT_CONFIG');
-  const r = rc.data.find((row, i) => i > 0 && row && row[0] === 'report_recipients');
-  if (r) r[1] = 'izvestaji@grckigiros.test';
   e.run('setPanelPin_', '123456');
 }
 

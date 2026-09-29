@@ -1,11 +1,11 @@
 # QA matrica — Grčki Giros, online poručivanje
 
-Stanje: 29.09.2026. Dokazi:
+Stanje: 30.09.2026. Dokazi:
 
-- `npm test`: **237 testova** (81 unit + 156 Apps Script u emulatoru, od toga 48 napadačkih u `tests/gas/audit.test.mjs`). Testovi rade na nepromenljivom demo meniju (`tests/fixtures/seed.demo.json`); pravi meni iz `data/seed.json` ima svoje provere (`tests/unit/seed.test.mjs`, `tests/gas/real-menu.test.mjs`, E 11)
-- `npm run test:e2e`: **27 tokova** u pravom Chrome-u (uz proveru konzole i svakog neuspelog mrežnog zahteva), izveštaj i screenshotovi u `tests/e2e/artifacts/`
+- `npm test`: **245 testova**, svi prolaze (81 unit + 164 Apps Script u emulatoru, od toga 48 napadačkih u `tests/gas/audit.test.mjs`). Testovi rade na nepromenljivom demo meniju (`tests/fixtures/seed.demo.json`); pravi meni iz `data/seed.json` ima svoje provere (`tests/unit/seed.test.mjs`, `tests/gas/real-menu.test.mjs`, E 11)
+- `npm run test:e2e`: **27/27 tokova** u pravom Chrome-u (uz proveru konzole i svakog neuspelog mrežnog zahteva), izveštaj i screenshotovi u `tests/e2e/artifacts/`
 
-**Važno ograničenje:** backend je testiran tako što se **pravi `.gs` kod** izvršava u lokalnom emulatoru Google servisa (Sheets, LockService, CacheService, Properties, MailApp, Drive, okidači). Na pravom Google nalogu **nije** pokrenut. Za to treba deploy na nalogu lokala (docs/SETUP.md, ~45 min). Sve što zavisi od pravog Google-a je u sekciji „Nije testirano“.
+Backend se u automatskim testovima izvršava kao **pravi `.gs` kod** u lokalnom emulatoru Google servisa. Od 30.09.2026. radi i na pravom Google nalogu (tabela „Grcki Giros Tontic“, Web App deployment); stvarni testovi na njemu su u sekciji „Stvarni testovi na pravom backendu“.
 
 Oznake: **U** = unit (`tests/unit`), **G** = Apps Script u emulatoru (`tests/gas`), **E** = E2E tok u Chrome-u (`tests/e2e/run.mjs`).
 
@@ -128,9 +128,45 @@ Sistem je napadan kao da ga je pravio neko drugi: ručno složeni zahtevi na API
 
 Pregledano bez nalaza: server-side cene/dostava/total (1 RSD, 0, negativno, string, lažne cene u stavkama), 7./8. dan, prošlost, pauza, van radnog vremena, pauzirani kanali, zone (neaktivna, nepostojeća, velika slova), minimum 499/500/501, istorijske cene proizvoda, dodatka i dostave posle izmene, 6×6 matrica statusa, rok od 5 min (4:59 / 5:01 / prihvaćeno kasno / odbijeno), escape u emailovima i panelu, formule u Sheets-u, tajne u bootstrap-u, stack trace u greškama, integritet ORDERS ↔ ORDER_ITEMS ↔ CUSTOMERS posle mešovitog dana, 0 grešaka u konzoli i 0 neuspelih zahteva na 10 stranica × 7 širina + admin.
 
+## Stvarni testovi na pravom backendu (30.09.2026)
+
+Produkcioni build (`node tools/build.mjs --out dist-live`, `apiUrl` = Web App) lokalno na `http://localhost:5185`, pravi Apps Script i prava tabela. `test_mode` = FALSE, EMAIL_1 = nikola.jovanovic.mef@gmail.com, EMAIL_2 privremeno nikola.culiflow@gmail.com (posle testa obrisan). Posle svakog testa provereni su redovi u tabeli (ORDERS, ORDER_ITEMS, CONTACT, JOBS, SYSTEM_LOG, ERROR_LOG) i oba inboxa.
+
+| # | Test | Rezultat |
+|---|---|---|
+| R1 | Preuzimanje u lokalu: 2× Giros veliki (piletina / svinjetina), Coca-Cola 0,5 l sa napomenom, dupli klik na „Pošalji“ | #1001, jedan red u ORDERS i 3 u ORDER_ITEMS, kuhinjski email na oba slota, potvrda kupcu |
+| R2 | Checkout: prazno ime, telefon „123“ | blokirano, poruke uz polja |
+| R3 | Dostava bez adrese i gotovine | greške za ime, telefon, ulicu, broj, gotovinu; nema slanja |
+| R4 | Dostava zakazana za 30.09. 18:00: 2× Pljeskavica različito složena, pomfrit, 2× Fanta, stan, sprat, napomene, 2.000 RSD | #1002, 4 stavke, kusur 320, zona, emailovi, link za praćenje radi |
+| R5 | Preuzimanje bez emaila kupca, zapamćeni podaci sa prethodne porudžbine | #1003, „SENT 2“ bez emaila kupcu, vreme upisano kao tekst |
+| R6 | Kontakt: prazna forma, loš telefon i email, ispravna poruka | greške; poruka stigla na oba slota |
+| R7 | CV: `.txt`, PDF od 4,5 MB, prazan PDF (0 B) | odbijeno odmah, nijedan zahtev ka serveru |
+| R8 | CV: pravi PDF, dva slanja zaredom | jedan zahtev, jedan red u JOBS, PDF u prilogu stigao na nikola.jovanovic.mef@gmail.com i EMAIL_2, kandidat dobio potvrdu, CV u Drive-u |
+| R9 | Samo EMAIL_1 (EMAIL_2 obrisan) | „SENT 1“, drugi inbox ništa nije dobio |
+| R10 | API bez sajta (curl): loš JSON, nepoznata akcija, bez akcije, admin bez PIN-a i sa lažnom sesijom, honeypot, prebrzo popunjeno, izmenjena cena, 7 MB, ponovljen `requestId` porudžbine | BAD_REQUEST, UNAUTHORIZED, PRICE_CHANGED sa novim iznosom, „Zahtev je prevelik“, vraćena ista #1001 bez novog reda |
+| R11 | CORS | `Access-Control-Allow-Origin: *` na GET i POST; POST ide kao `text/plain`, bez preflight-a |
+| R12 | ERROR_LOG posle svih testova | prazan; SYSTEM_LOG beleži svaki zahtev sa trajanjem |
+
+Izmereno: bootstrap 2,3–6,4 s, porudžbina 5–8 s, CV prijava ~8 s.
+
+### Bagovi pronađeni stvarnim testovima (ispravljeni, backend ponovo objavljen)
+
+1. **Stranica statusa**: „Zakazano sreda 30.09. u Sat Dec 30 1899 18:00:00 GMT+0100“. Prava tabela je „18:00“ i „2026-09-29“ pretvarala u vreme i datum iako su kolone tekstualne. Upis sada čuva vreme i datum kao tekst, a čitanje prepoznaje i stare redove. G `a time real Sheets stored as a time-of-day value`.
+2. **Dupla prijava za posao** (dva reda, dva CV-ja, dva emaila) na dupli klik: dugme se zaključavalo tek posle čitanja fajla, a server je proveravao `requestId` bez lock-a. Sada se zaključava odmah, a kontakt i prijava se izvršavaju jednom po `requestId` (provera i zauzimanje pod script lock-om, drugi primerak dobija BUSY i isti `requestId` ostaje za ponovni pokušaj). G `one submit per requestId`.
+3. **Prazan CV (0 B)** se tiho gubio: prijava je išla sa „CV nije priložen“. Sada jasna greška na sajtu i na serveru. G `CV is optional…`.
+4. **Naselje**: izbor „Liman 2“ se posle osvežavanja prikazivao kao „Sajmište“ (sva gradska naselja dele istu zonu). Pamti se i izabrano naselje. E 3a.
+5. **Komadi istog proizvoda**: ispod „Komad 1 / Komad 2“ je na pravom meniju uvek pisalo „kao na meniju“, jer su meso, premazi i salate besplatni. Sada se vide izbori koji nisu podrazumevani („Mix, +Meso plus 100 g“). E 11.
+6. **Posle ponoći** je termin „sreda 18:00“ opisan kao „ujutru u 18:00“. Sada „sutra u 18:00“, a naredni dan po imenu. U `scheduling`.
+7. **Lažna poruka „Termin više nije dostupan.“** posle izbora „Zakaži“, pre izbora vremena. Uklonjena.
+8. **Bootstrap timeout 9 s** je bio blizu izmerenih 6,4 s: na hladnom startu gost je ostajao na keširanom radnom vremenu. Sada 20 s (osvežavanje ide u pozadini).
+9. **Podrazumevana dostava/preuzimanje** se pamtila po satu uređaja pre nego što stigne serversko vreme (telefon sa pogrešnim satom, E2E noću). Pamti se tek sa serverskim vremenom, a označeno dugme prati stvarni izbor. E 3b, 5e.
+10. **Admin ▸ Istorija**: tekst ukucan u pretragu dok prva lista još stiže (na pravom backendu 2–6 s) brisao se kad lista stigne. Fokusirano polje sada zadržava ukucano. E 6b (ranije povremeno padao baš zbog ovoga).
+
 ## Nije testirano
 
-- **Pravi Google nalog**: Sheets, MailApp, LockService pod stvarnim paralelnim opterećenjem, okidači, Drive dozvole. Sve je testirano u emulatoru koji izvršava pravi `.gs` kod. Deploy i provera su u SETUP.md.
+- **Admin panel na pravom backendu** (prihvatanje, odbijanje, statusi, emailovi kupcu „potvrđena / spremna / odbijena“, izmena menija i fotografija): PIN još nije postavljen. Isti tokovi su prošli u emulatoru (E 6a–7b).
+- **Izveštaji na pravom nalogu**: okidači su instalirani 29.09.2026. 23:56, prvi dnevni izveštaj stiže ~01:00–01:30.
+- **Pravi Google nalog pod opterećenjem**: LockService sa stvarno istovremenim porudžbinama. Dva istovremena slanja forme su se desila uživo (bag 2) i sada su pokrivena.
 - **Javni link fotografije sa Drive-a** (`lh3.googleusercontent.com/d/{id}`): u emulatoru se slika služi lokalno. Na pravom nalogu treba proveriti u anonimnom prozoru. Rezervni format je u SETUP.md.
 - **Prikaz emailova** u Gmail i Outlook aplikacijama: HTML je tabelaran sa inline stilovima, proveren samo u pregledaču.
 - **iOS Safari** na pravom uređaju (samo Chromium emulacija telefona) i **zvuk iz zvučnika** tableta (Web Audio je pozvan, ali headless Chrome ga ne pušta).

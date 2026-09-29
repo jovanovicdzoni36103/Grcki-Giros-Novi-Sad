@@ -456,6 +456,11 @@ function textCell_(value) {
   return String(value === null || value === undefined ? '' : value);
 }
 
+/** "18:00", also when the cell holds a time-of-day value (rows written before cellValue_ kept times as text, owner edits). */
+function hmCell_(value) {
+  return value instanceof Date ? fmt_(value, 'HH:mm') : String(value || '');
+}
+
 /** Rebuilds an order object from its ORDERS row (idempotency fallback, admin, emails). */
 function orderFromRow_(r) {
   var lines = [];
@@ -465,7 +470,7 @@ function orderFromRow_(r) {
   var mode = r['Order Type'] === 'DELIVERY' ? 'delivery' : 'pickup';
   var addressLine = String(r.Address || '');
   var created = r.Timestamp instanceof Date ? r.Timestamp : new Date(r['Created At'] || now_());
-  var requested = String(r['Requested Time'] || '');
+  var requested = hmCell_(r['Requested Time']);
   var phone = String(r.Phone || '');
   var phoneNorm = GG_Validation.normalizePhone(phone);
   var scheduledDate = r['Scheduled Date'] instanceof Date ? fmt_(r['Scheduled Date'], 'yyyy-MM-dd') : String(r['Scheduled Date'] || '');
@@ -500,8 +505,8 @@ function orderFromRow_(r) {
     change: r['Change Required'] === '' ? '' : toNum_(r['Change Required'], ''),
     when: requested === 'ŠTO PRE' || !scheduledDate ? 'asap' : 'scheduled',
     scheduledDate: scheduledDate,
-    scheduledTime: String(r['Scheduled Time'] || ''),
-    promisedLabel: String(r['Promised Time'] || ''),
+    scheduledTime: hmCell_(r['Scheduled Time']),
+    promisedLabel: hmCell_(r['Promised Time']),
     requestId: String(r['Request ID'] || ''),
     statusToken: String(r['Status Token'] || ''),
     channel: String(r.Channel || ''),

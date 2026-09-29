@@ -117,11 +117,14 @@ function missingRequired() {
 /** Short line under a piece tab: what differs from the defaults. */
 function pieceSummary(p) {
   const res = pricePiece(p);
+  const defaults = new Set(Pricing.defaultOptions(catalog().index, current.product));
   const parts = [];
   res.selections.forEach((s) => {
     if (s.display === 'info') return;
     s.chosen.forEach((o) => {
+      // Free picks count too: on giros the meat and the spreads are what tells two pieces apart.
       if (o.price) parts.push(`+${o.name}`);
+      else if (!defaults.has(o.id)) parts.push(o.name);
     });
   });
   if (res.removedSummary) parts.push(res.removedSummary.replace(/^BEZ: /, 'bez '));

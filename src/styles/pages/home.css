@@ -166,6 +166,46 @@
   height: auto;
 }
 
+/* The hero giros is never still: it breathes, the fries pop every few seconds and steam keeps rising. */
+.hero__giros svg,
+.art-live .art {
+  --steam-color: #fff;
+  animation:
+    giros-bob 5.5s ease-in-out infinite alternate,
+    steam-rise 3.4s var(--ease-out) 1.2s infinite,
+    fries-idle 6.5s var(--ease-out) 2.4s infinite;
+}
+
+.art-live .art {
+  --steam-color: rgba(22, 32, 46, 0.4);
+}
+
+@keyframes giros-bob {
+  from {
+    transform: translateY(0) rotate(-1deg);
+  }
+  to {
+    transform: translateY(-2.5%) rotate(1.5deg);
+  }
+}
+
+@keyframes fries-idle {
+  0%,
+  22%,
+  100% {
+    --fry-lift: 0px;
+  }
+  7% {
+    --fry-lift: -10px;
+  }
+  13% {
+    --fry-lift: -3px;
+  }
+  18% {
+    --fry-lift: -6px;
+  }
+}
+
 .js .hero__giros {
   animation: giros-in 1100ms var(--ease-spring) both 150ms;
 }
@@ -625,12 +665,14 @@
 }
 
 .feature-card__art .art {
+  transform: scale(var(--art-scale, 1));
   transition: transform var(--t-slower) var(--ease-out);
 }
 
 @media (hover: hover) {
   .feature-card:hover .feature-card__art .art {
-    transform: scale(1.08) rotate(-4deg) translateY(-3%);
+    transform: scale(calc(1.08 * var(--art-scale, 1))) rotate(-4deg) translateY(-3%);
+    animation: fries-pop 750ms var(--ease-out), steam-rise 1.8s var(--ease-out) 120ms;
   }
   .feature-card:hover .feature-card__cta svg {
     transform: translateX(5px);

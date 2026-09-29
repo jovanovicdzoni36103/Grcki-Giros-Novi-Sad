@@ -6,9 +6,12 @@
 
   <symbol id="wrap" viewBox="0 0 200 220">
     <ellipse cx="100" cy="209" rx="44" ry="6.5" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M88 30c-7-6 7-11 0-19"/><path d="M108 22c-7-6 7-11 0-19"/><path d="M128 30c-7-6 7-11 0-19"/>
+    </g>
     <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" transform="rotate(-7 100 140)">
       <path d="M98 128C103 94 121 62 146 55c17-5 25 10 17 29-8 20-14 36-16 50Z" style="fill:var(--pita-2,#E3A853)"/>
-      <g style="fill:var(--fry,#F7C84A)">
+      <g style="fill:var(--fry,#F7C84A);transform:translateY(var(--fry-lift,0px))">
         <rect x="88" y="42" width="11" height="54" rx="3" transform="rotate(-16 93 69)"/>
         <rect x="106" y="34" width="11" height="58" rx="3" transform="rotate(4 111 63)"/>
         <rect x="123" y="44" width="11" height="50" rx="3" transform="rotate(19 128 69)"/>

@@ -1,6 +1,7 @@
 // Static build: prerendered HTML pages + esbuild bundles + assets → dist/
 //   node tools/build.mjs            production (uses site.config.json apiUrl)
 //   node tools/build.mjs --dev      local dev server API (/api), dev helpers enabled
+//   --local-api                     production bundle that still talks to /api (E2E perf build, never the live backend)
 //   --seed <file>                   prerender another menu than data/seed.json (E2E uses the demo fixture)
 import { build } from 'esbuild';
 import { mkdirSync, rmSync, readFileSync, writeFileSync, cpSync, readdirSync, statSync } from 'node:fs';
@@ -23,8 +24,8 @@ const t0 = Date.now();
 syncGas({ quiet: true });
 
 const config = JSON.parse(readFileSync(path.join(root, 'site.config.json'), 'utf8'));
-const apiUrl = dev || !config.apiUrl ? '/api' : config.apiUrl;
-if (!dev && !config.apiUrl) console.warn('⚠ site.config.json apiUrl is empty: this build talks to /api (local dev server only).');
+const apiUrl = dev || !config.apiUrl || process.argv.includes('--local-api') ? '/api' : config.apiUrl;
+if (!dev && !config.apiUrl && !process.argv.includes('--local-api')) console.warn('⚠ site.config.json apiUrl is empty: this build talks to /api (local dev server only).');
 
 const seedArg = process.argv.indexOf('--seed');
 const { data: snapshot, source } = loadSnapshot(root, seedArg > -1 ? process.argv[seedArg + 1] : null);

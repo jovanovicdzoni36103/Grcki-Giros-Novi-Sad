@@ -244,7 +244,12 @@
     var calDate = minutes >= 1440 ? dateAdd(date, 1) : date;
     var diff = daysBetween(nowParts.date, calDate);
     var hm = formatHM(minutes);
-    if (diff === 0) return (nowParts.minutes < 360 ? 'ujutru u ' : 'danas u ') + hm;
+    // After midnight the guest still counts days from yesterday, like the day chips (Sutra): only this morning is "ujutru".
+    if (nowParts.minutes < 360) {
+      if (diff === 0 && minutes < 720) return 'ujutru u ' + hm;
+      diff += 1;
+    }
+    if (diff === 0) return 'danas u ' + hm;
     if (diff === 1) return 'sutra u ' + hm;
     if (diff > 1 && diff < 7) return DAY_ACCUSATIVE[dowOf(calDate)] + ' u ' + hm;
     return formatDateShort(calDate) + ' u ' + hm;

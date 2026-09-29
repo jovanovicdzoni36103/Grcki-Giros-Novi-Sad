@@ -1,0 +1,21 @@
+{
+  "scriptId": "1YdGfmQmG-YjHWwc50146eF7JMGRjLvMgV0RjhLtiih09gJYNIHwr1kCu",
+  "rootDir": "backend/apps-script",
+  "parentId": "199ZuKxJ1hxpUqTZsDV65E7a484UZ7mVdQqmEdNowthI",
+  "scriptExtensions": [
+    ".gs"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "filePushOrder": [
+    "backend/apps-script/Shared_Money.gs",
+    "backend/apps-script/Shared_Scheduling.gs",
+    "backend/apps-script/Shared_Pricing.gs",
+    "backend/apps-script/Shared_Validation.gs",
+    "backend/apps-script/Config.gs"
+  ]
+}

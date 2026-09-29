@@ -344,10 +344,11 @@ describe('zones, hours and settings from the panel', () => {
     assert.deepEqual([r.data.etaMin, r.data.etaMax, r.data.promisedTime], [30, 40, '14:55']);
     assert.equal(call('admin.settings.save', { changes: { pickup_eta_min: 50, pickup_eta_max: 20 } }).error.field, 'pickup_eta_min');
     assert.equal(call('admin.settings.save', { changes: { extra_wait_min: 500 } }).error.field, 'extra_wait_min');
-    assert.equal(call('admin.settings.save', { changes: { order_email_recipients: 'kuhinja@lokal.rs, nije-email' } }).error.field, 'order_email_recipients');
+    assert.equal(call('admin.settings.save', { changes: { EMAIL_2: 'nije-email' } }).error.field, 'EMAIL_2');
+    assert.equal(call('admin.settings.save', { changes: { EMAIL_1: '', EMAIL_2: '', EMAIL_3: '', EMAIL_4: '' } }).error.field, 'EMAIL_1', 'somebody must still get orders');
     assert.equal(call('admin.settings.save', { changes: { test_mode: 'FALSE' } }).error.code, 'BAD_REQUEST', 'not editable from the panel');
-    const ok = call('admin.settings.save', { changes: { order_email_recipients: 'kuhinja@lokal.rs,  vlasnik@lokal.rs', accept_timeout_min: 7 } });
-    assert.equal(ok.data.settings.order_email_recipients, 'kuhinja@lokal.rs, vlasnik@lokal.rs');
+    const ok = call('admin.settings.save', { changes: { EMAIL_1: ' Kuhinja@Lokal.rs ', EMAIL_4: 'vlasnik@lokal.rs', accept_timeout_min: 7 } });
+    assert.deepEqual([ok.data.settings.EMAIL_1, ok.data.settings.EMAIL_4], ['kuhinja@lokal.rs', 'vlasnik@lokal.rs']);
     assert.equal(call('admin.board').data.settings.acceptTimeoutMin, 7);
   });
 });

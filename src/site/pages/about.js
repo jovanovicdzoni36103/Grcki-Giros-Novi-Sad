@@ -47,7 +47,7 @@ export function render(ctx) {
       </ol>
     </div>
     <div class="story__art" data-reveal>
-      <div class="art-frame" style="--art-bg:#F2EBDD"><img src="/assets/img/menu/giros.webp" alt="Giros iz lokala Grčki Giros, u piti sa pomfritom" loading="lazy" decoding="async" width="400" height="432"></div>
+      <div class="art-frame art-live" style="--art-bg:#F2EBDD"><svg class="art" viewBox="0 0 200 220" aria-hidden="true"><use href="${a.art}#wrap"/></svg></div>
       ${stamp(ctx, 'stamp-about', 'Grčki Giros • Novi Sad • od 2021. • ')}
     </div>
   </div>

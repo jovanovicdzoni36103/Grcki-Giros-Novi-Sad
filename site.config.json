@@ -1,6 +1,6 @@
 {
   "siteUrl": "https://grckigiros.rs",
-  "apiUrl": "",
+  "apiUrl": "https://script.google.com/macros/s/AKfycbzOPrgRpv8TJ4hiQVoWn850kPJMzVW2R1Sl1z2sukQR-di_dwtyn374gXQBStE91_yeAw/exec",
   "gaId": "",
   "_comment": "apiUrl = Apps Script Web App URL (…/exec) after deployment. Empty apiUrl builds for the local dev server (/api). gaId = GA4 measurement id, empty = no analytics."
 }

@@ -64,8 +64,9 @@ function menuSendTestOrderEmail() {
   var settings = getSettings_();
   var sample = sampleOrder_(settings);
   var t = kitchenTicket_(sample, settings);
-  var res = deliverEmail_(recipients_(settings.order_email_recipients), t.subject, t.html, t.text, { priorityFirst: true });
-  SpreadsheetApp.getUi().alert('Test email', emailStatusOf_(res, recipients_(settings.order_email_recipients).length) + (res.test ? '\n(test režim: poslato samo test primaocu)' : ''), SpreadsheetApp.getUi().ButtonSet.OK);
+  var staff = notificationRecipients_(settings);
+  var res = deliverEmail_(staff, t.subject, t.html, t.text, { priorityFirst: true });
+  SpreadsheetApp.getUi().alert('Test email', emailStatusOf_(res, staff.length) + (res.test ? '\n(test režim: poslato samo test primaocu)' : ''), SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 function menuSendDailyReport() {
@@ -259,8 +260,11 @@ function setup() {
     ss.setActiveSheet(sh);
     ss.moveActiveSheet(i + 1);
   });
-  var defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('List1');
-  if (defaultSheet && defaultSheet.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(defaultSheet);
+  // The empty first tab of a new spreadsheet, in English, Serbian Latin and Serbian Cyrillic Sheets. Never one with data.
+  ['Sheet1', 'List1', 'Лист1'].forEach(function (name) {
+    var defaultSheet = ss.getSheetByName(name);
+    if (defaultSheet && defaultSheet.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(defaultSheet);
+  });
   var props = PropertiesService.getScriptProperties();
   if (!props.getProperty('ORDER_SEQ')) props.setProperties({ ORDER_SEQ: '0', PUBLIC_NO: '0' });
   secret_('TOKEN_SECRET');

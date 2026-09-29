@@ -12,7 +12,7 @@ syncGas({ quiet: true });
 export function freshBackend({ now = '2026-09-23T14:23:00+02:00', settings = {}, seed = DEMO_SEED } = {}) {
   const emu = createEmulator({ now, seed });
   emu.run('setup');
-  const overrides = { test_mode: 'FALSE', order_email_recipients: 'kuhinja@grckigiros.test, vlasnik@grckigiros.test, smena@grckigiros.test', ...settings };
+  const overrides = { test_mode: 'FALSE', EMAIL_1: 'kuhinja@grckigiros.test', EMAIL_2: 'vlasnik@grckigiros.test', EMAIL_3: 'smena@grckigiros.test', EMAIL_4: '', ...settings };
   setSettings(emu, overrides);
   return emu;
 }

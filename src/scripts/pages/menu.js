@@ -180,7 +180,7 @@ async function init() {
     renderModeBar();
   });
   on(document, 'change', '#zone', (e, el) => {
-    cart.setZone(el.value);
+    cart.setZone(el.value, el.selectedOptions[0]?.dataset.area);
     renderModeBar();
   });
   on(document, 'click', '[data-filter]', (e, el) => {

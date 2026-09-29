@@ -34,16 +34,18 @@ export function bindForm(form, { action, collect, validate, successHtml }) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (busy) return;
+    // collect() reads the CV file asynchronously: a second click during that read must not send a second copy.
+    busy = true;
     const payload = await collect(form);
     const v = validate(payload);
     form.querySelectorAll('[data-field]').forEach((f) => setError(form, f.dataset.field, ''));
     if (!v.ok) {
+      busy = false;
       Object.entries(v.errors).forEach(([k, m]) => setError(form, k, m));
       const first = form.querySelector('.has-error input, .has-error textarea, .has-error select');
       if (first) first.focus();
       return;
     }
-    busy = true;
     button.classList.add('is-busy');
     button.disabled = true;
     status.hidden = true;
@@ -67,6 +69,7 @@ export function bindForm(form, { action, collect, validate, successHtml }) {
     status.innerHTML = `${icon('alert')}<span>${esc(err.message || 'Slanje nije uspelo.')} ${
       ['NETWORK', 'TIMEOUT', 'SERVER_ERROR', 'BAD_RESPONSE'].includes(err.code) ? `Pokušajte ponovo ili pozovite ${esc(phone)}.` : ''
     }</span>`;
-    if (err.code !== 'NETWORK' && err.code !== 'TIMEOUT') requestId = uuid();
+    // The first copy may still be running (BUSY) or may have arrived (NETWORK/TIMEOUT): a retry keeps its id.
+    if (!['NETWORK', 'TIMEOUT', 'BUSY'].includes(err.code)) requestId = uuid();
   });
 }

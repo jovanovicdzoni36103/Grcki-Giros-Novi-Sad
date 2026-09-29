@@ -26,7 +26,7 @@ function lifetime_(data) {
 }
 
 function reportRecipients_() {
-  return recipients_(getReportConfig_().report_recipients);
+  return notificationRecipients_();
 }
 
 function sendReport_(kind, report) {

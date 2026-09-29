@@ -137,7 +137,7 @@ function onChange(e) {
     cart.setMode(e.target.value);
   }
   if (e.target.name === 'drawer-zone') {
-    cart.setZone(e.target.value);
+    cart.setZone(e.target.value, e.target.selectedOptions[0]?.dataset.area);
   }
 }
 
@@ -203,7 +203,8 @@ function removeWithUndo(key) {
 export function openCart() {
   ensureRoot();
   const snap = schedule();
-  if (!cart.mode()) cart.setMode(defaultMode(snap, null));
+  // Remembered only on the server's clock: cached data runs on the device clock, which may be off (or pinned in tests).
+  if (!cart.mode() && catalog().live) cart.setMode(defaultMode(snap, null));
   root.hidden = false;
   render();
   overlay.open(root, { focus: '[role="dialog"]' });

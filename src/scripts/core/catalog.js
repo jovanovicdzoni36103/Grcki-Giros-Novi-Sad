@@ -37,7 +37,8 @@ export function settingNumber(key, fallback = 0) {
 }
 
 export async function refreshLive() {
-  const res = await apiGet('bootstrap');
+  // A cold Apps Script start alone can take 5–10 s; the page already shows cached data meanwhile.
+  const res = await apiGet('bootstrap', {}, { timeoutMs: 20000 });
   if (!res.ok || !res.data || !res.data.catalog) {
     emit('catalog:error', res.error || { code: 'BAD_RESPONSE' });
     return false;

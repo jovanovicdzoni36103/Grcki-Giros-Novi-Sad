@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { freshBackend, placeOrder, plain } from './helpers.mjs';
+import { freshBackend, placeOrder, plain, setSettings } from './helpers.mjs';
 
 const KLASIK = ['meso-pilece', 'pita-atina', 'sos-tzatziki', 'sal-paradajz', 'sal-luk', 'zac-origano', 'pup-da'];
 const ATINA = ['meso-mesano', 'pita-atina', 'sos-tzatziki', 'sal-paradajz', 'sal-krastavac', 'zac-origano', 'zac-so', 'pup-da'];
@@ -28,8 +28,7 @@ function cancel(emu, orderId) {
 function buildHistory() {
   const emu = freshBackend({ settings: { rate_limit_phone_count: '1000' } });
   emu.run('setPanelPin_', '482913');
-  const rc = emu.sheet('REPORT_CONFIG');
-  rc.data.find((r) => r[0] === 'report_recipients')[1] = 'izvestaji@grckigiros.test, vlasnik@grckigiros.test';
+  setSettings(emu, { EMAIL_1: 'izvestaji@grckigiros.test', EMAIL_2: 'vlasnik@grckigiros.test', EMAIL_3: '' });
   // Previous week: Wednesday 16.09.
   at(emu, '2026-09-16T13:00:00+02:00', pickup([{ productId: 'klasik', qty: 1, options: KLASIK }], 620), '0641111111');
   // Wednesday 23.09. (the reported day)

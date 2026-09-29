@@ -89,7 +89,7 @@ async function waitFor(url, tries = 60) {
 // -----------------------------------------------------------------------------
 console.log('building (dev + production)…');
 execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--dev', '--seed', SEED], { cwd: root, stdio: 'inherit' });
-execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--out', 'dist-prod', '--seed', SEED], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, [path.join(root, 'tools/build.mjs'), '--out', 'dist-prod', '--local-api', '--seed', SEED], { cwd: root, stdio: 'inherit' });
 
 const server = startServer(PORT);
 const perfServer = startServer(PERF_PORT, ['--dist', 'dist-prod']);
@@ -340,6 +340,8 @@ await test('Tok 3a — dostava ispod 500 RSD i naselje koje nije na spisku: slan
   await page.waitForSelector('.drawer.is-open');
   await page.selectOption('#drawer-zone', { label: 'Liman 2' });
   await page.waitForFunction(() => /Minimalna porudžbina za dostavu je 500 RSD\. Dodajte još 300 RSD/.test(document.querySelector('.drawer').textContent));
+  const shownArea = () => page.$eval('#drawer-zone', (s) => s.selectedOptions[0].textContent);
+  expect((await shownArea()) === 'Liman 2', 'picked neighbourhood not shown after re-render: ' + (await shownArea()));
   expect((await page.getAttribute('.drawer [data-checkout]', 'aria-disabled')) === 'true', 'checkout allowed under the minimum');
   await shot(page, '03a-minimum');
   await page.selectOption('#drawer-zone', 'none');
@@ -755,8 +757,11 @@ await test('Tok 6b — admin: istek roka od 5 min, odbijanje, gost vidi „Odbij
   await adminView(page, 'utisci');
   await page.waitForFunction(() => /Odličan giros/.test(document.querySelector('[data-view]').textContent));
   await shot(page, '06b-admin-feedback');
-  await adminView(page, 'istorija');
+  // Typed right away, while the first list is still loading: its arrival must not wipe the search box.
+  await page.click('[data-view-link="istorija"]');
   await page.fill('[data-history-form] [name="q"]', '064 123 4567');
+  await page.waitForFunction(() => /Pronađeno: \d/.test(document.querySelector('[data-history-total]').textContent));
+  expect((await page.inputValue('[data-history-form] [name="q"]')) === '064 123 4567', 'typed search lost when the list arrived');
   await page.click('[data-history-form] [type="submit"]');
   await page.waitForFunction(() => /Pronađeno: 1\b/.test(document.querySelector('[data-history-total]').textContent));
   await page.click('.otable--list tbody tr');
@@ -1142,6 +1147,10 @@ await test('Tok 11 — pravi meni: fotografije, giros sa izborom mesa i „Meso 
     await page.click('.sheet label:has(input[value="dod-meso"]) .chip');
     const price = nbsp(await page.textContent('.sheet [data-add-price]'));
     expect(price === '880 RSD', 'Giros veliki + Meso plus: ' + price);
+    await page.click('.sheet [data-qty="1"]');
+    const tab1 = await page.textContent('.sheet [data-piece="0"] small');
+    expect(/^Mix, \+Meso plus/.test(tab1), 'piece tab shows the free meat pick too: ' + tab1);
+    await page.click('.sheet [data-qty="-1"]');
     await page.click('.sheet [data-sheet-add]');
     await page.waitForSelector('.sheet:not(.is-open)', { state: 'attached' });
     await page.click('[data-open-product="coca-cola"]');

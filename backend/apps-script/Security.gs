@@ -59,6 +59,36 @@ function idempotencyPut_(requestId, response) {
   } catch (ignored) {}
 }
 
+/**
+ * Runs a form submit once per requestId. Check-and-claim happens under the script lock, so a double click or a
+ * retry racing the first copy never stores the message or sends the email twice: a copy that arrives while the
+ * first still runs gets BUSY, a later one gets the first copy's response. A failed run frees the id for a retry.
+ */
+function onceForRequest_(scope, requestId, run) {
+  if (!validRequestId_(requestId)) return run();
+  var key = scope + ':' + requestId;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw apiError_('BUSY', 'Sistem je trenutno zauzet, pokušajte ponovo.');
+  try {
+    var prior = idempotencyGet_(key);
+    if (prior && prior.pending) throw apiError_('BUSY', 'Već šaljemo ovu poruku. Sačekajte nekoliko sekundi.');
+    if (prior) return prior;
+    idempotencyPut_(key, { pending: true });
+  } finally {
+    lock.releaseLock();
+  }
+  try {
+    var response = run();
+    idempotencyPut_(key, response);
+    return response;
+  } catch (err) {
+    try {
+      CacheService.getScriptCache().remove('idem:' + key);
+    } catch (ignored) {}
+    throw err;
+  }
+}
+
 /** Keyed hash for secrets stored in Script Properties (PIN). */
 function sha256Hex_(text) {
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8)

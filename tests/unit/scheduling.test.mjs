@@ -107,6 +107,8 @@ describe('seed hours (Mon–Sat 09–01, delivery 10–00, Sunday closed), 30-mi
     assert.equal(snap.pickup.days[0].label, 'Sutra');
     assert.equal(snap.delivery.state, 'closed');
     assert.equal(snap.delivery.next.label, 'ujutru u 10:00');
+    assert.equal(S.slotLabel(at('2026-09-24', '00:30'), cfg(), '2026-09-24 18:00'), 'sutra u 18:00', 'evening slot after midnight is not "ujutru"');
+    assert.equal(S.slotLabel(at('2026-09-24', '00:30'), cfg(), '2026-09-25 18:00'), 'u petak u 18:00', 'the day after is not "sutra" too');
   });
 
   test('exact closing 01:00 and after closing', () => {

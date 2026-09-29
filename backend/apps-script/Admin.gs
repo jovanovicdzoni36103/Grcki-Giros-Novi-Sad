@@ -1325,7 +1325,10 @@ var ADMIN_SETTINGS_ = {
   address_street: "text:80",
   address_city: "text:40",
   email_public: "email",
-  order_email_recipients: "emails",
+  EMAIL_1: "email",
+  EMAIL_2: "email",
+  EMAIL_3: "email",
+  EMAIL_4: "email",
   customer_confirmation_enabled: "bool",
   customer_status_emails: "bool",
 };
@@ -1345,7 +1348,10 @@ var SETTING_LABELS_ = {
   address_street: "Adresa",
   address_city: "Grad",
   email_public: "Javni email",
-  order_email_recipients: "Primaoci porudžbina",
+  EMAIL_1: "EMAIL_1",
+  EMAIL_2: "EMAIL_2",
+  EMAIL_3: "EMAIL_3",
+  EMAIL_4: "EMAIL_4",
   pause_message: "Poruka tokom pauze",
 };
 
@@ -1438,6 +1444,14 @@ function adminSaveSettings_(p) {
       );
     }
   });
+  // Somebody on the shop side must still get new orders by email.
+  if (
+    !EMAIL_SLOTS.some(function (k) {
+      return String(merged[k] || "").trim();
+    })
+  ) {
+    throw apiError_("VALIDATION", "Unesite bar jednu email adresu za obaveštenja (EMAIL_1).", { field: "EMAIL_1" });
+  }
   return withAdminLock_(function () {
     keys.forEach(function (k) {
       setSetting_(k, clean[k]);

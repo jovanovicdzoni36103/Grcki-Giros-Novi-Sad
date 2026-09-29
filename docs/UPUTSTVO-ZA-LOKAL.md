@@ -238,7 +238,7 @@ Porudžbine su numerisane **#1001, #1002, #1003…** i broj se nikad ne ponavlja
 
 ## Podešavanja
 
-**Podešavanja**: naziv i adresa lokala, telefon, javni email, **ko dobija email za novu porudžbinu** (više adresa odvojite zarezom), minimalna porudžbina kad zona nema svoj minimum, emailovi kupcima i **promena PIN-a**.
+**Podešavanja**: naziv i adresa lokala, telefon, javni email, **Emailovi za obaveštenja** (EMAIL_1 do EMAIL_4: svaka popunjena adresa dobija nove porudžbine, poruke sa kontakt forme, prijave za posao sa CV-jem u prilogu i izveštaje; EMAIL_1 je obavezan, prazna polja se preskaču, nova adresa važi najkasnije za minut), minimalna porudžbina kad zona nema svoj minimum, emailovi kupcima i **promena PIN-a**.
 
 ## Ne dirati u Google tabeli
 

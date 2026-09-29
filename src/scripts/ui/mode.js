@@ -2,6 +2,7 @@
 import Money from '../shared/money.cjs';
 import { esc, icon } from '../core/dom.js';
 import { business, settingNumber, catalog } from '../core/catalog.js';
+import { zoneArea } from '../core/cart.js';
 
 export function zonesOn() {
   return String(business().zones_enabled).toUpperCase() === 'TRUE';
@@ -61,16 +62,20 @@ export function modeSwitch(name, current, snap) {
   return `<div class="segmented" role="radiogroup" aria-label="Način preuzimanja">${opt('delivery', 'Dostava', 'scooter')}${opt('pickup', 'Preuzimanje', 'store')}</div>`;
 }
 
-/** Keeps the meta lines fresh without re-rendering (and losing focus on) the radios. */
-export function refreshModeMeta(root, snap) {
+/**
+ * Keeps the meta lines fresh without re-rendering (and losing focus on) the radios.
+ * With `mode` it also moves the checked radio: the mode can change without a click.
+ */
+export function refreshModeMeta(root, snap, mode) {
   if (!root || !snap) return;
   root.querySelectorAll('[data-mode-meta]').forEach((el) => {
-    const mode = el.dataset.modeMeta;
-    el.textContent = modeMeta(snap[mode], mode);
+    const m = el.dataset.modeMeta;
+    el.textContent = modeMeta(snap[m], m);
   });
   root.querySelectorAll('input[type="radio"]').forEach((input) => {
     const av = snap[input.value];
     input.disabled = !!av && (av.state === 'disabled' || av.state === 'paused');
+    if (mode) input.checked = input.value === mode;
   });
 }
 
@@ -90,13 +95,15 @@ export function defaultMode(snap, current) {
 /** The zone <select>: neighbourhoods grouped by zone, plus "not on the list". */
 export function zoneSelect(id, name, current, { placeholder = 'Izaberite naselje' } = {}) {
   const list = zones();
+  const area = zoneArea();
+  const picked = (z, a, i) => current === z.id && (z.areas.includes(area) ? a === area : i === 0);
   return `<select class="input" id="${esc(id)}" name="${esc(name)}" data-zone-select>
     <option value="">${esc(placeholder)}</option>
     ${list
       .map(
         (z) =>
           `<optgroup label="${esc(z.name)} · dostava ${esc(Money.formatRSD(z.fee))}${z.minOrder ? ` · min. ${esc(Money.formatRSD(z.minOrder))}` : ''}">${z.areas
-            .map((a) => `<option value="${esc(z.id)}" data-area="${esc(a)}" ${current === z.id ? 'selected' : ''}>${esc(a)}</option>`)
+            .map((a, i) => `<option value="${esc(z.id)}" data-area="${esc(a)}" ${picked(z, a, i) ? 'selected' : ''}>${esc(a)}</option>`)
             .join('')}</optgroup>`
       )
       .join('')}

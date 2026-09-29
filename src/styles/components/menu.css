@@ -110,13 +110,70 @@
 }
 
 .product__media .art {
-  transform: scale(1.02);
+  transform: scale(calc(1.02 * var(--art-scale, 1)));
   transition: transform var(--t-slower) var(--ease-out);
+}
+
+/*
+ * The giros illustration comes alive: fries pop out of the pita and steam rises. The drawing lives in the
+ * art.svg sprite, so its parts are moved through inherited custom properties (registered to be animatable).
+ */
+@property --fry-lift {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --steam {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --steam-y {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@keyframes fries-pop {
+  0%,
+  100% {
+    --fry-lift: 0px;
+  }
+  35% {
+    --fry-lift: -9px;
+  }
+  60% {
+    --fry-lift: -3px;
+  }
+  78% {
+    --fry-lift: -6px;
+  }
+}
+
+@keyframes steam-rise {
+  0% {
+    --steam: 0;
+    --steam-y: 8px;
+  }
+  35% {
+    --steam: 0.85;
+  }
+  100% {
+    --steam: 0;
+    --steam-y: -16px;
+  }
+}
+
+.art-frame {
+  --steam-color: rgba(22, 32, 46, 0.4);
 }
 
 @media (hover: hover) {
   .product:hover .product__media .art {
-    transform: scale(1.1) rotate(-3deg);
+    transform: scale(calc(1.1 * var(--art-scale, 1))) rotate(-3deg);
+    animation: fries-pop 750ms var(--ease-out), steam-rise 1.8s var(--ease-out) 120ms;
   }
   .product:hover .product__name {
     color: var(--aegean);

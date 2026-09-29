@@ -132,6 +132,16 @@ describe('pickup and scheduled orders', () => {
     assert.match(emu.state.outbox[0].htmlBody, /ZAKAZANO subota 26\.09\. u 19:00/);
   });
 
+  test('a time real Sheets stored as a time-of-day value (a 1899 date) still reads "u 19:00" on the status page', () => {
+    const emu = freshBackend();
+    const res = placeOrder(emu, { when: '2026-09-26 19:00' });
+    const sheetTime = new Date('1899-12-30T19:00:00+01:00');
+    for (const h of ['Requested Time', 'Scheduled Time', 'Promised Time']) setCell(emu, 'ORDERS', 'Internal Order ID', res.data.orderId, h, sheetTime);
+    const st = emu.doGet({ action: 'order.status', id: res.data.orderId, t: res.data.statusToken }).data;
+    assert.equal(st.whenText, 'ZAKAZANO subota 26.09. u 19:00');
+    assert.equal(st.promisedTime, '19:00');
+  });
+
   test('past, too-far, Sunday and off-grid slots are refused', () => {
     const emu = freshBackend();
     for (const when of ['2026-09-23 12:00', '2026-09-23 15:00', '2026-10-01 12:00', '2026-09-27 13:00', '2026-09-24 10:15', '19:00']) {
@@ -558,7 +568,7 @@ describe('bootstrap payload', () => {
     assert.equal(b.business.phone_display, '064 227 4334');
     assert.equal(b.business.delivery_eta_max, '60');
     assert.equal(b.business.preorder_days, '7');
-    assert.ok(!('order_email_recipients' in b.business));
+    assert.ok(!('EMAIL_1' in b.business));
     assert.ok(!('test_mode' in b.business));
     assert.ok(!('image_url_template' in b.business));
     assert.equal(b.catalog.products.length, 27);

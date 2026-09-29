@@ -19,35 +19,32 @@ function fieldError_(errors) {
 function submitContact_(payload, ctx) {
   var p = payload || {};
   checkBot_(p.meta);
-  if (p.requestId && validRequestId_(p.requestId)) {
-    var prior = idempotencyGet_('contact:' + p.requestId);
-    if (prior) return prior;
-  }
-  var v = GG_Validation.validateContactForm(p);
-  if (!v.ok) throw fieldError_(v.errors);
-  if (!hitRateLimit_('contact:' + (v.value.phone || v.value.email), 3, 600) || !hitRateLimit_('contact:global', 15, 600)) {
-    throw apiError_('RATE_LIMITED', 'Primili smo više poruka zaredom. Pokušajte ponovo kasnije ili nas pozovite.');
-  }
-  appendObjects_(SHEETS.CONTACT, [
-    { Timestamp: now_(), Name: v.value.name, Phone: v.value.phone, Email: v.value.email, Topic: v.value.topic, Message: v.value.message, Status: 'NEW', 'Request ID': p.requestId || '' }
-  ]);
-  var settings = getSettings_();
-  var html = simpleCard_('Nova poruka sa sajta', [
-    ['Ime', esc_(v.value.name)],
-    ['Telefon', v.value.phone ? '<a href="tel:' + esc_(v.value.phone) + '">' + esc_(v.value.phone) + '</a>' : '—'],
-    ['Email', v.value.email ? esc_(v.value.email) : '—'],
-    ['Tema', esc_(v.value.topic || '—')],
-    ['Poruka', esc_(v.value.message).replace(/\n/g, '<br>')]
-  ], 'Odgovor na ovaj email ide direktno pošiljaocu' + (v.value.email ? '.' : ' (nije ostavio email, pozovite ga).'));
-  var text = 'Nova poruka sa sajta\nIme: ' + v.value.name + '\nTelefon: ' + v.value.phone + '\nEmail: ' + v.value.email + '\nTema: ' + v.value.topic + '\n\n' + v.value.message;
-  var res = deliverEmail_(recipients_(settings.contact_email_recipients), 'Poruka sa sajta: ' + (v.value.topic || v.value.name), html, text, {
-    priorityFirst: true,
-    replyTo: v.value.email || undefined
+  return onceForRequest_('contact', p.requestId, function () {
+    var v = GG_Validation.validateContactForm(p);
+    if (!v.ok) throw fieldError_(v.errors);
+    if (!hitRateLimit_('contact:' + (v.value.phone || v.value.email), 3, 600) || !hitRateLimit_('contact:global', 15, 600)) {
+      throw apiError_('RATE_LIMITED', 'Primili smo više poruka zaredom. Pokušajte ponovo kasnije ili nas pozovite.');
+    }
+    appendObjects_(SHEETS.CONTACT, [
+      { Timestamp: now_(), Name: v.value.name, Phone: v.value.phone, Email: v.value.email, Topic: v.value.topic, Message: v.value.message, Status: 'NEW', 'Request ID': p.requestId || '' }
+    ]);
+    var settings = getSettings_();
+    var html = simpleCard_('Nova poruka sa sajta', [
+      ['Ime', esc_(v.value.name)],
+      ['Telefon', v.value.phone ? '<a href="tel:' + esc_(v.value.phone) + '">' + esc_(v.value.phone) + '</a>' : '—'],
+      ['Email', v.value.email ? esc_(v.value.email) : '—'],
+      ['Tema', esc_(v.value.topic || '—')],
+      ['Poruka', esc_(v.value.message).replace(/\n/g, '<br>')]
+    ], 'Odgovor na ovaj email ide direktno pošiljaocu' + (v.value.email ? '.' : ' (nije ostavio email, pozovite ga).'));
+    var text = 'Nova poruka sa sajta\nIme: ' + v.value.name + '\nTelefon: ' + v.value.phone + '\nEmail: ' + v.value.email + '\nTema: ' + v.value.topic + '\n\n' + v.value.message;
+    var staff = notificationRecipients_(settings);
+    var res = deliverEmail_(staff, 'Poruka sa sajta: ' + (v.value.topic || v.value.name), html, text, {
+      priorityFirst: true,
+      replyTo: v.value.email || undefined
+    });
+    log_('INFO', 'contact.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, staff.length));
+    return { ok: true };
   });
-  log_('INFO', 'contact.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, recipients_(settings.contact_email_recipients).length));
-  var response = { ok: true };
-  if (p.requestId && validRequestId_(p.requestId)) idempotencyPut_('contact:' + p.requestId, response);
-  return response;
 }
 
 function cvFolder_() {
@@ -64,7 +61,9 @@ function cvFolder_() {
 }
 
 function saveCv_(cv, applicantName) {
-  if (!cv || !cv.data) return null;
+  if (!cv) return null;
+  // A picked but empty file must not silently turn into "CV nije priložen".
+  if (!cv.data) throw apiError_('VALIDATION', 'CV fajl je prazan. Izaberite drugi fajl.', { field: 'cv' });
   var type = String(cv.type || '');
   var ext = CV_TYPES[type];
   if (!ext) throw apiError_('VALIDATION', 'CV može biti PDF, Word ili slika (JPG, PNG).', { field: 'cv' });
@@ -85,54 +84,50 @@ function saveCv_(cv, applicantName) {
 function submitJob_(payload, ctx) {
   var p = payload || {};
   checkBot_(p.meta);
-  if (p.requestId && validRequestId_(p.requestId)) {
-    var prior = idempotencyGet_('job:' + p.requestId);
-    if (prior) return prior;
-  }
-  var v = GG_Validation.validateJobForm(p);
-  if (!v.ok) throw fieldError_(v.errors);
-  if (!hitRateLimit_('job:' + v.value.phone, 2, 3600) || !hitRateLimit_('job:global', 20, 3600)) {
-    throw apiError_('RATE_LIMITED', 'Prijava sa ovog broja je već stigla. Hvala!');
-  }
-  var settings = getSettings_();
-  var position = settings.job_title || 'Prodavac-kuvar';
-  var cv = saveCv_(p.cv, v.value.name);
-  appendObjects_(SHEETS.JOBS, [
-    {
-      Timestamp: now_(),
-      Name: v.value.name,
-      Phone: v.value.phone,
-      Email: v.value.email,
-      Position: position,
-      Experience: v.value.experience,
-      Shift: v.value.shift,
-      Message: v.value.message,
-      CV: cv ? cv.url : '',
-      Status: 'NEW',
-      'Request ID': p.requestId || ''
+  return onceForRequest_('job', p.requestId, function () {
+    var v = GG_Validation.validateJobForm(p);
+    if (!v.ok) throw fieldError_(v.errors);
+    if (!hitRateLimit_('job:' + v.value.phone, 2, 3600) || !hitRateLimit_('job:global', 20, 3600)) {
+      throw apiError_('RATE_LIMITED', 'Prijava sa ovog broja je već stigla. Hvala!');
     }
-  ]);
-  var recipients = recipients_(settings.jobs_email_recipients);
-  var html = simpleCard_('Nova prijava: ' + position, [
-    ['Ime', '<b>' + esc_(v.value.name) + '</b>'],
-    ['Telefon', '<a href="tel:' + esc_(v.value.phone) + '" style="font-size:18px;font-weight:bold">' + esc_(v.value.phone) + '</a>'],
-    ['Email', esc_(v.value.email || '—')],
-    ['Iskustvo', esc_(v.value.experience || '—')],
-    ['Smena', esc_(v.value.shift || '—')],
-    ['Poruka', esc_(v.value.message || '—').replace(/\n/g, '<br>')],
-    ['CV', cv ? '<a href="' + esc_(cv.url) + '">' + esc_(cv.name) + '</a> (i u prilogu)' : 'nije priložen']
-  ], 'Kandidat je dobio potvrdu da ga vlasnik zove u najkraćem roku.');
-  var text = 'Nova prijava: ' + position + '\n' + v.value.name + '\n' + v.value.phone + '\n' + (v.value.email || '') + '\nIskustvo: ' + v.value.experience + '\nSmena: ' + v.value.shift + '\n\n' + v.value.message + (cv ? '\nCV: ' + cv.url : '');
-  var res = deliverEmail_(recipients, 'Prijava za posao: ' + v.value.name, html, text, { priorityFirst: true, attachments: cv ? [cv.blob] : undefined, replyTo: v.value.email || undefined });
-  if (v.value.email) {
-    var confirm = simpleCard_('Hvala, prijava je stigla.', [
-      ['Pozicija', esc_(position)],
-      ['Šta sledi', 'Vlasnik vas zove na ' + esc_(v.value.phone) + ' u najkraćem roku.']
-    ], esc_(settings.business_name) + ' · ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city));
-    deliverEmail_([v.value.email], 'Prijava je stigla — ' + (settings.business_name || 'Grčki Giros'), confirm, 'Hvala, prijava je stigla. Vlasnik vas zove u najkraćem roku.', {});
-  }
-  log_('INFO', 'jobs.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, recipients.length));
-  var response = { ok: true };
-  if (p.requestId && validRequestId_(p.requestId)) idempotencyPut_('job:' + p.requestId, response);
-  return response;
+    var settings = getSettings_();
+    var position = settings.job_title || 'Prodavac-kuvar';
+    var cv = saveCv_(p.cv, v.value.name);
+    appendObjects_(SHEETS.JOBS, [
+      {
+        Timestamp: now_(),
+        Name: v.value.name,
+        Phone: v.value.phone,
+        Email: v.value.email,
+        Position: position,
+        Experience: v.value.experience,
+        Shift: v.value.shift,
+        Message: v.value.message,
+        CV: cv ? cv.url : '',
+        Status: 'NEW',
+        'Request ID': p.requestId || ''
+      }
+    ]);
+    var recipients = notificationRecipients_(settings);
+    var html = simpleCard_('Nova prijava: ' + position, [
+      ['Ime', '<b>' + esc_(v.value.name) + '</b>'],
+      ['Telefon', '<a href="tel:' + esc_(v.value.phone) + '" style="font-size:18px;font-weight:bold">' + esc_(v.value.phone) + '</a>'],
+      ['Email', esc_(v.value.email || '—')],
+      ['Iskustvo', esc_(v.value.experience || '—')],
+      ['Smena', esc_(v.value.shift || '—')],
+      ['Poruka', esc_(v.value.message || '—').replace(/\n/g, '<br>')],
+      ['CV', cv ? '<a href="' + esc_(cv.url) + '">' + esc_(cv.name) + '</a> (i u prilogu)' : 'nije priložen']
+    ], 'Kandidat je dobio potvrdu da ga vlasnik zove u najkraćem roku.');
+    var text = 'Nova prijava: ' + position + '\n' + v.value.name + '\n' + v.value.phone + '\n' + (v.value.email || '') + '\nIskustvo: ' + v.value.experience + '\nSmena: ' + v.value.shift + '\n\n' + v.value.message + (cv ? '\nCV: ' + cv.url : '');
+    var res = deliverEmail_(recipients, 'Prijava za posao: ' + v.value.name, html, text, { priorityFirst: true, attachments: cv ? [cv.blob] : undefined, replyTo: v.value.email || undefined });
+    if (v.value.email) {
+      var confirm = simpleCard_('Hvala, prijava je stigla.', [
+        ['Pozicija', esc_(position)],
+        ['Šta sledi', 'Vlasnik vas zove na ' + esc_(v.value.phone) + ' u najkraćem roku.']
+      ], esc_(settings.business_name) + ' · ' + esc_(settings.address_street) + ', ' + esc_(settings.address_city));
+      deliverEmail_([v.value.email], 'Prijava je stigla — ' + (settings.business_name || 'Grčki Giros'), confirm, 'Hvala, prijava je stigla. Vlasnik vas zove u najkraćem roku.', {});
+    }
+    log_('INFO', 'jobs.submit', 'OK', v.value.name + ' → ' + emailStatusOf_(res, recipients.length));
+    return { ok: true };
+  });
 }

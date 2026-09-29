@@ -176,6 +176,27 @@ function publicSettings_() {
   return out;
 }
 
+/**
+ * Everyone on the shop side who gets email: new orders, contact messages, job applications (with the CV)
+ * and reports all go to the SETTINGS slots EMAIL_1…EMAIL_4. An empty slot is skipped; a mistyped address is
+ * skipped and logged, so one bad slot never stops the others. The same address in two slots gets one email.
+ */
+function notificationRecipients_(settings) {
+  var s = settings || getSettings_();
+  var out = [];
+  EMAIL_SLOTS.forEach(function (key) {
+    var raw = String(s[key] === undefined || s[key] === null ? '' : s[key]).trim();
+    if (!raw) return;
+    var email = GG_Validation.validateEmail(raw, true);
+    if (!email.ok) {
+      log_('WARN', 'email.slots', 'SKIPPED', key + ' nije ispravna email adresa: ' + raw.slice(0, 80));
+      return;
+    }
+    if (out.indexOf(email.value) === -1) out.push(email.value);
+  });
+  return out;
+}
+
 /** Recipients from a comma separated SETTINGS value, validated. */
 function recipients_(value) {
   return splitList_(value).filter(function (addr) {

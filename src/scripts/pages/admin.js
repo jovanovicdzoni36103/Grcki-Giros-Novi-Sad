@@ -616,12 +616,18 @@ function renderView() {
     podesavanja: viewSettings
   }[state.view];
   const scroll = window.scrollY;
-  const focusedName = document.activeElement && document.activeElement.closest('[data-view]') ? document.activeElement.getAttribute('name') : null;
+  const active = document.activeElement && document.activeElement.closest('[data-view]') ? document.activeElement : null;
+  const focusedName = active ? active.getAttribute('name') : null;
+  // Text typed while data was still arriving (a 2–6 s Apps Script response) must survive the re-render.
+  const typed = active && /^(INPUT|TEXTAREA)$/.test(active.tagName) && !['checkbox', 'radio'].includes(active.type) ? active.value : null;
   main.innerHTML = fn();
   if (['pregled', 'nove', 'aktivne'].includes(state.view)) window.scrollTo({ top: scroll });
   if (focusedName) {
     const again = main.querySelector(`[name="${CSS.escape(focusedName)}"]`);
-    if (again) again.focus({ preventScroll: true });
+    if (again) {
+      if (typed !== null && again.value !== typed) again.value = typed;
+      again.focus({ preventScroll: true });
+    }
   }
 }
 
@@ -1166,7 +1172,8 @@ function viewSettings() {
   return `${viewHead('Podešavanja', 'Podaci lokala, emailovi i minimalna porudžbina.')}
     <form class="aform" data-settings-form novalidate>
       <fieldset class="aform__box"><legend>Lokal</legend>${f('business_name', 'Naziv')}${f('address_street', 'Adresa')}${f('address_city', 'Grad')}<div class="field-row field-row--even">${f('phone_display', 'Telefon (kako se prikazuje)')}${f('phone_e164', 'Telefon za poziv', 'inputmode="tel"')}</div>${f('email_public', 'Javni email', 'type="email"')}</fieldset>
-      <fieldset class="aform__box"><legend>Porudžbine</legend>${f('order_email_recipients', 'Ko dobija email za novu porudžbinu (zarezom odvojeno)')}${f('min_order_delivery', 'Minimalna porudžbina za dostavu kad zona nema svoj minimum (RSD)', 'inputmode="numeric"')}
+      <fieldset class="aform__box"><legend>Emailovi za obaveštenja</legend><p class="small muted">Nove porudžbine, poruke sa sajta, prijave za posao sa CV-jem i izveštaji stižu na sve popunjene adrese. Prazno polje se preskače.</p><div class="field-row field-row--even">${f('EMAIL_1', 'EMAIL_1', 'type="email" autocomplete="off"')}${f('EMAIL_2', 'EMAIL_2', 'type="email" autocomplete="off"')}</div><div class="field-row field-row--even">${f('EMAIL_3', 'EMAIL_3', 'type="email" autocomplete="off"')}${f('EMAIL_4', 'EMAIL_4', 'type="email" autocomplete="off"')}</div></fieldset>
+      <fieldset class="aform__box"><legend>Porudžbine</legend>${f('min_order_delivery', 'Minimalna porudžbina za dostavu kad zona nema svoj minimum (RSD)', 'inputmode="numeric"')}
         <label class="check"><input type="checkbox" name="customer_confirmation_enabled" ${bool(s.customer_confirmation_enabled) ? 'checked' : ''}><span>Kupac dobija email da je porudžbina primljena</span></label>
         <label class="check"><input type="checkbox" name="customer_status_emails" ${bool(s.customer_status_emails) ? 'checked' : ''}><span>Kupac dobija email kad je porudžbina potvrđena, odbijena ili spremna za preuzimanje</span></label></fieldset>
       <div class="aform__foot"><button type="submit" class="btn btn--gold btn--lg"><span class="btn__label">Sačuvaj podešavanja</span></button></div>
