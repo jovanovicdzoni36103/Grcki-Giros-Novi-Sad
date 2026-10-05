@@ -1,0 +1,28 @@
+# Netlify, za pregled sajta pre objave na pravom domenu.
+
+[build]
+  # `tools/build.mjs` ispisuje u `dist/`. Folderi `dist-live`, `dist-prod` i
+  # `dist-real` su stariji otisci od 30.09. i NE objavljuju se: build ih ne
+  # dira, pa bi objava iz njih vratila zastareo sajt.
+  command = "node tools/build.mjs"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# ---------------------------------------------------------------------------
+# NE INDEKSIRAJ
+#
+# Adresa za pregled, ne pravi sajt. `site.config.json` nosi
+# `siteUrl: https://grckigiros.rs`, pa canonical na svakoj stranici pokazuje
+# tamo; indeksiranje ove adrese napravilo bi dve kopije istog sadrzaja.
+#
+# Zaglavlje je jace od `robots.txt` i od meta oznake, i vazi za svaki odgovor.
+# Build ispisuje i svoj `dist/_headers`; ovaj blok mu se dodaje, ne menja ga.
+#
+# Pre objave na pravom domenu OVAJ BLOK SE BRISE.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
