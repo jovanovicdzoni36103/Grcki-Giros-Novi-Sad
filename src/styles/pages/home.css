@@ -809,14 +809,16 @@
 }
 
 /* Location */
+/* minmax(0, …): the 4:3 map box would otherwise turn its content height into a minimum width wider than a phone. */
 .visit {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
 }
 
 @media (min-width: 1024px) {
   .visit {
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     gap: 5rem;
     align-items: start;
   }

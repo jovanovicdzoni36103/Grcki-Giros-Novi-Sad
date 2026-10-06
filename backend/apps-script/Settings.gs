@@ -159,7 +159,7 @@ function schedulingConfig_() {
 
 var PUBLIC_SETTING_KEYS = [
   'business_name', 'address_street', 'address_city', 'postal_code', 'phone_display', 'phone_e164', 'email_public',
-  'instagram_url', 'site_url', 'map_query', 'ordering_enabled', 'pause_message', 'delivery_enabled', 'pickup_enabled',
+  'instagram_url', 'site_url', 'map_query', 'map_url', 'ordering_enabled', 'pause_message', 'delivery_enabled', 'pickup_enabled',
   'delivery_eta_min', 'delivery_eta_max', 'pickup_eta_min', 'pickup_eta_max', 'extra_wait_min', 'asap_cutoff_min',
   'slot_first_offset_min', 'slot_interval_min', 'slot_round_min', 'preorder_days', 'accept_timeout_min', 'business_day_rollover_hour', 'delivery_fee_mode',
   'delivery_fee_default', 'zones_enabled', 'free_delivery_threshold', 'min_order_delivery', 'min_order_pickup',

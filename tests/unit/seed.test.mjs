@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { mapsUrl } from '../../src/scripts/ui/render.js';
 
 const require = createRequire(import.meta.url);
 const Pricing = require('../../src/scripts/shared/pricing.cjs');
@@ -104,5 +105,13 @@ test('shop facts from the notebook', () => {
   for (const h of seed.hours) {
     if (h.dow === 7) assert.equal(h.closed, true, 'Nedelja ne radi');
     else assert.deepEqual([h.open, h.close, h.closed], ['09:00', '01:00', false], h.day);
+  }
+});
+
+test('the map buttons open the shop on Google Maps; a missing or foreign link falls back to the address', () => {
+  const b = Object.fromEntries(seed.settings.map((r) => [r.key, r.value]));
+  assert.ok(mapsUrl(b).startsWith('https://www.google.com/maps/place/Gr%C4%8Dki+gyros+Friends+And+Food/'), mapsUrl(b));
+  for (const bad of ['', 'javascript:alert(1)', 'https://evil.example/maps/x']) {
+    assert.ok(mapsUrl({ ...b, map_url: bad }).startsWith('https://www.google.com/maps/search/?api=1&query=Dimitrija%20Tucovi%C4%87a%203'), bad);
   }
 });

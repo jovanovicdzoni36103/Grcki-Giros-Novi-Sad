@@ -1,5 +1,5 @@
 // Početna — PDF sekcija 13: hero, promo, kako radi, izdvojeno, o nama (kratko), lokacija, posao, finalni CTA.
-import { esc, iconSvg, artSvg, artBg, featuredCard, hoursRows, rsd } from '../../scripts/ui/render.js';
+import { esc, iconSvg, artSvg, artBg, featuredCard, hoursRows, rsd, mapsUrl } from '../../scripts/ui/render.js';
 import { restaurant } from '../schema.js';
 
 export const meta = {
@@ -164,7 +164,7 @@ ${
       <p class="kicker">Lokacija</p>
       <h2 class="visit__address" id="visit-title" style="margin-top:0.8rem">${esc(b.address_street)}<small>${esc(b.address_city)}${b.address_note ? ' · ' + esc(b.address_note) : ''} · preuzimanje i sedenje u lokalu</small></h2>
       <div class="cluster" style="margin-top:2rem">
-        <a class="btn btn--blue" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.map_query || b.address_street)}" target="_blank" rel="noopener"><span class="btn__label">Otvori u mapama</span>${iconSvg(a, 'map', 'btn__icon')}</a>
+        <a class="btn btn--blue" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener"><span class="btn__label">Otvori u mapama</span>${iconSvg(a, 'map', 'btn__icon')}</a>
         <a class="link" href="/kontakt/">Kontakt ${iconSvg(a, 'arrow')}</a>
       </div>
     </div>

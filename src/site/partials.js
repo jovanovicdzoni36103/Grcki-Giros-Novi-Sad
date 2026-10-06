@@ -1,5 +1,5 @@
 // Build-time partials: header, mobile navigation, footer, order bar.
-import { esc, iconSvg, hoursRows } from '../scripts/ui/render.js';
+import { esc, iconSvg, hoursRows, mapsUrl } from '../scripts/ui/render.js';
 
 export const NAV = [
   { href: '/meni/', label: 'Meni', note: 'poruči' },
@@ -62,7 +62,7 @@ export function footer(ctx) {
       <div>
         <h2>Lokal</h2>
         <p>${esc(b.address_street)}${b.address_note ? ` <span class="small">(${esc(b.address_note)})</span>` : ''}<br>${esc(b.postal_code)} ${esc(b.address_city)}</p>
-        <p style="margin-top:0.8rem"><a class="social" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.map_query || b.address_street + ', ' + b.address_city)}" target="_blank" rel="noopener">${iconSvg(a, 'map')}Otvori u mapama</a></p>
+        <p style="margin-top:0.8rem"><a class="social" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener">${iconSvg(a, 'map')}Otvori u mapama</a></p>
         ${b.instagram_url ? `<p style="margin-top:0.4rem"><a class="social" href="${esc(b.instagram_url)}" target="_blank" rel="noopener">${iconSvg(a, 'instagram')}Instagram</a></p>` : ''}
       </div>
       <div>

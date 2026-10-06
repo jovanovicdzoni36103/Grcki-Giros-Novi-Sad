@@ -57,6 +57,11 @@
       "note": "Upit za Google Maps"
     },
     {
+      "key": "map_url",
+      "value": "https://www.google.com/maps/place/Gr%C4%8Dki+gyros+Friends+And+Food/@45.247811,19.8420888,17z/data=!4m6!3m5!1s0x475b1014c1249fa7:0xb2e12867ff161f01!8m2!3d45.2478321!4d19.8421982!16s%2Fg%2F11_rqb_1j",
+      "note": "Link lokala na Google Maps (dugmad „Otvori u mapama“). Prazno = pretraga po adresi"
+    },
+    {
       "key": "timezone",
       "value": "Europe/Belgrade",
       "note": "Ne menjati"
@@ -960,7 +965,7 @@
     "products": [
       {
         "comparePrice": 0,
-        "image": "",
+        "image": "/assets/img/menu/giros.webp",
         "tags": [
           "popular",
           "recommended"
@@ -1003,7 +1008,7 @@
       },
       {
         "comparePrice": 0,
-        "image": "",
+        "image": "/assets/img/menu/giros.webp",
         "tags": [
           "popular"
         ],
@@ -1044,7 +1049,7 @@
       },
       {
         "comparePrice": 0,
-        "image": "",
+        "image": "/assets/img/menu/giros-porcija.webp",
         "tags": [
           "family"
         ],

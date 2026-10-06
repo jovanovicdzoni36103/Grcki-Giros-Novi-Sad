@@ -23,6 +23,12 @@ export const FILTER_TAGS = ['popular', 'recommended', 'spicy', 'vegetarian', 'va
 
 const TAG_ICONS = { spicy: 'flame', vegetarian: 'leaf', popular: 'star', new: 'spark', recommended: 'check' };
 
+/** The shop on Google Maps: the place page from SETTINGS map_url, otherwise a search for the address. */
+export function mapsUrl(b) {
+  if (/^https:\/\/(www\.)?google\.[a-z.]+\/maps\/|^https:\/\/maps\.app\.goo\.gl\//.test(b.map_url || '')) return b.map_url;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.map_query || [b.address_street, b.address_city].filter(Boolean).join(', '))}`;
+}
+
 export function iconSvg(assets, name, cls = 'icon') {
   return `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="${assets.icons}#i-${name}"/></svg>`;
 }

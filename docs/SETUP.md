@@ -37,7 +37,7 @@ U tabeli (osvežite je, pojaviće se meni **Grčki Giros**):
 
 1. **Grčki Giros ▸ 1. Prvo podešavanje**. Google traži dozvole: Sheets, slanje emaila, Drive (fotografije menija i CV), okidači. Pravi se 23 lista sa podacima iz `data/seed.json`, uključujući FEEDBACK i kolone za pauzu u HOURS.
 2. **Grčki Giros ▸ 3. Postavi PIN za admin panel**: 6 do 8 cifara.
-3. List **SETTINGS**: `EMAIL_1`…`EMAIL_4` su adrese za sva obaveštenja lokala (porudžbine, kontakt, prijave za posao sa CV-jem u prilogu, izveštaji). `EMAIL_1` je obavezan, prazan slot se preskače bez greške, a novoupisana adresa važi bez izmene koda. Zatim `site_url`, `phone_*`, `address_*`. `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili vlasniku skripte ako je prazno). Novi ključevi i njihove početne vrednosti:
+3. List **SETTINGS**: `EMAIL_1`…`EMAIL_4` su adrese za sva obaveštenja lokala (porudžbine, kontakt, prijave za posao sa CV-jem u prilogu, izveštaji). `EMAIL_1` je obavezan, prazan slot se preskače bez greške, a novoupisana adresa važi bez izmene koda. Zatim `site_url`, `phone_*`, `address_*` i `map_url` (link lokala na Google Maps za dugmad „Otvori u mapama“; prazno = pretraga po adresi iz `map_query`). `test_mode` ostaje **TRUE** do kraja testiranja (svi emailovi idu samo na `test_email_recipient`, ili vlasniku skripte ako je prazno). Novi ključevi i njihove početne vrednosti:
    - `order_number_start` (1001)
    - `accept_timeout_min` (5)
    - `preorder_days` (7)

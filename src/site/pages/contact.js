@@ -1,5 +1,5 @@
 // Lokacija i kontakt — jedan lokal: adresa, mapa na zahtev, radno vreme, telefon, forma.
-import { esc, iconSvg, hoursRows } from '../../scripts/ui/render.js';
+import { esc, iconSvg, hoursRows, mapsUrl } from '../../scripts/ui/render.js';
 import { restaurant, breadcrumbs } from '../schema.js';
 
 export const meta = {
@@ -23,7 +23,6 @@ function field(name, label, { type = 'text', autocomplete = '', inputmode = '', 
 export function render(ctx) {
   const a = ctx.assets;
   const b = ctx.business;
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.map_query || b.address_street)}`;
   return `<main id="main">
 <section class="page-hero">
   <div class="container page-hero__grid">
@@ -38,12 +37,12 @@ export function render(ctx) {
 <section class="section section--tight">
   <div class="container visit">
     <div class="map-box" data-map data-query="${esc(b.map_query || '')}">
+      <img class="map-box__photo" src="/assets/img/lokal.webp" alt="Izlog lokala ${esc(b.business_name)}, ${esc(b.address_street)}" width="960" height="720" loading="lazy" decoding="async">
       <div class="map-box__fallback">
-        <span class="map-box__pin">${iconSvg(a, 'store')}</span>
         <p><strong>${esc(b.business_name)}</strong><br>${esc(b.address_street)}, ${esc(b.postal_code)} ${esc(b.address_city)}${b.address_note ? `<br>${esc(b.address_note)}` : ''}</p>
         <div class="cluster" style="justify-content:center">
           <button type="button" class="btn btn--blue btn--sm" data-load-map><span class="btn__label">Prikaži mapu</span></button>
-          <a class="btn btn--ghost btn--sm" href="${maps}" target="_blank" rel="noopener"><span class="btn__label">Google Maps</span></a>
+          <a class="btn btn--ghost btn--sm" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener"><span class="btn__label">Google Maps</span></a>
         </div>
         <p class="small muted">Mapa se učitava tek na vaš zahtev (Google).</p>
       </div>

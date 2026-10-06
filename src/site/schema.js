@@ -37,6 +37,7 @@ export function restaurant(ctx) {
     currenciesAccepted: 'RSD',
     acceptsReservations: false,
     hasMenu: `${ctx.site.url}/meni/`,
+    ...(b.map_url ? { hasMap: b.map_url } : {}),
     address: {
       '@type': 'PostalAddress',
       streetAddress: b.address_street,
