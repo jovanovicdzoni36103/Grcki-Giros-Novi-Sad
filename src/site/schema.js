@@ -27,7 +27,7 @@ export function restaurant(ctx) {
     '@type': ['Restaurant', 'FoodEstablishment'],
     '@id': `${ctx.site.url}/#restaurant`,
     name: b.business_name,
-    description: 'Pravi grčki giros u piti koja stiže iz Atine. Dostava i preuzimanje u Novom Sadu od 2021.',
+    description: 'Pravi grčki giros sa originalnim grčkim začinima. Novi Sad, Dimitrija Tucovića 3, od 2021.',
     url: ctx.site.url + '/',
     telephone: b.phone_e164,
     image: `${ctx.site.url}/assets/img/og.png`,
@@ -46,11 +46,7 @@ export function restaurant(ctx) {
       addressCountry: 'RS'
     },
     sameAs: [b.instagram_url].filter(Boolean),
-    openingHoursSpecification: openingHours(ctx.hours),
-    potentialAction: {
-      '@type': 'OrderAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${ctx.site.url}/meni/`, actionPlatform: ['http://schema.org/DesktopWebPlatform', 'http://schema.org/MobileWebPlatform'] }
-    }
+    openingHoursSpecification: openingHours(ctx.hours)
   };
 }
 
@@ -59,7 +55,7 @@ export function menu(ctx) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Menu',
-    name: `Meni — ${ctx.business.business_name}`,
+    name: `Meni, ${ctx.business.business_name}`,
     url: `${ctx.site.url}/meni/`,
     inLanguage: 'sr-Latn',
     hasMenuSection: c.categories
@@ -100,7 +96,7 @@ export function jobPosting(ctx) {
     '@type': 'JobPosting',
     title: b.job_title || 'Prodavac-kuvar',
     description:
-      '<p>Rad u dve smene (prva i druga). Priprema girosa i usluživanje gostiju, priprema salate, sečenje mesa, pečenje pita i pomfrita.</p><p>Prijava preko sajta, CV nije obavezan. Vlasnik zove kandidate u najkraćem roku.</p>',
+      '<p>Rad u dve smene (prva i druga). Priprema girosa i usluživanje gostiju, priprema salate, sečenje mesa, pečenje pita i pomfrita.</p><p>Prijava preko sajta, nijedno polje nije obavezno, CV nije obavezan. Vlasnik se javlja kandidatima u najkraćem roku.</p>',
     datePosted: posted,
     validThrough: valid,
     employmentType: 'FULL_TIME',

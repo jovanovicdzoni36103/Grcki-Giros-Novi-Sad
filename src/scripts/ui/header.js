@@ -1,8 +1,7 @@
-// Header behavior, mobile navigation, open/closed pill, cart badge and the mobile order bar.
-import { $, $$, on, icon, esc } from '../core/dom.js';
+// Header behavior, mobile navigation and the open/closed pill.
+import { $, $$, on } from '../core/dom.js';
 import { subscribe } from '../core/events.js';
 import { statusLine } from '../core/availability.js';
-import Money from '../shared/money.cjs';
 import * as overlay from './overlay.js';
 
 export function initHeader() {
@@ -71,66 +70,4 @@ export function initHeader() {
       if (t) t.textContent = s.text;
     });
   });
-
-  subscribe('cart', (view) => {
-    const count = view.itemCount || 0;
-    $$('[data-cart-open]').forEach((btn) => {
-      btn.classList.toggle('has-items', count > 0);
-      btn.setAttribute('aria-label', count ? `Korpa, ${count} ${count === 1 ? 'artikal' : 'artikla'}, ${Money.formatRSD(view.total || 0)}` : 'Korpa je prazna');
-      const c = btn.querySelector('[data-cart-count]');
-      if (c) c.textContent = String(count);
-    });
-  });
-}
-
-export function bumpCart() {
-  $$('[data-cart-open]').forEach((btn) => {
-    btn.classList.remove('bump');
-    void btn.offsetWidth;
-    btn.classList.add('bump');
-  });
-}
-
-/** Mobile bottom bar: "Naruči online" when the cart is empty, the cart total when it is not. */
-export function initOrderBar({ onOpenCart }) {
-  const bar = $('[data-order-bar]');
-  if (!bar) return;
-  document.body.classList.add('has-order-bar');
-  const link = bar.querySelector('[data-order-bar-link]');
-  let lastSnap = null;
-  let lastView = null;
-  const render = () => {
-    const view = lastView;
-    const snap = lastSnap;
-    const count = view ? view.itemCount : 0;
-    if (count > 0) {
-      link.classList.add('is-cart');
-      link.setAttribute('href', '#korpa');
-      link.innerHTML = `<span class="order-bar__label">Korpa · ${count} ${count === 1 ? 'artikal' : 'artikla'}<span class="order-bar__meta">Pregled i poručivanje</span></span><span class="order-bar__total num">${esc(
-        Money.formatRSD(view.total || view.subtotal || 0)
-      )}${icon('arrow')}</span>`;
-    } else {
-      link.classList.remove('is-cart');
-      link.setAttribute('href', bar.dataset.menuHref || '/meni/');
-      const eta = (av) => (av.asap.etaMin === av.asap.etaMax ? `${av.asap.etaMin}` : `${av.asap.etaMin}–${av.asap.etaMax}`);
-      const parts = snap && snap.open ? [snap.delivery.canOrder ? `dostava ${eta(snap.delivery)} min` : '', snap.pickup.canOrder ? `preuzimanje ${eta(snap.pickup)} min` : ''].filter(Boolean) : [];
-      const meta = snap ? (snap.open ? parts.join(' · ').replace(/^./, (c) => c.toUpperCase()) : statusLine(snap).text) : 'Pravi grčki giros';
-      link.innerHTML = `<span class="order-bar__label">${snap && !snap.open ? 'Pogledaj meni' : 'Naruči online'}<span class="order-bar__meta">${esc(meta)}</span></span><span class="order-bar__total">${icon('arrow')}</span>`;
-    }
-  };
-  on(link, 'click', (e) => {
-    if (lastView && lastView.itemCount > 0) {
-      e.preventDefault();
-      onOpenCart();
-    }
-  });
-  subscribe('cart', (v) => {
-    lastView = v;
-    render();
-  });
-  subscribe('availability', (s) => {
-    lastSnap = s;
-    render();
-  });
-  render();
 }

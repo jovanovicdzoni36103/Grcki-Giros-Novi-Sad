@@ -1,4 +1,4 @@
-// Live open/closed state and time slots, recomputed every 30 s and whenever the config changes.
+// Live open/closed state of the shop, recomputed every 30 s and whenever the config changes.
 import Scheduling from '../shared/scheduling.cjs';
 import { catalog, now } from './catalog.js';
 import { emit, subscribe } from './events.js';
@@ -6,10 +6,12 @@ import { emit, subscribe } from './events.js';
 let last = null;
 let timer = null;
 
+/** Store hours only: the ordering switches (and the last-order cutoff) in SETTINGS no longer close the shop. */
 export function computeSchedule() {
   const s = catalog();
   if (!s.cfg) return null;
-  return Scheduling.snapshot(Scheduling.partsFromEpoch(now(), 'Europe/Belgrade'), s.cfg);
+  const cfg = { ...s.cfg, orderingEnabled: true, pickupEnabled: true, deliveryEnabled: true, asapCutoffMin: 0 };
+  return Scheduling.snapshot(Scheduling.partsFromEpoch(now(), 'Europe/Belgrade'), cfg);
 }
 
 export const schedule = () => last || computeSchedule();
@@ -29,18 +31,11 @@ export function startAvailability() {
   });
 }
 
-/** Short human line for the header pill and bars. */
+/** Short human line for the header pill: the shop's own hours (pickup = store window). */
 export function statusLine(snap) {
   if (!snap) return { open: false, text: '' };
-  if (snap.paused) return { open: false, text: 'Poručivanje je pauzirano' };
-  if (snap.onBreak && !snap.open) {
-    const resume = [snap.pickup, snap.delivery].find((a) => a.state === 'break');
-    return { open: false, text: `Pauza · poručivanje ponovo ${resume && resume.next ? resume.next.label : 'uskoro'}` };
-  }
-  if (snap.open) {
-    // Compare business minutes, not strings: 00:45 (after midnight) is later than 23:45.
-    const latest = [snap.pickup, snap.delivery].filter((a) => a.canOrder && a.window).sort((a, b) => b.window.close - a.window.close)[0];
-    return { open: true, text: `Otvoreno · poručivanje do ${latest.lastOrder}` };
-  }
+  const store = snap.pickup;
+  if (store.state === 'open') return { open: true, text: `Otvoreno do ${store.window.closeLabel}` };
+  if (store.state === 'break') return { open: false, text: `Pauza · otvaramo ${store.next ? store.next.label : 'uskoro'}` };
   return { open: false, text: snap.next ? `Zatvoreno · otvaramo ${snap.next.label}` : 'Zatvoreno' };
 }

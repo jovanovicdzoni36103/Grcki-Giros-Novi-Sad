@@ -1,14 +1,9 @@
-// /meni/ — the digital menu is where ordering starts.
-import Money from '../shared/money.cjs';
-import { $, $$, on, esc, icon, env } from '../core/dom.js';
+// /meni/: the digital menu, prerendered and refreshed live from the sheet (prices, availability).
+import { $, $$, on, esc, env } from '../core/dom.js';
 import { subscribe } from '../core/events.js';
-import { catalog, business, productById } from '../core/catalog.js';
-import { schedule } from '../core/availability.js';
-import * as cart from '../core/cart.js';
+import { catalog } from '../core/catalog.js';
 import { bootCommon } from './common.js';
 import { menuSections, categoryNav, tagFilters, TAG_LABELS } from '../ui/render.js';
-import { modeSwitch, refreshModeMeta, defaultMode, deliveryFeeLabel, etaText, closedReason, zoneSelect, zonesOn, zones, zoneById } from '../ui/mode.js';
-import { openCart } from '../ui/cart-drawer.js';
 import { initReveal } from '../ui/motion.js';
 import { track } from '../core/analytics.js';
 
@@ -18,14 +13,14 @@ let renderedVersion = '';
 function renderMenu() {
   const s = catalog();
   if (!s.data) return;
-  const version = s.data.version + ':' + (cart.mode() || '');
+  const version = String(s.data.version);
   if (version === renderedVersion) return;
   renderedVersion = version;
   const assets = env().assets;
   const list = $('[data-menu-list]');
   const nav = $('[data-cat-nav]');
   const filters = $('[data-filters]');
-  if (list) list.innerHTML = menuSections(assets, s.data.catalog, { mode: cart.mode() });
+  if (list) list.innerHTML = menuSections(assets, s.data.catalog);
   if (nav) nav.innerHTML = categoryNav(s.data.catalog);
   if (filters) {
     filters.innerHTML = tagFilters(assets, s.data.catalog);
@@ -80,109 +75,11 @@ function spy() {
   $$('[data-category-section]').forEach((s) => spyObserver.observe(s));
 }
 
-function renderModeBar() {
-  const bar = $('[data-mode-bar]');
-  if (!bar) return;
-  const snap = schedule();
-  const mode = defaultMode(snap, cart.mode());
-  const switchRoot = bar.querySelector('[data-mode-switch]');
-  if (!switchRoot.dataset.ready || switchRoot.dataset.mode !== mode) {
-    switchRoot.innerHTML = modeSwitch('menu-mode', mode, snap);
-    switchRoot.dataset.ready = '1';
-    switchRoot.dataset.mode = mode;
-  } else refreshModeMeta(switchRoot, snap);
-  const info = bar.querySelector('[data-mode-info]');
-  const b = business();
-  if (!snap) return;
-  const av = snap[mode];
-  const facts = [];
-  if (av.canOrder) {
-    facts.push(
-      `<span class="mode-bar__fact">${icon('clock')}<span>${mode === 'delivery' ? `Dostava za <strong>${esc(etaText(av))}</strong>` : `Spremno za <strong>${esc(etaText(av))}</strong>`} · ili zakažite do ${esc(b.preorder_days || 7)} dana unapred</span></span>`
-    );
-    facts.push(`<span class="mode-bar__fact">${icon(mode === 'delivery' ? 'scooter' : 'pin')}<span>${mode === 'delivery' ? `Dostava ${esc(deliveryFeeLabel(zoneById(cart.zone())))}` : esc(b.address_street || '')}</span></span>`);
-    facts.push(`<span class="mode-bar__fact">${icon('cash')}<span>Gotovina · poručivanje do ${esc(av.lastOrder)}</span></span>`);
-  } else {
-    facts.push(`<span class="mode-bar__fact">${icon('clock')}<span>${snap.paused ? esc(b.pause_message || 'Poručivanje je pauzirano.') : `<strong>Trenutno ne primamo porudžbine</strong> · ${esc(closedReason(av, mode))}`}</span></span>`);
-    const other = snap[mode === 'delivery' ? 'pickup' : 'delivery'];
-    if (other.canOrder) facts.push(`<button type="button" class="link" data-switch-mode="${mode === 'delivery' ? 'pickup' : 'delivery'}">${mode === 'delivery' ? 'Preuzimanje radi' : 'Dostava radi'} ${icon('arrow')}</button>`);
-  }
-  let zoneHtml = '';
-  if (mode === 'delivery' && zonesOn() && zones().length) {
-    const current = cart.zone();
-    const z = zoneById(current);
-    zoneHtml = `<div class="zone-select"><label class="sr-only" for="zone">Naselje za dostavu</label>${zoneSelect('zone', 'zone', current, { placeholder: 'Dostavljamo li do vas? Izaberite naselje' })}
-      <span class="zone-result ${z ? 'is-ok' : current === 'none' ? 'is-no' : ''}" data-zone-result>${
-        z
-          ? `${icon('check')} Dostavljamo · ${esc(deliveryFeeLabel(z))}${z.minOrder ? ` · min. ${esc(Money.formatRSD(z.minOrder))}` : ''}`
-          : current === 'none'
-            ? `${icon('alert')} Dostava na tu lokaciju trenutno nije dostupna. Izaberite preuzimanje ili pozovite ${esc(b.phone_display || '')}.`
-            : ''
-      }</span></div>`;
-  }
-  info.innerHTML = facts.join('') + zoneHtml;
-  const notice = $('[data-closed-notice]');
-  if (notice) {
-    const closed = !snap.open;
-    notice.hidden = !closed;
-    if (closed) {
-      const why = snap.paused ? esc(b.pause_message || '') : snap.onBreak ? `Pauza je u toku, poručivanje ponovo ${esc((snap.pickup.next || snap.delivery.next || {}).label || 'uskoro')}.` : snap.next ? `Poručivanje ponovo ${esc(snap.next.label)}.` : '';
-      notice.innerHTML = `${icon('clock')}<span><strong>Trenutno ne primamo porudžbine.</strong> ${why} Meni možete da pregledate.</span>`;
-    }
-  }
-}
-
-function renderReorder() {
-  const box = $('[data-reorder]');
-  if (!box) return;
-  const last = cart.lastOrder();
-  const fresh = last && Date.now() - last.at < 90 * 24 * 3600 * 1000 && Array.isArray(last.lines) && last.lines.length;
-  if (!fresh || cart.itemCount() > 0 || !catalog().index) {
-    box.hidden = true;
-    return;
-  }
-  // One entry per product ("2× Klasik", not "1× Klasik, 1× Klasik" for two differently built pieces).
-  const counts = new Map();
-  last.lines.forEach((l) => {
-    const p = productById(l.productId);
-    if (p) counts.set(p.name, (counts.get(p.name) || 0) + (Number(l.qty) || 0));
-  });
-  if (!counts.size) {
-    box.hidden = true;
-    return;
-  }
-  const names = [...counts].map(([name, qty]) => `${qty}× ${name}`).join(', ');
-  box.hidden = false;
-  box.innerHTML = `${icon('repeat')}<div class="reorder__text"><strong>Isto kao prošli put?</strong><span>${esc(names)}</span></div><button type="button" class="btn btn--sm btn--blue" data-reorder-go><span class="btn__label">Ponovi</span></button>`;
-}
-
 async function init() {
   await bootCommon();
   renderMenu();
-  renderModeBar();
-  renderReorder();
   initReveal($('[data-menu-list]'));
-  subscribe('catalog', () => {
-    renderMenu();
-    renderModeBar();
-  });
-  subscribe('availability', renderModeBar);
-  subscribe('cart', () => {
-    renderReorder();
-    renderMenu();
-  });
-  on(document, 'change', '[name="menu-mode"]', (e, el) => {
-    cart.setMode(el.value);
-    renderModeBar();
-  });
-  on(document, 'click', '[data-switch-mode]', (e, el) => {
-    cart.setMode(el.dataset.switchMode);
-    renderModeBar();
-  });
-  on(document, 'change', '#zone', (e, el) => {
-    cart.setZone(el.value, el.selectedOptions[0]?.dataset.area);
-    renderModeBar();
-  });
+  subscribe('catalog', renderMenu);
   on(document, 'click', '[data-filter]', (e, el) => {
     activeFilter = activeFilter === el.dataset.filter ? null : el.dataset.filter;
     applyFilter();
@@ -191,12 +88,6 @@ async function init() {
   on(document, 'click', '[data-clear-filter]', () => {
     activeFilter = null;
     applyFilter();
-  });
-  on(document, 'click', '[data-reorder-go]', () => {
-    const last = cart.lastOrder();
-    if (!last) return;
-    cart.replaceAll(last.lines.filter((l) => productById(l.productId)));
-    openCart();
   });
   track('view_menu', {});
 }

@@ -57,12 +57,34 @@ test('menu is in the HTML without JavaScript (PDF: radi bez JS-a za osnovni prik
   }
 });
 
-test('robots and sitemap: private pages excluded', { skip }, () => {
-  const robots = read('robots.txt');
-  assert.match(robots, /Disallow: \/panel\//);
-  assert.match(robots, /Disallow: \/porudzbina\//);
+test('robots and sitemap: the public pages, nothing of the old ordering or admin', { skip }, () => {
+  assert.match(read('robots.txt'), /^User-agent: \*\nAllow: \/\n\nSitemap: /);
   const sitemap = read('sitemap.xml');
-  assert.ok(!sitemap.includes('/panel/') && !sitemap.includes('/porudzbina/') && !sitemap.includes('404'));
+  assert.ok(!sitemap.includes('/panel/') && !sitemap.includes('/porudzbina/') && !sitemap.includes('/admin/') && !sitemap.includes('404'));
   assert.equal((sitemap.match(/<url>/g) || []).length, PUBLIC.length);
-  assert.match(read('panel/index.html'), /<meta name="robots" content="noindex, nofollow">/);
+  for (const gone of ['porudzbina/index.html', 'admin/index.html', 'panel/index.html']) assert.ok(!existsSync(path.join(dist, gone)), gone);
+});
+
+// Client brief of 2026-10-06: a presentational site. The only form is the job application, nothing can be
+// ordered online, and the copy follows the brief (location, terminology, no em dash).
+test('presentational site: no ordering anywhere, the job form is the only form, copy as briefed', { skip }, () => {
+  const FORBIDDEN = [
+    /data-(open-product|add|cart|order)/, /order-bar/, /\/porudzbina\//, /korp[aeiu]\b/i, /naruči/i, /naručite/i, /poruči online/i, /\bonline\b/i,
+    /pita stiže iz atine/i, /meso sa ražnja/i, /ista pita, isti ukus/i, /caciki/i, /tucana žuta/i, /15–30/, /cena po zoni/i,
+    /dostava 250/i, /minimaln/i, /dostavljate do mene/i, /koliko košta dostava/i, /kod stadiona/i, /—/, /zakaž/i, /OrderAction/
+  ];
+  for (const p of [...PUBLIC, '404.html']) {
+    const html = read(p);
+    for (const re of FORBIDDEN) assert.ok(!re.test(html), `${p}: ${re} → ${(html.match(re) || [])[0]}`);
+    assert.equal((html.match(/<form[\s>]/g) || []).length, p === 'posao/index.html' ? 1 : 0, `${p}: forms`);
+    assert.match(html, /<h2>Lokacija<\/h2>/, `${p}: footer Lokacija`);
+    assert.match(html, /ispod stadiona/, `${p}: ispod stadiona`);
+  }
+  const jobs = read('posao/index.html');
+  assert.ok(!/\srequired[\s>=]/.test(jobs), 'no required field');
+  for (const name of ['name', 'email', 'phone', 'position', 'message', 'cv']) assert.match(jobs, new RegExp(`name="${name}"`), name);
+  assert.match(jobs, /CV<span class="optional">opciono/);
+  assert.ok(!/063 877 33 63|Telefon za posao/.test(jobs), 'no job phone');
+  assert.match(read('index.html'), /<h1[^>]*><span class="accent">Pravi Grčki Giros<\/span><\/h1>/);
+  assert.ok(!/\.(webp|jpe?g)"/.test(read('meni/index.html')), 'no food photos on the menu');
 });

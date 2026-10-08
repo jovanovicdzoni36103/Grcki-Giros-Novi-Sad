@@ -1,4 +1,4 @@
-/* Header, status pill, mobile navigation, mobile order bar. */
+/* Header, status pill, mobile navigation. */
 
 .site-header {
   position: fixed;
@@ -51,6 +51,16 @@
   letter-spacing: 0.005em;
 }
 
+/* The shop's sign line (client, 2026-10-07): between the name and "Novi Sad · 2021". */
+.brand__tag {
+  display: block;
+  font-size: 0.5em;
+  letter-spacing: 0.08em;
+  font-stretch: 88%;
+  font-weight: 800;
+  margin-top: 0.3em;
+}
+
 .brand__word small {
   display: block;
   font-size: 0.42em;
@@ -58,7 +68,7 @@
   font-stretch: 88%;
   font-weight: 700;
   color: var(--aegean);
-  margin-top: 0.35em;
+  margin-top: 0.3em;
 }
 
 .site-nav {
@@ -154,52 +164,19 @@
   }
 }
 
-.cart-button {
-  position: relative;
+/* Phones and tablets: call button next to the menu toggle (the full CTA shows from 1024 px). */
+.header-call {
   display: inline-grid;
   place-items: center;
   width: var(--tap);
   height: var(--tap);
   border-radius: 50%;
-  transition: transform var(--t-fast) var(--ease-out);
-}
-
-.cart-button svg {
-  width: 26px;
-  height: 26px;
-}
-
-.cart-button__count {
-  position: absolute;
-  top: 3px;
-  right: 1px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: var(--pill);
-  background: var(--gold);
   color: var(--ink);
-  font-size: 0.72rem;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 0 0 2px var(--paper);
-  transform: scale(0);
-  transition: transform var(--t-base) var(--ease-spring);
 }
 
-.cart-button.has-items .cart-button__count {
-  transform: scale(1);
-}
-
-.cart-button.bump {
-  animation: bump 480ms var(--ease-spring);
-}
-
-@keyframes bump {
-  35% {
-    transform: scale(1.22) rotate(-6deg);
-  }
+.header-call svg {
+  width: 24px;
+  height: 24px;
 }
 
 .nav-toggle {
@@ -244,6 +221,9 @@
   .header-cta {
     display: inline-flex;
     margin-left: 0.5rem;
+  }
+  .header-call {
+    display: none;
   }
   .brand__word {
     font-size: 1.7rem;
@@ -356,89 +336,4 @@ body.nav-open .site-header.is-scrolled {
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-}
-
-/* Mobile bottom order bar (PDF: sticky CTA / sticky cart bar with total). */
-.order-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-bar);
-  padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--paper) 60%, rgba(250, 247, 240, 0));
-  transform: translateY(0);
-  transition: transform var(--t-slow) var(--ease-out);
-  pointer-events: none;
-}
-
-.order-bar.is-hidden {
-  transform: translateY(130%);
-}
-
-.order-bar__cta {
-  pointer-events: auto;
-  width: 100%;
-  min-height: 60px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: 0.75rem;
-  padding: 0 1.4rem;
-  border-radius: var(--pill);
-  background: var(--gold);
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 850;
-  font-stretch: var(--stretch-ui);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  box-shadow: var(--shadow-float);
-  text-align: left;
-}
-
-.order-bar__cta.is-cart {
-  background: var(--ink);
-  color: #fff;
-}
-
-.order-bar__label {
-  display: grid;
-  line-height: 1.15;
-}
-
-.order-bar__meta {
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  font-weight: 650;
-  opacity: 0.75;
-  text-transform: none;
-}
-
-.order-bar__total {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.05rem;
-}
-
-.order-bar__total svg {
-  width: 22px;
-  height: 22px;
-}
-
-@media (min-width: 1024px) {
-  .order-bar {
-    display: none;
-  }
-}
-
-body.has-order-bar {
-  padding-bottom: calc(84px + env(safe-area-inset-bottom));
-}
-
-@media (min-width: 1024px) {
-  body.has-order-bar {
-    padding-bottom: 0;
-  }
 }

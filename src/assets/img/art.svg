@@ -251,5 +251,118 @@
       <text x="158" y="179" text-anchor="middle" font-family="Archivo, Arial Narrow, Arial, sans-serif" font-weight="900" font-size="24" fill="#16202E" style="font-stretch:70%">4×</text>
     </g>
   </symbol>
+  <!-- Grill (2026-10-06): the menu shows illustrations only, never food photos. -->
+  <symbol id="pljeskavica" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="200" rx="72" ry="8" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M80 50c-7-6 7-11 0-19"/><path d="M100 42c-7-6 7-11 0-19"/><path d="M120 50c-7-6 7-11 0-19"/>
+    </g>
+    <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M34 152h132q-4 36-66 36t-66-36Z" style="fill:var(--pita-2,#E3A853)"/>
+      <path d="M22 146c0-14 30-22 78-22s78 8 78 22-30 20-78 20-78-6-78-20Z" style="fill:var(--meat,#A64F2A)"/>
+      <path d="M44 146q8-4 16 0M84 150q8-4 16 0M126 146q8-4 16 0M64 158q8-4 16 0M108 158q8-4 16 0" fill="none" stroke-width="3" style="stroke:var(--meat-2,#6E2C14)"/>
+      <path d="M42 122c10-8 26 8 38 0s24 8 36 0 26 6 40-2c6 8-4 14-58 16s-62-4-56-14Z" style="fill:var(--sauce,#F8F4EA)"/>
+      <g fill="none" stroke-width="5" style="stroke:var(--veg-b,#8C4A94)">
+        <ellipse cx="72" cy="130" rx="12" ry="5" transform="rotate(-6 72 130)"/>
+        <ellipse cx="128" cy="130" rx="12" ry="5" transform="rotate(8 128 130)"/>
+      </g>
+      <path d="M36 116c0-34 28-52 64-52s64 18 64 52c-20 8-108 8-128 0Z" style="fill:var(--pita,#F2C57C)"/>
+      <g stroke="none" style="fill:var(--pita-spot,#D08A36)">
+        <circle cx="76" cy="86" r="3.4"/><circle cx="104" cy="78" r="3"/><circle cx="128" cy="92" r="3.4"/><circle cx="92" cy="102" r="2.6"/><circle cx="60" cy="104" r="2.4"/><circle cx="146" cy="106" r="2.4"/>
+      </g>
+    </g>
+  </symbol>
+
+  <symbol id="cevapi" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="198" rx="72" ry="8" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M78 76c-7-6 7-11 0-19"/><path d="M100 68c-7-6 7-11 0-19"/><path d="M122 76c-7-6 7-11 0-19"/>
+    </g>
+    <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="100" cy="152" rx="78" ry="38" style="fill:var(--pita-2,#E3A853)"/>
+      <ellipse cx="100" cy="136" rx="78" ry="38" style="fill:var(--pita,#F2C57C)"/>
+      <g style="fill:var(--meat,#A64F2A)">
+        <rect x="58" y="102" width="80" height="17" rx="8.5" transform="rotate(-8 98 110)"/>
+        <rect x="54" y="118" width="86" height="17" rx="8.5" transform="rotate(-6 97 126)"/>
+        <rect x="58" y="134" width="86" height="17" rx="8.5" transform="rotate(-4 101 142)"/>
+        <rect x="64" y="150" width="78" height="17" rx="8.5" transform="rotate(-2 103 158)"/>
+      </g>
+      <path d="M74 109q8-3 14 0M108 104q8-3 14 0M70 125q8-3 14 0M108 121q8-3 14 0M78 141q8-3 14 0M114 139q8-3 14 0M84 158q8-3 14 0M118 157q8-3 14 0" fill="none" stroke-width="2.5" style="stroke:var(--meat-2,#6E2C14)"/>
+      <g stroke-width="2.5">
+        <rect x="146" y="114" width="9" height="7" rx="2" fill="#fff" transform="rotate(14 150 117)"/>
+        <rect x="150" y="132" width="9" height="7" rx="2" fill="#E6D2EC" transform="rotate(-10 154 135)"/>
+        <rect x="144" y="150" width="9" height="7" rx="2" fill="#fff" transform="rotate(20 148 153)"/>
+        <rect x="40" y="128" width="9" height="7" rx="2" fill="#E6D2EC" transform="rotate(-18 44 131)"/>
+        <rect x="46" y="146" width="9" height="7" rx="2" fill="#fff" transform="rotate(8 50 149)"/>
+      </g>
+    </g>
+  </symbol>
+
+  <symbol id="kobasica" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="198" rx="72" ry="8" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M80 80c-7-6 7-11 0-19"/><path d="M100 72c-7-6 7-11 0-19"/><path d="M120 80c-7-6 7-11 0-19"/>
+    </g>
+    <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="100" cy="152" rx="78" ry="38" style="fill:var(--pita-2,#E3A853)"/>
+      <ellipse cx="100" cy="136" rx="78" ry="38" style="fill:var(--pita,#F2C57C)"/>
+      <g transform="rotate(-6 102 118)">
+        <rect x="40" y="105" width="124" height="27" rx="13.5" style="fill:var(--meat,#B5532C)"/>
+        <path d="M58 112q8-3 14 0M128 112q8-3 14 0" fill="none" stroke-width="2.5" style="stroke:var(--meat-2,#6E2C14)"/>
+        <ellipse cx="100" cy="110" rx="18" ry="6" fill="#F7E08A"/>
+        <path d="M108 113q6 9 0 17q-5-5-4-15Z" fill="#F7E08A" stroke-width="3"/>
+      </g>
+      <g transform="rotate(3 98 152)">
+        <rect x="36" y="139" width="124" height="27" rx="13.5" style="fill:var(--meat,#B5532C)"/>
+        <path d="M54 146q8-3 14 0M124 146q8-3 14 0" fill="none" stroke-width="2.5" style="stroke:var(--meat-2,#6E2C14)"/>
+        <ellipse cx="96" cy="144" rx="18" ry="6" fill="#F7E08A"/>
+        <path d="M88 147q-6 9 0 17q5-5 4-15Z" fill="#F7E08A" stroke-width="3"/>
+      </g>
+    </g>
+  </symbol>
+
+  <symbol id="meat" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="200" rx="66" ry="8" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M80 70c-7-6 7-11 0-19"/><path d="M100 62c-7-6 7-11 0-19"/><path d="M120 70c-7-6 7-11 0-19"/>
+    </g>
+    <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <g style="fill:var(--meat,#A64F2A)">
+        <path d="M70 100c8-16 32-18 42-6 2 12-6 18-20 18-12 0-20-4-22-12Z"/>
+        <path d="M44 124c6-20 34-26 50-14 6 12-4 22-20 22-14 0-28-2-30-8Z"/>
+        <path d="M98 108c10-16 40-18 52-4 2 14-8 22-24 22-14 0-26-6-28-18Z"/>
+        <path d="M58 132c12-10 34-10 46 0 0 10-10 14-24 14-12 0-20-4-22-14Z"/>
+        <path d="M102 130c12-10 34-8 44 2-2 10-12 14-24 14-10 0-18-6-20-16Z"/>
+      </g>
+      <path d="M80 98q8-5 16-3M56 120q8-6 18-4M112 112q10-6 20-2M70 134q10-4 20 0M114 134q9-4 18 0" fill="none" stroke-width="3" style="stroke:var(--meat-2,#6E2C14)"/>
+      <path d="M36 134h128l-12 56H48Z" fill="#fff"/>
+      <path d="M39.2 148h121.6l-4.4 22H43.6Z" stroke="none" style="fill:var(--band,#1B4F8C)"/>
+      <text x="100" y="165" text-anchor="middle" font-family="Archivo, Arial Narrow, Arial, sans-serif" font-weight="900" font-size="17" fill="#fff" stroke="none" style="font-stretch:70%">100 g</text>
+      <path d="M36 134h128l-12 56H48Z" fill="none"/>
+    </g>
+  </symbol>
+
+  <!-- The spit, for the "Zašto baš Atina" story (replaces the shop photo). -->
+  <symbol id="raznj" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="208" rx="56" ry="7" fill="#16202E" opacity=".13"/>
+    <g fill="none" stroke-width="4" stroke-linecap="round" style="stroke:var(--steam-color,#FFFFFF);opacity:var(--steam,0);transform:translateY(var(--steam-y,0px))">
+      <path d="M72 30c-7-6 7-11 0-19"/><path d="M128 30c-7-6 7-11 0-19"/><path d="M160 70c-7-6 7-11 0-19"/>
+    </g>
+    <g stroke="#16202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M100 10v192" stroke-width="6"/>
+      <circle cx="100" cy="10" r="6" fill="#C9D1DC"/>
+      <ellipse cx="100" cy="182" rx="42" ry="7" fill="#C9D1DC"/>
+      <path d="M52 46Q42 62 54 78Q45 94 58 110Q50 126 63 142Q56 158 70 172Q100 184 130 172Q144 158 137 142Q150 126 142 110Q155 94 146 78Q158 62 148 46Q100 32 52 46Z" style="fill:var(--meat,#A64F2A)"/>
+      <path d="M120 50Q138 92 124 166Q110 120 120 50Z" stroke-width="3" style="fill:var(--meat-cut,#D98B5F)"/>
+      <path d="M63 58Q56 110 76 164" fill="none" stroke-width="6" stroke="none" style="stroke:var(--meat-hi,#C66A3A)"/>
+      <path d="M54 78Q100 92 146 78M58 110Q100 122 142 110M63 142Q100 152 137 142" fill="none" stroke-width="3" style="stroke:var(--meat-2,#6E2C14)"/>
+      <path d="M60 63Q80 70 96 66M104 98Q120 102 132 96M70 126Q86 132 98 128M80 158Q96 163 110 158" fill="none" stroke-width="2.5" style="stroke:var(--meat-2,#6E2C14)" stroke-opacity=".7"/>
+      <g stroke="none" style="fill:var(--meat-2,#6E2C14)"><circle cx="78" cy="90" r="3"/><circle cx="90" cy="138" r="2.6"/><circle cx="70" cy="102" r="2.2"/><circle cx="104" cy="80" r="2.4"/></g>
+      <ellipse cx="100" cy="44" rx="30" ry="6" fill="#C9D1DC"/>
+      <path d="M100 18v20" stroke-width="6"/>
+      <path d="M100 184v12" stroke-width="6"/>
+      <path d="M66 196h68l8 10H58Z" style="fill:var(--band,#1B4F8C)"/>
+    </g>
+  </symbol>
 </defs>
 </svg>

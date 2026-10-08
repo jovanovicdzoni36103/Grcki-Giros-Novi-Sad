@@ -1,4 +1,29 @@
-# QA matrica — Grčki Giros, online poručivanje
+# QA matrica: Grčki Giros
+
+## Prezentacioni sajt (06.10.2026)
+
+Brief od 06.10.2026: online poručivanje uklonjeno, jedina forma je prijava za posao. Sve ispod ove sekcije je istorija iz vremena online poručivanja.
+
+| Provera | Kako | Rezultat |
+|---|---|---|
+| Nema poručivanja (korpa, checkout, zone, cena dostave, minimum, zakazivanje, admin) | `tests/unit/seo.test.mjs` na buildu + E2E tok 4 i 5 na živom DOM-u | ✔ |
+| Jedina forma je prijava za posao; nijedno polje nije obavezno; CV opcioni | E2E tok 3, `tests/gas/forms.test.mjs` | ✔ |
+| Prijava sa CV-jem i prazna prijava na pravom backendu | 06.10.2026. 22:22, deployment @6: 2 reda u JOBS (redovi 5 i 6), 2 emaila u inboxu nikola.jovanovic.mef@gmail.com, CV u prilogu | ✔ |
+| Telefon za posao uklonjen; email samo nikola.jovanovic.mef@gmail.com | SETTINGS žive tabele + E2E tok 3 i 4 | ✔ |
+| „Pravi Grčki Giros“ plavo, bez tačke; pečat sa logom i „Grčki Giros, Friends & Food“ (hero, Zašto baš Atina, Kako nastaje naš giros) | E2E tok 1 i 7 | ✔ |
+| „ispod stadiona Karađorđe“, futer „Lokacija“, preuzimanje 5–30 min | seed + živa tabela + E2E tok 1 i 5 | ✔ |
+| Zabranjeni izrazi i em crta (—) u vidljivom tekstu | E2E tok 5 (8 stranica, posle osvežavanja sa backenda) + unit test na HTML-u | ✔ 0 pogodaka |
+| Meni: Tzatziki, Tucana ljuta, premaz 100 g (Tzatziki, Tirokafteri, Urnebes), Extra meso 100 g 330 RSD, posni vege, piće sa zapreminom, Coca-Cola Zero samo limenka 0,33 l | `tests/unit/seed.test.mjs`, E2E tok 2, živi meni | ✔ |
+| Bez fotografija hrane (ilustracije; fotografija izloga isečena bez plakata sa hranom) | E2E tok 2 | ✔ |
+| Linkovi, telefon, email, mapa na zahtev | E2E tok 4 | ✔ |
+| 375–1920 px, pristupačnost, tastatura, meni na telefonu | E2E tok 5 i 6 (8 stranica × 7 širina) | ✔ |
+| Performanse (telefon, Fast 4G, CPU 4×) | E2E tok 8 | ✔ LCP < 2,5 s, CLS < 0,1 |
+
+Otvoreno: test redovi u JOBS (30.09. i 06.10.) i njihovi CV fajlovi u Drive-u čekaju ručno brisanje.
+
+---
+
+# Istorija: Grčki Giros, online poručivanje
 
 Stanje: 30.09.2026. Dokazi:
 

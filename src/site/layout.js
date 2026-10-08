@@ -1,6 +1,6 @@
 // Page shell: <head> (SEO, OG, preload, runtime config), header, footer, overlays and the page script.
 import { esc } from '../scripts/ui/render.js';
-import { header, footer, orderBar } from './partials.js';
+import { header, footer } from './partials.js';
 import { ld } from './schema.js';
 
 export function layout(ctx, page, body) {
@@ -47,12 +47,10 @@ ${page.headExtra || ''}
 <script type="module" src="${page.script}"></script>
 ${schema}
 </head>
-<body class="${esc(page.bodyClass || '')}"${page.headerFixed ? ' data-header-fixed' : ''}${page.noOrderBar ? ' data-no-order-bar' : ''}>
+<body class="${esc(page.bodyClass || '')}"${page.headerFixed ? ' data-header-fixed' : ''}>
 ${noChrome ? '' : header(ctx)}
 ${body}
 ${noChrome ? '' : footer(ctx)}
-${noChrome || page.noOrderBar ? '' : orderBar()}
-<div class="toast-region" data-toasts aria-live="polite"></div>
 </body>
 </html>
 `;

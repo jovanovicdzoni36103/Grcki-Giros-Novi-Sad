@@ -1,4 +1,4 @@
-// /posao/ — job application with an optional CV (PDF, Word, JPG/PNG up to 4 MB).
+// /posao/: job application, the only form on the site. No field is required; the CV (PDF, Word, JPG/PNG up to 4 MB) is optional.
 import Validation from '../shared/validation.cjs';
 import { $, on, esc, icon } from '../core/dom.js';
 import { bootCommon } from './common.js';
@@ -38,7 +38,7 @@ async function init() {
     action: 'jobs.submit',
     collect: async (f, opts = {}) => {
       const file = f.cv.files[0];
-      const payload = { name: f.name.value, phone: f.phone.value, email: f.email.value, experience: f.experience.value, shift: f.shift.value, message: f.message.value };
+      const payload = { name: f.name.value, phone: f.phone.value, email: f.email.value, position: f.position.value, message: f.message.value };
       if (!opts.lite && file && TYPES.includes(file.type) && file.size <= MAX) payload.cv = { name: file.name, type: file.type, data: await readFile(file) };
       payload._file = file || null;
       return payload;
@@ -52,8 +52,11 @@ async function init() {
       delete p._file;
       return v;
     },
-    successHtml: (p) =>
-      `<div class="form-success" data-success tabindex="-1">${icon('check-circle')}<h3 class="h3">Prijava je stigla.</h3><p>Hvala, ${esc(p.name.split(' ')[0])}. Vlasnik vas zove na ${esc(p.phone)} u najkraćem roku.${p.email ? ' Potvrdu smo poslali i na email.' : ''}</p></div>`
+    successHtml: (p) => {
+      const first = p.name.trim().split(' ')[0];
+      const reach = p.phone.trim() ? ` Vlasnik vam se javlja na ${esc(p.phone.trim())} u najkraćem roku.` : p.email.trim() ? ' Vlasnik vam se javlja emailom u najkraćem roku.' : '';
+      return `<div class="form-success" data-success tabindex="-1">${icon('check-circle')}<h3 class="h3">Prijava je stigla.</h3><p>Hvala${first ? `, ${esc(first)}` : ''}.${reach}${p.email.trim() ? ' Potvrdu smo poslali i na email.' : ''}</p></div>`;
+    }
   });
 }
 

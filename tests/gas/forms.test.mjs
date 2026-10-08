@@ -7,7 +7,7 @@ const meta = { elapsedMs: 20000, hp: '' };
 const contact = (emu, over = {}) =>
   emu.doPost({ action: 'contact.submit', payload: { requestId: randomUUID(), name: 'Jelena Petrović', phone: '063 555 1234', email: 'jelena@example.com', topic: 'Pitanje', message: 'Da li radite za praznike?', meta, ...over } });
 const job = (emu, over = {}) =>
-  emu.doPost({ action: 'jobs.submit', payload: { requestId: randomUUID(), name: 'Marko Ilić', phone: '062 111 2233', email: 'marko@example.com', experience: '1–3 godine', shift: 'Obe smene', message: 'Radio sam u pekari.', meta, ...over } });
+  emu.doPost({ action: 'jobs.submit', payload: { requestId: randomUUID(), name: 'Marko Ilić', phone: '062 111 2233', email: 'marko@example.com', position: 'Prodavac-kuvar', message: 'Radio sam u pekari.', meta, ...over } });
 const pdfBase64 = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF').toString('base64');
 
 describe('contact form', () => {
@@ -55,7 +55,7 @@ describe('job application', () => {
     assert.deepEqual(staff.map((m) => m.to).sort(), ['milica.tontic70@gmail.com', 'svetislavtontic@gmail.com']);
     assert.deepEqual(staff[0].attachments, [emu.state.driveFiles[0].name]);
     const confirm = emu.state.outbox.find((m) => m.to === 'marko@example.com');
-    assert.match(confirm.htmlBody, /Vlasnik vas zove/);
+    assert.match(confirm.htmlBody, /Vlasnik vam se javlja na \+381621112233/);
   });
 
   test('CV is optional; bad type or size is refused with a clear message', () => {
@@ -71,9 +71,29 @@ describe('job application', () => {
     assert.deepEqual([empty.error.field, /prazan/.test(empty.error.message)], ['cv', true]);
   });
 
-  test('phone is required', () => {
+  test('no field is required: an empty application still reaches EMAIL_1, without a confirmation to nobody', () => {
+    const emu = freshBackend({ settings: { EMAIL_1: 'nikola.jovanovic.mef@gmail.com', EMAIL_2: '', EMAIL_3: '' } });
+    const r = job(emu, { name: '', phone: '', email: '', position: '', message: '' });
+    assert.equal(r.ok, true, JSON.stringify(r.error));
+    const [row] = emu.rows('JOBS');
+    assert.deepEqual([row.Name, row.Phone, row.Email, row.Position, row.CV], ['', '', '', 'Prodavac-kuvar', '']);
+    assert.deepEqual(emu.state.outbox.map((m) => [m.to, m.subject]), [['nikola.jovanovic.mef@gmail.com', 'Prijava za posao: kandidat bez imena']]);
+    assert.match(emu.state.outbox[0].htmlBody, /nije upisan/);
+  });
+
+  test('the position the candidate typed is stored; whatever is filled in must be valid', () => {
     const emu = freshBackend();
-    assert.equal(job(emu, { phone: '' }).error.field, 'phone');
+    assert.equal(job(emu, { position: 'Dostavljač' }).ok, true);
+    assert.equal(emu.rows('JOBS')[0].Position, 'Dostavljač');
+    assert.equal(job(emu, { phone: '12' }).error.field, 'phone');
+    assert.equal(job(emu, { phone: '', email: 'nije-email' }).error.field, 'email');
+  });
+
+  test('without a phone the per-sender limit keys on the email', () => {
+    const emu = freshBackend();
+    for (let i = 0; i < 2; i++) assert.equal(job(emu, { phone: '', email: 'ana@example.com' }).ok, true);
+    assert.equal(job(emu, { phone: '', email: 'ana@example.com' }).error.code, 'RATE_LIMITED');
+    assert.equal(job(emu, { phone: '', email: 'ivan@example.com' }).ok, true, 'another sender still gets through');
   });
 });
 

@@ -15,7 +15,7 @@ const args = process.argv.slice(2);
 const port = Number(args[args.indexOf('--port') + 1]) || Number(process.env.PORT) || 5190;
 const dist = path.join(root, args.includes('--dist') ? args[args.indexOf('--dist') + 1] : 'dist');
 const stateFile = path.join(root, `.data/emulator-${port}.json`);
-// Another menu than data/seed.json for a fresh spreadsheet (E2E tests use the demo fixture).
+// Another menu than data/seed.json for a fresh spreadsheet (the backend tests use the demo fixture).
 const seedFile = args.includes('--seed') ? path.join(root, args[args.indexOf('--seed') + 1]) : null;
 const seed = seedFile ? JSON.parse(readFileSync(seedFile, 'utf8')) : undefined;
 // The saved spreadsheet remembers which menu it was created from: a changed seed starts a fresh one.
@@ -169,7 +169,7 @@ http
       }
       if (url.pathname === '/__state') {
         const names = ['ORDERS', 'ORDER_ITEMS', 'CUSTOMERS', 'FEEDBACK', 'PRODUCTS', 'CATEGORIES', 'OPTION_GROUPS', 'OPTIONS', 'ZONES', 'HOURS', 'SETTINGS', 'SYSTEM_LOG', 'ERROR_LOG', 'CONTACT', 'JOBS', 'DAILY_STATS'];
-        return send(res, 200, JSON.stringify({ properties: emu.state.properties, outbox: emu.state.outbox.length, sheets: Object.fromEntries(names.map((n) => [n, emu.rows(n)])) }, null, 1));
+        return send(res, 200, JSON.stringify({ properties: emu.state.properties, outbox: emu.state.outbox.length, outboxMails: emu.state.outbox.map((m) => ({ to: m.to, subject: m.subject, attachments: m.attachments || [] })), sheets: Object.fromEntries(names.map((n) => [n, emu.rows(n)])) }, null, 1));
       }
       if (url.pathname === '/__reset') {
         fresh();
@@ -199,4 +199,4 @@ http
       send(res, 500, JSON.stringify({ error: err.message }));
     }
   })
-  .listen(port, () => console.log(`Grčki Giros dev server → http://localhost:${port}  (admin: /admin/ PIN 123456, outbox: /__outbox, state: /__state)`));
+  .listen(port, () => console.log(`Grčki Giros dev server → http://localhost:${port}  (outbox: /__outbox, state: /__state)`));

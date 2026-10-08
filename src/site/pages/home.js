@@ -1,4 +1,4 @@
-// Početna — PDF sekcija 13: hero, promo, kako radi, izdvojeno, o nama (kratko), lokacija, posao, finalni CTA.
+// Početna: hero, promo, kako do girosa, izdvojeno, priča, lokacija, posao, finalni CTA. Sajt ne prima porudžbine.
 import { esc, iconSvg, artSvg, artBg, featuredCard, hoursRows, rsd, mapsUrl } from '../../scripts/ui/render.js';
 import { restaurant } from '../schema.js';
 
@@ -6,21 +6,22 @@ export const meta = {
   path: '/',
   out: 'index.html',
   script: 'home',
-  title: 'Grčki Giros Novi Sad | Pravi giros, pita iz Atine | Naruči online',
-  description: 'Pravi grčki giros u piti iz Atine. Naručite online u Novom Sadu: dostava 45–60 min, preuzimanje 15–30 min, zakazivanje do 7 dana. Dimitrija Tucovića 3.',
+  title: 'Grčki Giros Novi Sad | Pravi grčki giros, Dimitrija Tucovića 3',
+  description: 'Grčki Giros u Novom Sadu od 2021: giros sa originalnim grčkim začinima, roštilj i prilozi. Meni sa cenama i lokacija: Dimitrija Tucovića 3, ispod stadiona Karađorđe.',
   bodyClass: 'page-home',
   schema: (ctx) => [restaurant(ctx)]
 };
 
 const GREEK_WORD = 'M40 222V18h132M222 18l82 104 82-104M304 122v100M454 222V18h92a56 56 0 0 1 0 112h-92M726 18c50 0 88 46 88 102s-38 102-88 102-88-46-88-102 38-102 88-102ZM990 18H864l72 102-72 102h126';
 
-export function stamp(ctx, id, text) {
-  return `<div class="stamp" data-spin="0.06" aria-hidden="true">
-    <svg class="stamp__ring" viewBox="0 0 200 200"><defs><path id="${id}" d="M100 100m-78 0a78 78 0 1 1 156 0a78 78 0 1 1-156 0"/></defs>
+/** The seal: logo in the middle, the brand line around it. Only the ring turns with the scroll. */
+export function stamp(id) {
+  return `<div class="stamp" aria-hidden="true">
+    <svg class="stamp__ring" viewBox="0 0 200 200" data-spin="0.06"><defs><path id="${id}" d="M100 100m-78 0a78 78 0 1 1 156 0a78 78 0 1 1-156 0"/></defs>
       <circle cx="100" cy="100" r="98" fill="#fff" stroke="#16202E" stroke-width="3"/>
-      <text font-family="Archivo, Arial Narrow, sans-serif" font-weight="800" font-size="17" letter-spacing="2.4" fill="#16202E" style="font-stretch:88%;text-transform:uppercase"><textPath href="#${id}" textLength="486" lengthAdjust="spacing">${esc(text)}</textPath></text>
+      <text font-family="Archivo, Arial Narrow, sans-serif" font-weight="800" font-size="17" letter-spacing="2.4" fill="#16202E" style="font-stretch:88%;text-transform:uppercase"><textPath href="#${id}" textLength="486" lengthAdjust="spacing">Grčki Giros, Friends &amp; Food • </textPath></text>
     </svg>
-    <span class="stamp__core"><svg aria-hidden="true"><use href="${ctx.assets.icons}#i-meander"/></svg></span>
+    <span class="stamp__core"><img src="/assets/img/logo-112.png" alt="" width="96" height="112"></span>
   </div>`;
 }
 
@@ -55,11 +56,11 @@ export function render(ctx) {
     <div class="hero__copy">
       <span class="status-pill hero__status" data-hero-status><span class="status-pill__dot"></span><span data-status-text>${esc(ctx.statusText)}</span></span>
       <p class="kicker">Novi Sad · od 2021.</p>
-      <h1 class="display hero__title" id="hero-title" data-split>Pravi grčki giros. <span class="accent">Pita stiže iz Atine.</span></h1>
-      <p class="lead">Meso sa ražnja, grčki začini i porcija posle koje se ne razmišlja o dezertu. Naručite online za manje od tri minuta.</p>
+      <h1 class="display hero__title" id="hero-title" data-split><span class="accent">Pravi Grčki Giros</span></h1>
+      <p class="lead">U želji da probate pravi grčki giros: sočno, savršeno začinjeno meso pečeno na tradicionalnom vertikalnom ražnju, umotano u toplu, mekanu grčku pitu sa hrskavim pomfritom, svežim paradajzom, crvenim lukom i domaćim osvežavajućim tzatziki sosom, načinili smo prave korake od 2021. godine.</p>
       <div class="hero__ctas">
-        <a class="btn btn--gold btn--lg" href="/meni/" data-order-cta data-open-label="Naruči online" data-magnetic><span class="btn__label">Naruči online</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
-        <a class="link" href="/meni/#kat-giros">Pogledaj meni ${iconSvg(a, 'arrow')}</a>
+        <a class="btn btn--gold btn--lg" href="/meni/" data-magnetic><span class="btn__label">Pogledaj meni</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
+        <a class="link" href="/kontakt/">Kako do nas ${iconSvg(a, 'arrow')}</a>
       </div>
       <ul class="hero__facts" role="list">
         <li>${iconSvg(a, 'scooter')}Dostava ${esc(b.delivery_eta_min)}–${esc(b.delivery_eta_max)} min</li>
@@ -72,13 +73,13 @@ export function render(ctx) {
         <div class="hero__arch"><div class="hero__sun"></div></div>
         <div class="hero__giros"><svg viewBox="0 0 200 220"><use href="${a.art}#wrap"/></svg></div>
         ${bits()}
-        ${stamp(ctx, 'stamp-hero', 'Pita iz Atine • od 2021. • Novi Sad • ')}
+        ${stamp('stamp-hero')}
       </div>
     </div>
   </div>
 </section>
 
-<div class="band-wrap" aria-hidden="true"><div class="band"><div class="marquee" data-marquee><div class="marquee__track">${['Grčki Giros može!', 'Pita iz Atine', 'Meso sa ražnja', 'Grčki, ali domaćinski!', 'Od 2021.']
+<div class="band-wrap" aria-hidden="true"><div class="band"><div class="marquee" data-marquee><div class="marquee__track">${['Grčki Giros može!', 'Grčki, ali domaćinski!', 'Friends &amp; Food', 'Od 2021.', 'Ispod stadiona Karađorđe']
     .map((t) => `<span class="marquee__item">${t}<svg aria-hidden="true"><use href="${a.icons}#i-spark"/></svg></span>`)
     .join('')}</div></div></div></div>
 
@@ -91,7 +92,7 @@ ${
         <p class="promo__label">Akcija · svaki dan</p>
         <h2 class="promo__title" id="promo-title">${esc(promo.name)}</h2>
         <p style="margin-top:0.8rem;max-width:30ch">${esc(promo.description)}</p>
-        <button type="button" class="btn btn--sm" style="margin-top:1.2rem" data-open-product="${esc(promo.id)}"><span class="btn__label">Naruči promo</span>${iconSvg(a, 'arrow', 'btn__icon')}</button>
+        <a class="btn btn--sm" style="margin-top:1.2rem" href="/meni/#kat-${esc(promo.categoryId)}"><span class="btn__label">Sve akcije</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
       </div>
       <div class="promo__price">
         <p class="promo__amount"><strong class="num">${esc(rsd(promo.price).replace(/\s?RSD/, ''))}</strong><span>RSD</span></p>
@@ -108,20 +109,20 @@ ${
   <div class="steps__sticky">
     <div class="container steps__grid">
       <div class="steps__list">
-        <p class="kicker">Kako radi</p>
-        <h2 class="h2" id="steps-title" data-split style="margin-top:0.8rem">Tri koraka. Manje od tri minuta.</h2>
+        <p class="kicker">Kako do girosa</p>
+        <h2 class="h2" id="steps-title" data-split style="margin-top:0.8rem">Tri koraka do girosa.</h2>
         <ol role="list">
-          <li class="step is-active" data-step data-reveal><span class="step__n">01</span><h3>Izaberite giros</h3><p>Pileće, svinjsko ili mix meso, pa premazi, salate i začini po vašem ukusu — bez doplate. Cena se računa odmah.</p></li>
-          <li class="step" data-step data-reveal style="--i:1"><span class="step__n">02</span><h3>Dostava ili preuzimanje</h3><p>Birate na početku, ne na kraju. Vreme i cenu dostave vidite pre nego što izaberete jelo.</p></li>
-          <li class="step" data-step data-reveal style="--i:2"><span class="step__n">03</span><h3>Dobijate broj i status</h3><p>Broj porudžbine odmah. Lokal je potvrđuje za nekoliko minuta, a status pratite uživo. Plaćate gotovinom kad stigne.</p></li>
+          <li class="step is-active" data-step data-reveal><span class="step__n">01</span><h3>Izaberite giros</h3><p>Pileće, svinjsko ili mix meso, pa premazi, salate i začini po vašem ukusu, bez doplate.</p></li>
+          <li class="step" data-step data-reveal style="--i:1"><span class="step__n">02</span><h3>Svratite ili pozovite</h3><p>Dođite u ${esc(b.address_street)} ili pozovite <a href="tel:${esc(b.phone_e164)}" data-track="home-steps">${esc(b.phone_display)}</a>.</p></li>
+          <li class="step" data-step data-reveal style="--i:2"><span class="step__n">03</span><h3>Preuzmite i platite</h3><p>Preuzimanje je gotovo za ${esc(b.pickup_eta_min)} do ${esc(b.pickup_eta_max)} minuta. Plaćate gotovinom.</p></li>
         </ol>
       </div>
       <div class="steps__art" aria-hidden="true">
         <div class="steps__progress"></div>
         <div class="steps__frame">
           <div data-step-art class="is-active"><svg class="art" viewBox="0 0 200 220"><use href="${a.art}#wrap"/></svg></div>
-          <div data-step-art><div class="step-scene"><div class="step-scene__modes"><span class="step-scene__mode">${iconSvg(a, 'scooter')}Dostava</span><span class="step-scene__mode">${iconSvg(a, 'store')}Preuzimanje</span></div></div></div>
-          <div data-step-art><div class="step-scene"><div class="ticket"><p class="ticket__label">Broj porudžbine</p><p class="ticket__number" style="font-size:clamp(4rem, 9vw, 6.5rem)"><span>#</span>1042</p></div></div></div>
+          <div data-step-art><div class="step-scene"><div class="step-scene__modes"><span class="step-scene__mode">${iconSvg(a, 'store')}Lokal</span><span class="step-scene__mode">${iconSvg(a, 'phone')}Telefon</span></div></div></div>
+          <div data-step-art><div class="step-scene"><div class="ticket"><p class="ticket__label">Preuzimanje, minuta</p><p class="ticket__number" style="font-size:clamp(4rem, 9vw, 6.5rem)">${esc(b.pickup_eta_min)}–${esc(b.pickup_eta_max)}</p></div></div></div>
         </div>
         <div class="steps__num"><span><em>01</em><em>02</em><em>03</em></span></div>
       </div>
@@ -133,7 +134,7 @@ ${
   <div class="container">
     <div class="section__head section__head--split">
       <div><p class="kicker">Najviše se uzima</p><h2 class="h2" id="featured-title" data-split style="margin-top:0.8rem">Veliki, mali, porcija ili vege.</h2></div>
-      <p class="lead">Pileće, svinjsko ili mix meso u grčkoj piti, sa pomfritom unutra. Premaze, salate i začine birate sami — bez doplate.</p>
+      <p class="lead">Pileće, svinjsko ili mix meso u grčkoj piti, sa pomfritom unutra. Premaze, salate i začine birate sami, bez doplate.</p>
     </div>
     <div class="features">${featured.map((p, i) => featuredCard(a, p, i)).join('')}</div>
     <p style="margin-top:2rem"><a class="btn btn--ghost" href="/meni/"><span class="btn__label">Ceo meni</span>${iconSvg(a, 'arrow', 'btn__icon')}</a></p>
@@ -145,15 +146,15 @@ ${
     <div>
       <p class="kicker" style="color:var(--gold)">Zašto baš Atina</p>
       <h2 class="h2" id="story-title" data-split style="margin-top:0.8rem">Od 2021. radimo jednu stvar.</h2>
-      <p style="margin-top:1.4rem">Godinama održavamo kvalitet i ukus na vrhu. Originalni začini iz Grčke i pite iz Atine daju našem girosu jedinstven ukus. Meso i povrće su vrhunskog kvaliteta, a premaze pravimo sveže, po receptima grčkih kuvara.</p>
-      <div class="route" aria-label="Pita putuje iz Atine do Novog Sada">
-        <span>Atina<small>pita</small></span><span class="route__line"><span>1.000+ km</span></span><span>Novi Sad<small>vaš giros</small></span>
+      <p style="margin-top:1.4rem">Giros kakav se jede u Atini: originalni grčki začini, grčka pita i premazi po receptima grčkih kuvara. Godinama držimo isti kvalitet i isti ukus, a na meso i povrće posebno pazimo.</p>
+      <div class="route" aria-label="Grčki začini i recept, giros u Novom Sadu">
+        <span>Grčka<small>začini i recept</small></span><span class="route__line"><span>od 2021.</span></span><span>Novi Sad<small>vaš giros</small></span>
       </div>
       <p style="margin-top:2rem"><a class="btn btn--ghost" href="/o-nama/"><span class="btn__label">Naša priča</span>${iconSvg(a, 'arrow', 'btn__icon')}</a></p>
     </div>
     <div class="story__art" data-reveal>
-      <div class="art-frame" style="--art-bg:#F2EBDD"><img src="/assets/img/menu/raznj.webp" alt="Giros na ražnju u lokalu Grčki Giros" loading="lazy" decoding="async" width="400" height="432"></div>
-      ${stamp(ctx, 'stamp-story', 'Pita iz Atine • pravi giros • ')}
+      <div class="art-frame art-live" style="--art-bg:#F2EBDD"><svg class="art" viewBox="0 0 200 220" role="img" aria-label="Giros na ražnju"><use href="${a.art}#raznj"/></svg></div>
+      ${stamp('stamp-story')}
     </div>
   </div>
 </section>
@@ -171,7 +172,7 @@ ${
     <div class="visit__card" data-reveal>
       <a class="phone-big" href="tel:${esc(b.phone_e164)}" data-track="home-visit">${iconSvg(a, 'phone')}${esc(b.phone_display)}</a>
       <dl class="hours-list" data-hours data-hours-delivery>${hoursRows(ctx.weekly, { deliveryColumn: true })}</dl>
-      <p class="small muted">Poručivanje preko sajta do 15 minuta pre zatvaranja. Nedeljom ne radimo.${b.hours_note ? ' ' + esc(b.hours_note) : ''}</p>
+      <p class="small muted">Nedeljom ne radimo.${b.hours_note ? ' ' + esc(b.hours_note) : ''}</p>
     </div>
   </div>
 </section>
@@ -191,9 +192,9 @@ ${
 <section class="section" aria-labelledby="final-title">
   <div class="container final">
     <h2 class="final__title" id="final-title" data-split>Gladni?</h2>
-    <p class="lead" style="text-align:center">Naručite za manje od tri minuta. Giros stiže vruć, a kusur tačan.</p>
-    <a class="btn btn--gold btn--lg" href="/meni/" data-order-cta data-open-label="Naruči online" data-magnetic><span class="btn__label">Naruči online</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
-    <p class="final__meta">Dostava ${esc(ctx.deliveryLine)} · Preuzimanje ${esc(ctx.pickupLine)} · Nedelja ne radimo</p>
+    <p class="lead" style="text-align:center">Dođite u ${esc(b.address_street)} i probajte giros pripremljen sa istom pažnjom svaki put.</p>
+    <a class="btn btn--gold btn--lg" href="/meni/" data-magnetic><span class="btn__label">Pogledaj meni</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
+    <p class="final__meta">${esc(ctx.hoursLine)} · Nedeljom ne radimo · <a href="tel:${esc(b.phone_e164)}" data-track="home-final">${esc(b.phone_display)}</a></p>
   </div>
 </section>
 </main>`;

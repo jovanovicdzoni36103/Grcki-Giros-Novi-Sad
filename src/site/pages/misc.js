@@ -1,4 +1,4 @@
-// Privatnost, 404, panel.
+// Privatnost, 404.
 import { esc, iconSvg } from '../../scripts/ui/render.js';
 
 export const privacy = {
@@ -7,7 +7,7 @@ export const privacy = {
     out: 'privatnost/index.html',
     script: 'basic',
     title: 'Privatnost | Grčki Giros',
-    description: 'Kako Grčki Giros koristi podatke iz porudžbina, kontakt forme i prijava za posao.',
+    description: 'Kako Grčki Giros koristi podatke iz prijava za posao: šta dobijamo, zašto, gde se čuva i koja su vaša prava.',
     bodyClass: 'page-legal',
     schema: () => []
   },
@@ -18,19 +18,15 @@ export const privacy = {
 <section class="section section--tight"><div class="container prose">
   <p>Ovaj sajt vodi ${esc(b.business_name)}, ${esc(b.address_street)}, ${esc(b.address_city)}. Kontakt: <a href="tel:${esc(b.phone_e164)}">${esc(b.phone_display)}</a>${b.email_public ? `, <a href="mailto:${esc(b.email_public)}">${esc(b.email_public)}</a>` : ''}.</p>
   <h2>Šta prikupljamo</h2>
-  <ul>
-    <li><strong>Porudžbina:</strong> ime, broj telefona, email (ako ga unesete), adresa za dostavu, sadržaj porudžbine, napomena i iznos gotovine.</li>
-    <li><strong>Kontakt forma:</strong> ime, telefon ili email i poruka.</li>
-    <li><strong>Prijava za posao:</strong> ime, telefon, email, iskustvo, poruka i CV ako ga pošaljete.</li>
-  </ul>
+  <p>Jedina forma na sajtu je prijava za posao. Iz nje dobijamo samo ono što sami upišete: ime i prezime, email, telefon, poziciju, poruku i CV, ako ga priložite. Nijedno polje nije obavezno.</p>
   <h2>Zašto</h2>
-  <p>Da bismo pripremili i isporučili porudžbinu, javili se ako nešto nije jasno, odgovorili na poruku ili pozvali kandidata. Zbirne brojke (broj porudžbina, najtraženija jela) koristimo da bismo bolje planirali rad. Podatke ne prodajemo i ne koristimo za reklame.</p>
+  <p>Da bismo pročitali prijavu i javili se kandidatu. Podatke ne prodajemo i ne koristimo za reklame.</p>
   <h2>Gde se čuvaju</h2>
-  <p>U Google tabeli i Google nalogu lokala, kojima pristupa samo vlasnik. Adresu i telefon za dostavu vidi i dostavljač. Podaci se čuvaju onoliko koliko je potrebno za porudžbinu i poslovnu evidenciju.</p>
+  <p>Prijava stiže na email lokala i čuva se u Google tabeli lokala, a CV u Google Drive-u lokala. Pristup ima samo vlasnik. Podaci se čuvaju onoliko koliko je potrebno za izbor kandidata.</p>
   <h2>Na vašem uređaju</h2>
-  <p>Sajt pamti korpu i, ako to označite, vaše podatke za sledeću porudžbinu — samo u pregledaču na vašem uređaju. Brišete ih brisanjem podataka sajta u pregledaču.</p>
+  <p>Pregledač pamti meni i radno vreme, da bi se stranice brže otvarale. Lične podatke sajt na vašem uređaju ne čuva.</p>
   <h2>Vaša prava</h2>
-  <p>Možete da tražite uvid, ispravku ili brisanje svojih podataka — pozovite nas ili pišite na gore navedeni kontakt.</p>
+  <p>Možete da tražite uvid, ispravku ili brisanje svojih podataka. Pozovite nas ili pišite na gore navedeni kontakt.</p>
 </div></section>
 </main>`;
   }
@@ -53,47 +49,8 @@ export const notFound = {
   <svg class="art" viewBox="0 0 200 220" aria-hidden="true"><use href="${a.art}#bag"/></svg>
   <p class="kicker">Greška 404</p>
   <h1 class="h1">Ova stranica je pojedena.</h1>
-  <p class="lead">Ništa strašno — meni je i dalje tu.</p>
+  <p class="lead">Ništa strašno, meni je i dalje tu.</p>
   <div class="cluster" style="justify-content:center"><a class="btn btn--gold" href="/meni/"><span class="btn__label">Pogledaj meni</span>${iconSvg(a, 'arrow', 'btn__icon')}</a><a class="link" href="/">Početna</a></div>
 </main>`;
-  }
-};
-
-export const admin = {
-  meta: {
-    path: '/admin/',
-    out: 'admin/index.html',
-    script: 'admin',
-    css: 'admin',
-    title: 'Admin — Grčki Giros',
-    description: 'Admin panel lokala.',
-    bodyClass: 'page-panel page-admin',
-    noindex: true,
-    chrome: false,
-    noOrderBar: true,
-    schema: () => []
-  },
-  render() {
-    return `<div data-admin><p style="padding:2rem">Učitavanje admin panela…</p><noscript><p style="padding:2rem">Admin panel zahteva JavaScript.</p></noscript></div>`;
-  }
-};
-
-/** The old tablet address keeps working: /panel/ → /admin/. */
-export const panelRedirect = {
-  meta: {
-    path: '/panel/',
-    out: 'panel/index.html',
-    script: 'basic',
-    title: 'Admin — Grčki Giros',
-    description: 'Admin panel je preseljen na /admin/.',
-    bodyClass: 'page-panel',
-    noindex: true,
-    chrome: false,
-    noOrderBar: true,
-    headExtra: '<meta http-equiv="refresh" content="0; url=/admin/">',
-    schema: () => []
-  },
-  render() {
-    return `<main id="main" style="padding:2rem"><p>Admin panel je preseljen: <a href="/admin/">/admin/</a></p><script>location.replace('/admin/' + location.hash)</script></main>`;
   }
 };

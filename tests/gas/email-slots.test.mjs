@@ -12,7 +12,7 @@ const SLOTS = (a = '', b = '', c = '', d = '') => ({ EMAIL_1: a, EMAIL_2: b, EMA
 function everyChannel(emu) {
   assert.equal(placeOrder(emu).ok, true);
   assert.equal(emu.doPost({ action: 'contact.submit', payload: { requestId: randomUUID(), name: 'Jelena Petrović', phone: '063 555 1234', email: '', topic: 'Pitanje', message: 'Da li radite nedeljom?', meta } }).ok, true);
-  const job = emu.doPost({ action: 'jobs.submit', payload: { requestId: randomUUID(), name: 'Marko Ilić', phone: '062 111 2233', email: '', experience: '', shift: '', message: '', cv: { name: 'cv.pdf', type: 'application/pdf', data: pdf }, meta } });
+  const job = emu.doPost({ action: 'jobs.submit', payload: { requestId: randomUUID(), name: 'Marko Ilić', phone: '062 111 2233', email: '', position: '', message: '', cv: { name: 'cv.pdf', type: 'application/pdf', data: pdf }, meta } });
   assert.equal(job.ok, true, JSON.stringify(job.error));
   emu.setNow('2026-09-24T01:15:00+02:00');
   emu.run('dailyReport_', { force: true });

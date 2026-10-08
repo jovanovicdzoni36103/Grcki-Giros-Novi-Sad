@@ -1,41 +1,19 @@
-// Dostava i preuzimanje + česta pitanja (FAQPage). Values come from the SETTINGS snapshot.
-import { esc, iconSvg, hoursRows } from '../../scripts/ui/render.js';
+// Dostava i preuzimanje + česta pitanja (FAQPage). The site takes no orders: phone or the shop. Values come from SETTINGS.
+import { esc, iconSvg, hoursRows, mapsUrl } from '../../scripts/ui/render.js';
 import { faq, breadcrumbs } from '../schema.js';
-import Money from '../../scripts/shared/money.cjs';
-
-const zonesOn = (ctx) => String(ctx.business.zones_enabled).toUpperCase() === 'TRUE' && ctx.zones.length > 0;
-
-function feeText(ctx) {
-  const b = ctx.business;
-  if (String(b.delivery_fee_mode) === 'agency') return 'po cenovniku dostavne službe';
-  if (zonesOn(ctx)) return ctx.zones.map((z) => `${z.name}: ${Money.formatRSD(z.fee)}`).join(', ').replace(/\u00a0/g, ' ');
-  return Money.formatRSD(Number(b.delivery_fee_default) || 0).replace(/\u00a0/g, ' ');
-}
-
-function minOrderText(ctx) {
-  const mins = zonesOn(ctx) ? [...new Set(ctx.zones.map((z) => Number(z.minOrder) || 0))] : [Number(ctx.business.min_order_delivery) || 0];
-  if (mins.length === 1) return mins[0] ? `${mins[0]} dinara` : '';
-  return `od ${Math.min(...mins)} do ${Math.max(...mins)} dinara, zavisno od naselja`;
-}
 
 function faqItems(ctx) {
   const b = ctx.business;
-  const days = Number(b.preorder_days || 7);
-  const min = minOrderText(ctx);
   return [
-    ['Koliko traje dostava?', `Između ${b.delivery_eta_min} i ${b.delivery_eta_max} minuta. U špicu može duže, zato pišemo raspon, a ne tačan minut. Tačnu procenu vidite pre nego što poručite.`],
-    ['Za koliko je spremno preuzimanje?', `Za ${b.pickup_eta_min} do ${b.pickup_eta_max} minuta. Procenjeno vreme piše na potvrdi porudžbine.`],
-    ['Kako znam da je porudžbina prihvaćena?', `Lokal potvrđuje svaku porudžbinu u roku od ${b.accept_timeout_min || 5} minuta. Status pratite na stranici porudžbine, a ako ostavite email, javljamo vam i tamo.`],
-    ['Da li mogu da platim karticom?', 'Za sada ne. Plaćate gotovinom — dostavljaču ili na kasi. Pri poručivanju upišete sa koliko novca plaćate, da dostavljač ponese tačan kusur.'],
-    ['Koliko košta dostava?', `Zavisi od naselja: ${feeText(ctx)}. Tačan iznos vidite u korpi, pre slanja. Za preuzimanje u lokalu nema troška.`],
-    ['Mogu li da poručim za kasnije?', `Možete, do ${days} dana unapred, u terminima na svakih pola sata. Termin birate u koraku „Kada?“ — sajt nikad ne nudi termin kada ne radimo.`],
-    ['Da li dostavljate do mene?', `Dostavljamo u naselja sa spiska koji vidite u korpi. Ako vašeg naselja nema, izaberite preuzimanje ili pozovite ${b.phone_display}.`],
-    ['Kako da izmenim ili otkažem porudžbinu?', `Samo telefonom: pozovite ${b.phone_display} i recite broj porudžbine. Što ranije javite, to je lakše.`],
-    ['Mogu li giros bez luka ili bez pomfrita?', 'Naravno. Pri izboru jela isključite šta ne želite — u kuhinji to piše crvenim slovima. Ako poručujete više komada, svaki možete da složite drugačije.'],
-    ['Da li postoji minimalna porudžbina?', min ? `Za dostavu je minimum ${min}. Za preuzimanje nema minimuma.` : 'Ne postoji. Poručite i jedan giros.'],
+    ['Koliko traje dostava?', `Između ${b.delivery_eta_min} i ${b.delivery_eta_max} minuta. U špicu može duže, zato pišemo raspon, a ne tačan minut.`],
+    ['Za koliko je spremno preuzimanje?', `Za ${b.pickup_eta_min} do ${b.pickup_eta_max} minuta.`],
+    ['Kako da poručim?', `Dođite u lokal u ulici ${b.address_street} ili pozovite ${b.phone_display}.`],
+    ['Mogu li da poručim veću količinu?', `Možete. Za veće porudžbine pozovite ${b.phone_display} i dogovorićemo sve telefonom.`],
+    ['Da li mogu da platim karticom?', 'Za sada ne. Plaćanje je gotovinom, na kasi ili dostavljaču.'],
+    ['Kako da izmenim ili otkažem porudžbinu?', `Pozovite ${b.phone_display}. Što ranije javite, to je lakše.`],
+    ['Mogu li giros bez luka ili bez pomfrita?', 'Naravno. Recite šta ne želite kada poručujete i giros slažemo bez toga.'],
     ['Kada radite?', `${ctx.hoursLine}. Dostava ${ctx.deliveryLine}. Nedeljom ne radimo.`],
-    ['Mogu li da jedem u lokalu?', `Možete. Lokal u ulici ${b.address_street} ima mesta za sedenje.`],
-    ['Da li pita zaista stiže iz Atine?', 'Da. To je razlog zašto postojimo.']
+    ['Mogu li da jedem u lokalu?', `Možete. Lokal u ulici ${b.address_street}${b.address_note ? `, ${b.address_note},` : ''} ima mesta za sedenje.`]
   ];
 }
 
@@ -43,8 +21,8 @@ export const meta = {
   path: '/dostava/',
   out: 'dostava/index.html',
   script: 'basic',
-  title: 'Dostava girosa u Novom Sadu — vreme i uslovi | Grčki Giros',
-  description: 'Dostava girosa po Novom Sadu za 45–60 minuta, preuzimanje za 15–30. Plaćanje gotovinom, zakazivanje do 7 dana unapred. Česta pitanja o dostavi i porudžbinama.',
+  title: 'Dostava i preuzimanje | Grčki Giros Novi Sad',
+  description: 'Preuzimanje u lokalu za 5 do 30 minuta, dostava za 45 do 60 minuta, plaćanje gotovinom. Porudžbine telefonom ili u lokalu, Dimitrija Tucovića 3. Česta pitanja.',
   bodyClass: 'page-delivery',
   schema: (ctx) => [faq(faqItems(ctx)), breadcrumbs(ctx, [{ name: 'Dostava', path: '/dostava/' }])]
 };
@@ -52,15 +30,14 @@ export const meta = {
 export function render(ctx) {
   const a = ctx.assets;
   const b = ctx.business;
-  const min = minOrderText(ctx);
   return `<main id="main">
 <section class="page-hero">
   <div class="container page-hero__grid">
     <div>
       <p class="kicker">Dostava i preuzimanje</p>
-      <h1 class="h1" style="margin-top:0.8rem" data-split>Dostava girosa <span>u Novom Sadu.</span></h1>
+      <h1 class="h1" style="margin-top:0.8rem" data-split>Giros u lokalu <span>ili na adresu.</span></h1>
     </div>
-    <p class="lead">Birate na početku: dostava na adresu ili preuzimanje u lokalu. Vreme i cenu znate pre nego što izaberete jelo.</p>
+    <p class="lead">Svratite u ${esc(b.address_street)} ili pozovite ${esc(b.phone_display)}. Plaćanje je gotovinom.</p>
   </div>
 </section>
 
@@ -71,16 +48,11 @@ export function render(ctx) {
       <dl class="facts">
         <div><dt>Vreme</dt><dd>${esc(b.delivery_eta_min)}–${esc(b.delivery_eta_max)} minuta</dd></div>
         <div><dt>Radno vreme</dt><dd>${esc(ctx.deliveryLine)}</dd></div>
-        ${
-          zonesOn(ctx)
-            ? `<div><dt>Cena po zoni</dt><dd>${ctx.zones.map((z) => `${esc(z.name)} — ${esc(Money.formatRSD(z.fee))}`).join('<br>')}</dd></div>`
-            : `<div><dt>Cena</dt><dd>${esc(feeText(ctx))}</dd></div>`
-        }
-        ${min ? `<div><dt>Minimum</dt><dd>${esc(min)}</dd></div>` : ''}
-        <div><dt>Plaćanje</dt><dd>gotovinom dostavljaču — unapred upišete sa koliko plaćate, pa kurir ponese kusur</dd></div>
+        <div><dt>Poručivanje</dt><dd>telefonom</dd></div>
+        <div><dt>Plaćanje</dt><dd>gotovinom dostavljaču</dd></div>
         <div><dt>Ko dostavlja</dt><dd>partnerska dostavna služba</dd></div>
       </dl>
-      <a class="btn btn--gold" href="/meni/"><span class="btn__label">Poruči dostavu</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
+      <a class="btn btn--gold" href="tel:${esc(b.phone_e164)}" data-track="delivery"><span class="btn__label">Pozovite ${esc(b.phone_display)}</span>${iconSvg(a, 'phone', 'btn__icon')}</a>
     </article>
     <article class="info-card" data-reveal style="--i:1">
       <h2>${iconSvg(a, 'store')}Preuzimanje</h2>
@@ -88,10 +60,9 @@ export function render(ctx) {
         <div><dt>Vreme</dt><dd>${esc(b.pickup_eta_min)}–${esc(b.pickup_eta_max)} minuta</dd></div>
         <div><dt>Adresa</dt><dd>${esc(b.address_street)}, ${esc(b.address_city)}${b.address_note ? `<br><span class="small">${esc(b.address_note)}</span>` : ''}</dd></div>
         <div><dt>Radno vreme</dt><dd>${esc(ctx.hoursLine)}</dd></div>
-        <div><dt>Cena</dt><dd>bez troška</dd></div>
         <div><dt>Plaćanje</dt><dd>gotovinom na kasi</dd></div>
       </dl>
-      <a class="btn btn--blue" href="/meni/"><span class="btn__label">Poruči za preuzimanje</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
+      <a class="btn btn--blue" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener"><span class="btn__label">Otvori u mapama</span>${iconSvg(a, 'map', 'btn__icon')}</a>
     </article>
   </div>
 </section>
@@ -99,10 +70,10 @@ export function render(ctx) {
 <section class="section section--cream section--tight">
   <div class="container split-2" style="align-items:center">
     <div>
-      <p class="kicker">Poručivanje unapred</p>
-      <h2 class="h2" style="margin-top:0.8rem">Do ${esc(b.preorder_days || 7)} dana unapred.</h2>
+      <p class="kicker">Veće porudžbine</p>
+      <h2 class="h2" style="margin-top:0.8rem">Pozovite nas.</h2>
     </div>
-    <p class="lead">Birate dan i vreme u terminima na svakih pola sata, u okviru radnog vremena. Sajt nikad ne nudi termin u prošlosti, tokom pauze ili kada ne radimo. Lokal potvrđuje svaku porudžbinu u roku od ${esc(b.accept_timeout_min || 5)} minuta.</p>
+    <p class="lead">Za veću porudžbinu pozovite <a href="tel:${esc(b.phone_e164)}" data-track="delivery-large">${esc(b.phone_display)}</a> i dogovorićemo sve telefonom.</p>
   </div>
 </section>
 

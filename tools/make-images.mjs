@@ -27,8 +27,8 @@ p{position:absolute;left:72px;bottom:70px;margin:0;font-size:30px;font-weight:70
 </style></head><body>${sprite}<div class="arch"></div><div class="sun"></div>
 <svg class="art" viewBox="0 0 200 220"><use href="#wrap"/></svg>
 <img class="logo" src="data:image/png;base64,${logo}" alt="">
-<h1>Pravi grčki giros. <span>Pita stiže iz Atine.</span></h1>
-<div class="pill">Naruči online</div><p>Grčki Giros · Novi Sad · od 2021.</p></body></html>`;
+<h1><span>Pravi Grčki Giros</span></h1>
+<div class="pill">Ispod stadiona Karađorđe</div><p>Grčki Giros · Novi Sad · od 2021.</p></body></html>`;
 
 const browser = await chromium.launch({ channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });

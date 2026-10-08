@@ -51,6 +51,7 @@ test('prices exactly as in the handwritten menu', () => {
     'banjalucki-cevap': 600,
     'kobasica-sa-sirom': 600,
     'premaz-100': 190,
+    'extra-meso': 330,
     'coca-cola': 150,
     'coca-cola-zero': 150,
     fanta: 150,
@@ -65,7 +66,7 @@ test('prices exactly as in the handwritten menu', () => {
     'pivo-lav': 250
   };
   assert.deepEqual(Object.fromEntries(products.map((p) => [p.id, p.price])), expected);
-  assert.equal(index.options['dod-meso'].price, 330, 'Meso plus 100 g');
+  assert.equal(index.options['dod-meso'].price, 330, 'Extra meso 100 g');
   assert.ok(options.filter((o) => o.id !== 'dod-meso').every((o) => o.price === 0), 'every other choice is free');
 });
 
@@ -78,9 +79,9 @@ test('a giros is ordered the way the shop takes it at the counter', () => {
   assert.equal(full.total, 550 + 330);
   const l = full.lines[0];
   assert.match(l.summary, /Mix/);
-  assert.match(l.summary, /Bez pite — u ketering stiroporu/);
-  assert.match(l.summary, /Meso plus 100 g \+330/);
-  assert.equal(l.removedSummary, 'BEZ: caciki (tzatziki), paradajz, ljubičasti luk, pomfrit u piti', 'the kitchen sees what was taken off');
+  assert.match(l.summary, /Bez pite, u ketering stiroporu/);
+  assert.match(l.summary, /Extra meso 100 g \+330/);
+  assert.equal(l.removedSummary, 'BEZ: tzatziki, paradajz, ljubičasti luk, pomfrit u piti', 'the kitchen sees what was taken off');
   const cola = Pricing.computeCart(index, [line('coca-cola', ['pp-flasa'])], { mode: 'pickup' }).lines[0];
   assert.equal(cola.summary, 'Flaša 0,5 l');
   assert.equal(cola.removedSummary, '', 'a switched single choice is not "BEZ"');
@@ -98,14 +99,34 @@ test('akcija is cheaper than the same things bought apart, and the cart suggests
 test('shop facts from the notebook', () => {
   assert.equal(setting('address_street'), 'Dimitrija Tucovića 3');
   assert.equal(setting('phone_display'), '064 227 4334');
-  assert.equal(setting('job_phone_e164'), '+381638773363');
-  assert.match(setting('address_note'), /Karađorđe/);
+  assert.equal(setting('job_phone_e164'), '', 'no job phone (brief 2026-10-06)');
+  assert.equal(setting('address_note'), 'ispod stadiona „Karađorđe“');
+  assert.equal(setting('email_public'), 'nikola.jovanovic.mef@gmail.com');
+  assert.equal(setting('pickup_eta_min'), '5');
+  assert.equal(setting('ordering_enabled'), 'FALSE', 'the site takes no orders');
   assert.match(setting('hours_note'), /godišnjeg odmora/);
-  assert.match(setting('second_location'), /Bulevar kralja Petra I 61/);
+  assert.equal(setting('second_location'), '', 'crossed out in the owner notebook (2026-10-06)');
   for (const h of seed.hours) {
     if (h.dow === 7) assert.equal(h.closed, true, 'Nedelja ne radi');
     else assert.deepEqual([h.open, h.close, h.closed], ['09:00', '01:00', false], h.day);
   }
+});
+
+// Client brief of 2026-10-06 (presentational site): menu wording rules.
+test('menu wording: drinks with their volume, posni vege, three premazi, no photos, no em dash', () => {
+  const p = (id) => products.find((x) => x.id === id);
+  for (const x of products.filter((x) => x.categoryId === 'pice')) {
+    assert.ok(!/\d,\d+ ?l/.test(x.name), `${x.id}: volume only in the description, not in "${x.name}"`);
+    assert.match(x.description, /\d,\d+ l/, `${x.id}: description states the volume`);
+  }
+  assert.equal(p('coca-cola-zero').description, 'Limenka / 0,33 l');
+  assert.deepEqual(p('coca-cola-zero').groups, [], 'Zero only comes in a can');
+  for (const id of ['vege-veliki', 'vege-mali']) assert.match(p(id).description, /^Posni giros\./);
+  assert.deepEqual(options.filter((o) => o.groupId === 'premaz-izbor').map((o) => o.name), ['Tzatziki', 'Tirokafteri', 'Urnebes']);
+  assert.deepEqual([p('extra-meso').name, p('extra-meso').description, p('extra-meso').price], ['Extra meso', '100 g mesa.', 330]);
+  assert.ok(products.every((x) => !x.image), 'no food photos');
+  const copy = [...categories.map((c) => c.name + ' ' + c.description), ...products.map((x) => [x.name, x.description, x.includes].join(' ')), ...options.map((o) => o.name)].join('\n');
+  for (const bad of [/—/, /caciki/i, /tucana žuta/i, /meso plus/i]) assert.ok(!bad.test(copy), String(bad));
 });
 
 test('the map buttons open the shop on Google Maps; a missing or foreign link falls back to the address', () => {

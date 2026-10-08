@@ -244,15 +244,18 @@
     };
   }
 
+  /** Job application: no field is required (client, 2026-10-06). What is filled in must still be valid. */
   function validateJobForm(form) {
     var f = form || {};
     var errors = {};
-    var name = validateName(f.name);
+    var name = clean(f.name, 200) ? validateName(f.name) : { ok: true, value: '' };
     if (!name.ok) errors.name = name.message;
-    var phone = normalizePhone(f.phone, { allowLandline: true });
+    var phone = clean(f.phone, 40) ? normalizePhone(f.phone, { allowLandline: true }) : { ok: true, e164: '' };
     if (!phone.ok) errors.phone = phone.message;
     var email = validateEmail(f.email, false);
     if (!email.ok) errors.email = email.message;
+    var position = clean(f.position, 200);
+    if (position.length > LIMITS.topic) errors.position = 'Naziv pozicije je predugačak (najviše ' + LIMITS.topic + ' znakova).';
     var message = clean(f.message, 4000, true);
     if (message.length > LIMITS.message) errors.message = 'Poruka je predugačka.';
     return {
@@ -260,10 +263,9 @@
       errors: errors,
       value: {
         name: name.value || '',
-        phone: phone.ok ? phone.e164 : '',
+        phone: phone.e164 || '',
         email: email.value || '',
-        experience: clean(f.experience, 60),
-        shift: clean(f.shift, 60),
+        position: position.slice(0, LIMITS.topic),
         message: message.slice(0, LIMITS.message)
       }
     };

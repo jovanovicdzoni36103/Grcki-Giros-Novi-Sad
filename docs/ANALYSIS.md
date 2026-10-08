@@ -1,5 +1,7 @@
 # Grčki Giros — analiza pre implementacije
 
+> Istorijski dokument iz vremena online poručivanja. Od 06.10.2026. sajt je prezentacioni (vidi README i docs/SETUP.md): nema korpe, checkout-a ni admin panela, jedina forma je prijava za posao.
+
 Datum: 23.09.2026. Izvori, redom težine:
 
 1. `GIROS_GrckiGiros.pdf` — Master Project Document (13 strana, 27 sekcija), potpis klijenta 9.9.2026.

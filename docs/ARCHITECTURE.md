@@ -1,5 +1,7 @@
 # Grčki Giros — arhitektura
 
+> Istorijski dokument iz vremena online poručivanja. Od 06.10.2026. sajt je prezentacioni (vidi README i docs/SETUP.md): nema korpe, checkout-a ni admin panela, jedina forma je prijava za posao.
+
 Odluke D1–D18 su u `ANALYSIS.md`. Ovaj dokument je ugovor po kome je sistem izgrađen.
 
 ## 1. Information architecture

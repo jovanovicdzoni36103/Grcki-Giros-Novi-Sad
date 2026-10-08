@@ -34,7 +34,7 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
 // --- Bundles -----------------------------------------------------------------
-const pageEntries = ['home', 'menu', 'checkout', 'contact', 'jobs', 'admin', 'basic'];
+const pageEntries = ['home', 'menu', 'contact', 'jobs', 'basic'];
 const js = await build({
   entryPoints: Object.fromEntries(pageEntries.map((p) => [p, path.join(root, `src/scripts/pages/${p}.js`)])),
   absWorkingDir: root,
@@ -53,7 +53,7 @@ const js = await build({
 });
 
 const css = await build({
-  entryPoints: { main: path.join(root, 'src/styles/main.css'), admin: path.join(root, 'src/styles/admin.css') },
+  entryPoints: { main: path.join(root, 'src/styles/main.css') },
   absWorkingDir: root,
   bundle: true,
   minify: !dev,
@@ -125,14 +125,13 @@ const { layout } = await import(pathToFileURL(path.join(root, 'src/site/layout.j
 const pageModules = [
   await import(pathToFileURL(path.join(root, 'src/site/pages/home.js'))),
   await import(pathToFileURL(path.join(root, 'src/site/pages/menu.js'))),
-  await import(pathToFileURL(path.join(root, 'src/site/pages/checkout.js'))),
   await import(pathToFileURL(path.join(root, 'src/site/pages/about.js'))),
   await import(pathToFileURL(path.join(root, 'src/site/pages/delivery.js'))),
   await import(pathToFileURL(path.join(root, 'src/site/pages/contact.js'))),
   await import(pathToFileURL(path.join(root, 'src/site/pages/jobs.js')))
 ];
 const misc = await import(pathToFileURL(path.join(root, 'src/site/pages/misc.js')));
-pageModules.push(misc.privacy, misc.notFound, misc.admin, misc.panelRedirect);
+pageModules.push(misc.privacy, misc.notFound);
 
 const sitemap = [];
 for (const mod of pageModules) {
@@ -153,14 +152,14 @@ writeFileSync(
     .map((p) => `  <url><loc>${ctx.site.url}${p}</loc><lastmod>${today}</lastmod><changefreq>${p === '/meni/' ? 'daily' : 'weekly'}</changefreq><priority>${p === '/' ? '1.0' : p === '/meni/' ? '0.9' : '0.6'}</priority></url>`)
     .join('\n')}\n</urlset>\n`
 );
-writeFileSync(path.join(dist, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /panel/\nDisallow: /porudzbina/\n\nSitemap: ${ctx.site.url}/sitemap.xml\n`);
+writeFileSync(path.join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${ctx.site.url}/sitemap.xml\n`);
 writeFileSync(
   path.join(dist, 'site.webmanifest'),
   JSON.stringify(
     {
       name: 'Grčki Giros',
       short_name: 'Grčki Giros',
-      start_url: '/meni/',
+      start_url: '/',
       display: 'standalone',
       background_color: '#FAF7F0',
       theme_color: '#1B4F8C',
@@ -177,7 +176,7 @@ writeFileSync(
 // Cloudflare Pages / Netlify cache headers: hashed bundles forever, the rest revalidates.
 writeFileSync(
   path.join(dist, '_headers'),
-  `/assets/js/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/img/*\n  Cache-Control: public, max-age=86400\n/assets/data/*\n  Cache-Control: public, max-age=300\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  X-Frame-Options: SAMEORIGIN\n/admin/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n/panel/*\n  X-Robots-Tag: noindex\n`
+  `/assets/js/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/css/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/fonts/*\n  Cache-Control: public, max-age=31536000, immutable\n/assets/img/*\n  Cache-Control: public, max-age=86400\n/assets/data/*\n  Cache-Control: public, max-age=300\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  X-Frame-Options: SAMEORIGIN\n`
 );
 
 // --- Budget report ------------------------------------------------------------------

@@ -33,16 +33,14 @@ export function iconSvg(assets, name, cls = 'icon') {
   return `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="${assets.icons}#i-${name}"/></svg>`;
 }
 
+/** Always the illustration: the site shows no food photos, whatever the PRODUCTS image column says. */
 export function artSvg(assets, product, cls = 'art') {
   const v = artFor(product);
-  if (product.image) {
-    return `<img class="${cls}" src="${esc(product.image)}" alt="${esc(product.name)}" loading="lazy" decoding="async" width="400" height="432">`;
-  }
   return `<svg class="${cls}" viewBox="0 0 200 220" role="img" aria-label="${esc(product.name)}"${v.style ? ` style="${v.style}"` : ''}><use href="${assets.art}#${v.symbol}"/></svg>`;
 }
 
 export function artBg(product) {
-  return product.image ? '#F2EBDD' : artFor(product).bg;
+  return artFor(product).bg;
 }
 
 export function tagList(assets, tags, limit = 2) {
@@ -58,15 +56,11 @@ export function priceHtml(product) {
   return `<span class="product__price num">${rsd(product.price)}${compare}</span>`;
 }
 
-/**
- * One menu row. `ctx.canOrder` switches the add button's label for closed hours.
- */
-export function productRow(assets, product, ctx = {}) {
-  const unavailable = product.available === false || (ctx.mode === 'delivery' && product.delivery === false);
-  const addLabel = unavailable ? `${product.name} trenutno nije dostupan` : `Dodaj ${product.name} u korpu`;
+/** One menu row (presentation only: the site takes no orders). */
+export function productRow(assets, product) {
+  const unavailable = product.available === false;
   const tags = (product.tags || []).join(' ');
   return `<article class="product${unavailable ? ' is-unavailable' : ''}" data-product="${esc(product.id)}" data-tags="${esc(tags)}" data-category="${esc(product.categoryId)}">
-  <button type="button" class="product__hit" data-open-product="${esc(product.id)}" aria-label="${esc(product.name)}, ${esc(rsd(product.price))}. Prikaži detalje"></button>
   <div class="product__body">
     ${tagList(assets, product.tags) ? `<div class="product__tags">${tagList(assets, product.tags)}</div>` : ''}
     <h3 class="product__name">${esc(product.name)}</h3>
@@ -75,12 +69,26 @@ export function productRow(assets, product, ctx = {}) {
   </div>
   <div class="product__media-wrap">
     <div class="product__media art-frame" style="--art-bg:${artBg(product)}">${artSvg(assets, product)}</div>
-    <button type="button" class="product__add" data-add="${esc(product.id)}" aria-label="${esc(addLabel)}"${unavailable ? ' disabled' : ''}>${iconSvg(assets, 'plus')}</button>
   </div>
 </article>`;
 }
 
-export function menuSections(assets, catalog, ctx = {}) {
+/**
+ * The free choices inside a giros (meso, premazi, salate, začini), listed under the Giros section: with no
+ * product sheet they would otherwise be invisible. Groups of the category's first product with 2+ free options.
+ */
+function choices(catalog, product) {
+  const opts = (groupId) => (catalog.options || []).filter((o) => o.groupId === groupId && o.available !== false).sort((a, b) => a.sort - b.sort);
+  const groups = (product.groups || [])
+    .map((id) => (catalog.groups || []).find((g) => g.id === id))
+    .filter((g) => g && opts(g.id).length > 1 && opts(g.id).every((o) => !Number(o.price)));
+  if (!groups.length) return '';
+  return `<div class="menu-choices"><p class="menu-choices__title">Birate sami, bez doplate</p><dl>${groups
+    .map((g) => `<div><dt>${esc(g.name)}</dt><dd>${esc(opts(g.id).map((o) => o.name).join(', '))}</dd></div>`)
+    .join('')}</dl></div>`;
+}
+
+export function menuSections(assets, catalog) {
   const cats = (catalog.categories || []).slice().sort((a, b) => a.sort - b.sort);
   return cats
     .map((cat, i) => {
@@ -92,7 +100,8 @@ export function menuSections(assets, catalog, ctx = {}) {
     <h2 class="menu-section__title" id="kat-${esc(cat.id)}-title">${esc(cat.name)}</h2>
     ${cat.description ? `<p class="menu-section__desc">${esc(cat.description)}</p>` : ''}
   </header>
-  <div class="menu-grid">${products.map((p) => productRow(assets, p, ctx)).join('')}</div>
+  <div class="menu-grid">${products.map((p) => productRow(assets, p)).join('')}</div>
+  ${cat.id === 'giros' ? choices(catalog, products[0]) : ''}
 </section>`;
     })
     .join('');
@@ -116,16 +125,16 @@ export function tagFilters(assets, catalog) {
     .join('');
 }
 
-/** Home "Šta se najviše uzima" cards. */
+/** Home "Šta se najviše uzima" cards: each one leads to its section of the menu. */
 export function featuredCard(assets, product, index) {
   return `<article class="feature-card" data-product="${esc(product.id)}" style="--art-bg:${artBg(product)};--i:${index}" data-reveal>
-  <button type="button" class="feature-card__hit" data-open-product="${esc(product.id)}" aria-label="${esc(product.name)}, ${esc(rsd(product.price))}. Prikaži detalje"></button>
+  <a class="feature-card__hit" href="/meni/#kat-${esc(product.categoryId)}" aria-label="${esc(product.name)}, ${esc(rsd(product.price))}. Pogledaj u meniju"></a>
   <span class="feature-card__index">${String(index + 1).padStart(2, '0')}</span>
   <div class="feature-card__art art-frame" style="--art-bg:${artBg(product)}">${artSvg(assets, product)}</div>
   <div class="feature-card__body">
     <h3 class="feature-card__name">${esc(product.name)}</h3>
     <p class="feature-card__desc">${esc(product.description)}</p>
-    <div class="feature-card__foot"><span class="feature-card__price num">${rsd(product.price)}</span><span class="feature-card__cta">Naruči ${iconSvg(assets, 'arrow')}</span></div>
+    <div class="feature-card__foot"><span class="feature-card__price num">${rsd(product.price)}</span><span class="feature-card__cta">U meniju ${iconSvg(assets, 'arrow')}</span></div>
   </div>
 </article>`;
 }

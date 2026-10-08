@@ -2,7 +2,7 @@
   "name": "grcki-giros-web",
   "private": true,
   "version": "1.0.0",
-  "description": "Grčki Giros: website, digital menu, online ordering, Google Sheets + Apps Script backend",
+  "description": "Grčki Giros: presentational website, digital menu and job application, Google Sheets + Apps Script backend",
   "type": "module",
   "engines": {
     "node": ">=20"

@@ -1,4 +1,4 @@
-/* Chips, segmented control, quantity stepper, form fields, toggles. All touch targets ≥ 44 px. */
+/* Chips, form fields, tags. All touch targets ≥ 44 px. */
 
 .chip {
   --chip-bg: var(--surface);
@@ -83,117 +83,6 @@ input:focus-visible + .chip {
 .chips--scroll > * {
   scroll-snap-align: start;
   flex: none;
-}
-
-/* Segmented control (Dostava | Preuzimanje) */
-.segmented {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: var(--radius-l);
-  background: var(--paper-2);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.segmented__option {
-  position: relative;
-}
-
-/* The radio stays in the accessibility tree and keyboard order; the label is what receives the tap. */
-.segmented__option input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  pointer-events: none;
-}
-
-.segmented__option label {
-  display: grid;
-  gap: 2px;
-  align-content: center;
-  min-height: 60px;
-  padding: 0.55rem 0.9rem;
-  border-radius: calc(var(--radius-l) - 4px);
-  cursor: pointer;
-  transition: background-color var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
-}
-
-.segmented__title {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 850;
-  font-stretch: var(--stretch-ui);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.9rem;
-}
-
-.segmented__title svg {
-  width: 20px;
-  height: 20px;
-}
-
-.segmented__meta {
-  font-size: 0.8rem;
-  color: var(--ink-2);
-}
-
-.segmented__option input:checked + label {
-  background: var(--surface);
-  box-shadow: 0 1px 0 var(--line), 0 6px 18px -10px rgba(22, 32, 46, 0.45), inset 0 0 0 2px var(--ink);
-}
-
-.segmented__option input:focus-visible + label {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.segmented__option input:disabled + label {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Quantity stepper */
-.qty {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--pill);
-  box-shadow: inset 0 0 0 1.5px var(--line-strong);
-  background: var(--surface);
-}
-
-.qty button {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-}
-
-.qty button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.qty button svg {
-  width: 18px;
-  height: 18px;
-}
-
-.qty output {
-  min-width: 1.8em;
-  text-align: center;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-}
-
-.qty--lg button {
-  width: 52px;
-  height: 52px;
 }
 
 /* Forms */
@@ -310,50 +199,6 @@ select.input {
 .check input:checked {
   background-color: var(--ink);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
-}
-
-/* Switch (panel and pomfrit toggle) */
-.switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 56px;
-  cursor: pointer;
-}
-
-.switch input {
-  appearance: none;
-  flex: none;
-  width: 54px;
-  height: 32px;
-  border-radius: var(--pill);
-  background: var(--line-strong);
-  position: relative;
-  cursor: pointer;
-  margin: 0;
-  transition: background-color var(--t-base) var(--ease-out);
-}
-
-.switch input::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform var(--t-base) var(--ease-spring);
-}
-
-.switch input:checked {
-  background: var(--olive);
-}
-
-.switch input:checked::after {
-  transform: translateX(22px);
 }
 
 /* Tags on products */

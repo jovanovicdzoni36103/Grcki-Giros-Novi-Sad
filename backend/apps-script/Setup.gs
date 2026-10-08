@@ -15,6 +15,7 @@ function onOpen() {
     .addItem('Pošalji dnevni izveštaj za juče', 'menuSendDailyReport')
     .addItem('Podesi sledeći broj porudžbine…', 'menuSetNextOrderNumber')
     .addItem('Vrati brojač na početak (samo pre puštanja)', 'menuResetOrderCounter')
+    .addItem('Učitaj meni iz poslednje verzije sajta…', 'menuReloadCatalog')
     .addItem('Stanje sistema', 'menuSystemStatus')
     .addToUi();
 }
@@ -26,6 +27,13 @@ function onOpen() {
 function menuSetup() {
   var summary = setup();
   SpreadsheetApp.getUi().alert('Podešavanje završeno', summary, SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+function menuReloadCatalog() {
+  var ui = SpreadsheetApp.getUi();
+  var ok = ui.alert('Učitaj meni iz sajta', 'Listovi CATEGORIES, OPTION_GROUPS, OPTIONS i PRODUCTS biće zamenjeni menijem iz poslednje verzije sajta (data/seed.json). Ručne izmene u ta četiri lista se gube. Nastaviti?', ui.ButtonSet.YES_NO);
+  if (ok !== ui.Button.YES) return;
+  ui.alert('Meni je učitan', reloadCatalogFromSeed_().join('\n'), ui.ButtonSet.OK);
 }
 
 function menuInstallTriggers() {
@@ -274,6 +282,24 @@ function setup() {
   ss.setActiveSheet(ss.getSheetByName(SHEETS.DASHBOARD));
   log_('INFO', 'setup', 'OK', 'Podešavanje: ' + (log.length ? log.join(' ') : 'sve je već postojalo'));
   return log.length ? log.join('\n') : 'Sve tabele su već postojale. Ništa nije prepisano.';
+}
+
+/**
+ * Replaces the four menu sheets with the menu that shipped with the last deploy (SEED = data/seed.json).
+ * Contents only: headers, formats and validation stay. Nothing else (SETTINGS, orders, jobs) is touched.
+ */
+function reloadCatalogFromSeed_() {
+  var out = [];
+  ['CATEGORIES', 'OPTION_GROUPS', 'OPTIONS', 'PRODUCTS'].forEach(function (key) {
+    var sh = sheet_(SHEETS[key]);
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).clearContent();
+    var rows = seedRowsFor_(key);
+    appendObjects_(SHEETS[key], rows);
+    out.push(SHEETS[key] + ': ' + rows.length);
+  });
+  invalidateConfigCache_();
+  log_('INFO', 'catalog.reload', 'OK', out.join(', '));
+  return out;
 }
 
 function buildDashboardChart_() {

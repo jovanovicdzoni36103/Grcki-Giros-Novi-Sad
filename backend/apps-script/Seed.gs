@@ -38,7 +38,7 @@ var SEED = {
   },
   {
    "key": "email_public",
-   "value": "milica.tontic70@gmail.com",
+   "value": "nikola.jovanovic.mef@gmail.com",
    "note": "Javni email (strana Kontakt)"
   },
   {
@@ -68,7 +68,7 @@ var SEED = {
   },
   {
    "key": "ordering_enabled",
-   "value": "TRUE",
+   "value": "FALSE",
    "note": "FALSE = pauza, sajt ne prima porudžbine (menja se iz admin panela)"
   },
   {
@@ -98,7 +98,7 @@ var SEED = {
   },
   {
    "key": "pickup_eta_min",
-   "value": "15",
+   "value": "5",
    "note": "Procena preuzimanja, najkraće (min). PDF: 15"
   },
   {
@@ -283,7 +283,7 @@ var SEED = {
   },
   {
    "key": "address_note",
-   "value": "kod stadiona „Karađorđe“",
+   "value": "ispod stadiona „Karađorđe“",
    "note": "Orijentir uz adresu (prazno = ne prikazuje se)"
   },
   {
@@ -293,17 +293,17 @@ var SEED = {
   },
   {
    "key": "job_phone_display",
-   "value": "063 877 33 63",
+   "value": "",
    "note": "Telefon za posao na stranici /posao/ (prazno = telefon lokala)"
   },
   {
    "key": "job_phone_e164",
-   "value": "+381638773363",
+   "value": "",
    "note": "Isti broj u formatu +381…"
   },
   {
    "key": "second_location",
-   "value": "Bulevar kralja Petra I 61, Novi Sad",
+   "value": "",
    "note": "Drugi lokal, samo kao informacija na stranici Kontakt (prazno = ne prikazuje se). Online porudžbine ostaju u lokalu iz address_street."
   }
  ],
@@ -413,7 +413,7 @@ var SEED = {
  "zones": [
   {
    "id": "ns-grad",
-   "name": "Novi Sad — grad",
+   "name": "Novi Sad, grad",
    "areas": "Centar, Stari grad, Rotkvarija, Podbara, Salajka, Liman 1, Liman 2, Liman 3, Liman 4, Grbavica, Adamovićevo naselje, Detelinara, Novo naselje, Bistrica, Telep, Banatić, Sajmište",
    "fee": 250,
    "min_order": 500,
@@ -435,7 +435,7 @@ var SEED = {
  "reportConfig": [
   {
    "key": "daily_enabled",
-   "value": "TRUE",
+   "value": "FALSE",
    "note": "Dnevni izveštaj za prethodni radni dan"
   },
   {
@@ -445,7 +445,7 @@ var SEED = {
   },
   {
    "key": "weekly_enabled",
-   "value": "TRUE",
+   "value": "FALSE",
    "note": ""
   },
   {
@@ -460,7 +460,7 @@ var SEED = {
   },
   {
    "key": "monthly_enabled",
-   "value": "TRUE",
+   "value": "FALSE",
    "note": ""
   },
   {
@@ -484,7 +484,7 @@ var SEED = {
    {
     "id": "giros",
     "name": "Giros",
-    "description": "Pileće, svinjsko ili mix — u grčkoj piti, sa pomfritom unutra.",
+    "description": "Pileće, svinjsko ili mix, u grčkoj piti, sa pomfritom unutra.",
     "sort": 1,
     "active": true
    },
@@ -676,7 +676,7 @@ var SEED = {
    {
     "id": "pr-caciki",
     "groupId": "premazi",
-    "name": "Caciki (tzatziki)",
+    "name": "Tzatziki",
     "price": 0,
     "sort": 2,
     "available": true
@@ -788,7 +788,7 @@ var SEED = {
    {
     "id": "zac-paprika",
     "groupId": "zacini",
-    "name": "Tucana žuta paprika",
+    "name": "Tucana ljuta paprika",
     "price": 0,
     "sort": 2,
     "available": true
@@ -820,7 +820,7 @@ var SEED = {
    {
     "id": "pak-stiropor",
     "groupId": "pakovanje",
-    "name": "Bez pite — u ketering stiroporu",
+    "name": "Bez pite, u ketering stiroporu",
     "price": 0,
     "sort": 1,
     "available": true
@@ -828,7 +828,7 @@ var SEED = {
    {
     "id": "dod-meso",
     "groupId": "dodatno",
-    "name": "Meso plus 100 g",
+    "name": "Extra meso 100 g",
     "price": 330,
     "sort": 1,
     "available": true
@@ -866,17 +866,9 @@ var SEED = {
     "available": true
    },
    {
-    "id": "pi-pavlaka",
-    "groupId": "premaz-izbor",
-    "name": "Pavlaka",
-    "price": 0,
-    "sort": 1,
-    "available": true
-   },
-   {
     "id": "pi-caciki",
     "groupId": "premaz-izbor",
-    "name": "Caciki (tzatziki)",
+    "name": "Tzatziki",
     "price": 0,
     "sort": 2,
     "available": true
@@ -895,30 +887,6 @@ var SEED = {
     "name": "Urnebes",
     "price": 0,
     "sort": 4,
-    "available": true
-   },
-   {
-    "id": "pi-kecap",
-    "groupId": "premaz-izbor",
-    "name": "Kečap blagi",
-    "price": 0,
-    "sort": 5,
-    "available": true
-   },
-   {
-    "id": "pi-majonez",
-    "groupId": "premaz-izbor",
-    "name": "Majonez",
-    "price": 0,
-    "sort": 6,
-    "available": true
-   },
-   {
-    "id": "pi-senf",
-    "groupId": "premaz-izbor",
-    "name": "Senf",
-    "price": 0,
-    "sort": 7,
     "available": true
    },
    {
@@ -965,7 +933,7 @@ var SEED = {
   "products": [
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "popular",
      "recommended"
@@ -1008,7 +976,7 @@ var SEED = {
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/giros.webp",
+    "image": "",
     "tags": [
      "popular"
     ],
@@ -1049,7 +1017,7 @@ var SEED = {
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/giros-porcija.webp",
+    "image": "",
     "tags": [
      "family"
     ],
@@ -1114,7 +1082,7 @@ var SEED = {
     "sort": 4,
     "id": "vege-veliki",
     "name": "Vege veliki",
-    "description": "Grčka pita sa premazima, salatama i pomfritom — bez mesa.",
+    "description": "Posni giros. Grčka pita sa premazima, salatama i pomfritom, bez mesa.",
     "price": 450,
     "art": "wrap-veg"
    },
@@ -1151,7 +1119,7 @@ var SEED = {
     "sort": 5,
     "id": "vege-mali",
     "name": "Vege mali",
-    "description": "Manja grčka pita sa premazima, salatama i pomfritom — bez mesa.",
+    "description": "Posni giros. Manja grčka pita sa premazima, salatama i pomfritom, bez mesa.",
     "price": 350,
     "art": "wrap-veg"
    },
@@ -1235,7 +1203,7 @@ var SEED = {
    },
    {
     "comparePrice": 600,
-    "image": "/assets/img/menu/pljeskavica.webp",
+    "image": "",
     "tags": [
      "promo",
      "value"
@@ -1260,11 +1228,11 @@ var SEED = {
     "name": "Pljeskavica velika + Coca-Cola",
     "description": "Pljeskavica velika (200 g) i Coca-Cola u limenci.",
     "price": 550,
-    "art": "plate"
+    "art": "pljeskavica"
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/pljeskavica.webp",
+    "image": "",
     "tags": [
      "popular"
     ],
@@ -1291,11 +1259,11 @@ var SEED = {
     "name": "Pljeskavica velika",
     "description": "200 g. Premazi i salate po želji, bez doplate.",
     "price": 450,
-    "art": "plate"
+    "art": "pljeskavica"
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/pljeskavica.webp",
+    "image": "",
     "tags": [],
     "badge": "",
     "available": true,
@@ -1320,11 +1288,11 @@ var SEED = {
     "name": "Pljeskavica mala",
     "description": "150 g. Premazi i salate po želji, bez doplate.",
     "price": 400,
-    "art": "plate"
+    "art": "pljeskavica"
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/gurmanska.webp",
+    "image": "",
     "tags": [],
     "badge": "",
     "available": true,
@@ -1349,11 +1317,11 @@ var SEED = {
     "name": "Gurmanska pljeskavica",
     "description": "200 g. Premazi i salate po želji, bez doplate.",
     "price": 500,
-    "art": "plate"
+    "art": "pljeskavica"
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/banjalucki-cevap.webp",
+    "image": "",
     "tags": [],
     "badge": "",
     "available": true,
@@ -1378,11 +1346,11 @@ var SEED = {
     "name": "Banjalučki ćevap",
     "description": "200 g. Premazi i salate po želji, bez doplate.",
     "price": 600,
-    "art": "plate"
+    "art": "cevapi"
    },
    {
     "comparePrice": 0,
-    "image": "/assets/img/menu/kobasica.webp",
+    "image": "",
     "tags": [],
     "badge": "",
     "available": true,
@@ -1407,7 +1375,7 @@ var SEED = {
     "name": "Kobasica sa sirom",
     "description": "200 g, dva komada. Premazi i salate po želji, bez doplate.",
     "price": 600,
-    "art": "plate"
+    "art": "kobasica"
    },
    {
     "comparePrice": 0,
@@ -1457,9 +1425,32 @@ var SEED = {
     "sort": 2,
     "id": "premaz-100",
     "name": "Premaz 100 g",
-    "description": "Dodatni premaz, za giros ili za umakanje.",
+    "description": "Tzatziki, tirokafteri ili urnebes. Za giros ili za umakanje.",
     "price": 190,
     "art": "sauce-white"
+   },
+   {
+    "comparePrice": 0,
+    "image": "",
+    "tags": [],
+    "badge": "",
+    "available": true,
+    "delivery": true,
+    "pickup": true,
+    "groups": [],
+    "defaults": [],
+    "pairs": [],
+    "bundleHint": "",
+    "includes": "",
+    "kind": "item",
+    "demo": false,
+    "categoryId": "prilozi",
+    "sort": 3,
+    "id": "extra-meso",
+    "name": "Extra meso",
+    "description": "100 g mesa.",
+    "price": 330,
+    "art": "meat"
    },
    {
     "comparePrice": 0,
@@ -1484,7 +1475,7 @@ var SEED = {
     "sort": 1,
     "id": "coca-cola",
     "name": "Coca-Cola",
-    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "description": "Limenka / 0,33 l ili flaša / 0,5 l",
     "price": 150,
     "art": "can-red"
    },
@@ -1506,8 +1497,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 2,
     "id": "coca-cola-zero",
-    "name": "Coca-Cola Zero 0,33 l",
-    "description": "Limenka.",
+    "name": "Coca-Cola Zero",
+    "description": "Limenka / 0,33 l",
     "price": 150,
     "art": "can-black"
    },
@@ -1534,7 +1525,7 @@ var SEED = {
     "sort": 3,
     "id": "fanta",
     "name": "Fanta",
-    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "description": "Limenka / 0,33 l ili flaša / 0,5 l",
     "price": 150,
     "art": "can-orange"
    },
@@ -1561,7 +1552,7 @@ var SEED = {
     "sort": 4,
     "id": "sprite",
     "name": "Sprite",
-    "description": "Limenka 0,33 l ili flaša 0,5 l.",
+    "description": "Limenka / 0,33 l ili flaša / 0,5 l",
     "price": 150,
     "art": "can-green"
    },
@@ -1583,8 +1574,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 5,
     "id": "schweppes",
-    "name": "Schweppes 0,5 l",
-    "description": "Flaša.",
+    "name": "Schweppes",
+    "description": "Flaša / 0,5 l",
     "price": 150,
     "art": "bottle"
    },
@@ -1606,8 +1597,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 6,
     "id": "ultra",
-    "name": "Ultra 0,25 l",
-    "description": "Limenka.",
+    "name": "Ultra",
+    "description": "Limenka / 0,25 l",
     "price": 150,
     "art": "can-black"
    },
@@ -1631,8 +1622,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 7,
     "id": "joy",
-    "name": "Joy sok 0,5 l",
-    "description": "Narandža, multivitamin ili višnja.",
+    "name": "Joy sok",
+    "description": "0,5 l. Narandža, multivitamin ili višnja.",
     "price": 150,
     "art": "bottle"
    },
@@ -1654,8 +1645,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 8,
     "id": "rosa",
-    "name": "Rosa negazirana 0,5 l",
-    "description": "",
+    "name": "Rosa negazirana",
+    "description": "0,5 l",
     "price": 150,
     "art": "bottle"
    },
@@ -1677,8 +1668,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 9,
     "id": "knjaz-milos",
-    "name": "Knjaz Miloš gazirana 0,5 l",
-    "description": "",
+    "name": "Knjaz Miloš gazirana",
+    "description": "0,5 l",
     "price": 150,
     "art": "bottle-sparkling"
    },
@@ -1700,8 +1691,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 10,
     "id": "pivo-alfa",
-    "name": "Pivo Alfa 0,5 l",
-    "description": "Limenka. Samo za punoletne.",
+    "name": "Pivo Alfa",
+    "description": "Limenka / 0,5 l. Samo za punoletne.",
     "price": 300,
     "art": "can-black"
    },
@@ -1723,8 +1714,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 11,
     "id": "pivo-tuborg",
-    "name": "Pivo Tuborg 0,5 l",
-    "description": "Limenka. Samo za punoletne.",
+    "name": "Pivo Tuborg",
+    "description": "Limenka / 0,5 l. Samo za punoletne.",
     "price": 250,
     "art": "can-green"
    },
@@ -1746,8 +1737,8 @@ var SEED = {
     "categoryId": "pice",
     "sort": 12,
     "id": "pivo-lav",
-    "name": "Pivo Lav 0,5 l",
-    "description": "Limenka. Samo za punoletne.",
+    "name": "Pivo Lav",
+    "description": "Limenka / 0,5 l. Samo za punoletne.",
     "price": 250,
     "art": "can-red"
    }

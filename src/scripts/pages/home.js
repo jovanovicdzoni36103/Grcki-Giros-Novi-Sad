@@ -1,5 +1,5 @@
-// Home: hero status, live hours, featured products, "kako radi" sticky scene.
-import { $, $$, esc, icon, prefersReducedMotion } from '../core/dom.js';
+// Home: hero status, live hours, "kako do girosa" sticky scene.
+import { $, $$, prefersReducedMotion } from '../core/dom.js';
 import { subscribe } from '../core/events.js';
 import { catalog } from '../core/catalog.js';
 import { statusLine } from '../core/availability.js';
@@ -14,14 +14,6 @@ function heroStatus(snap) {
     el.classList.toggle('is-closed', !s.open);
     el.querySelector('[data-status-text]').textContent = s.text;
   });
-  $$('[data-order-cta]').forEach((btn) => {
-    const label = btn.querySelector('.btn__label');
-    if (!label) return;
-    if (snap.open) label.textContent = btn.dataset.openLabel || 'Naruči online';
-    else label.textContent = snap.next ? `Otvaramo ${snap.next.label}` : 'Pogledaj meni';
-  });
-  const eta = $('[data-hero-eta]');
-  if (eta && snap.open) eta.textContent = `Dostava ~${snap.delivery.asap.etaMin} min · Preuzimanje ~${snap.pickup.asap.etaMin} min`;
 }
 
 function liveHours() {
@@ -31,7 +23,7 @@ function liveHours() {
   $$('[data-hours]').forEach((dl) => (dl.innerHTML = hoursRows(rows, { deliveryColumn: dl.hasAttribute('data-hours-delivery') })));
 }
 
-/** "Kako radi": on desktop the three steps pin and advance with scroll; on phones they simply stack. */
+/** "Kako do girosa": on desktop the three steps pin and advance with scroll; on phones they simply stack. */
 function initSteps() {
   const scene = $('[data-steps]');
   if (!scene || prefersReducedMotion()) return;

@@ -1,69 +1,47 @@
-// The real menu (data/seed.json) through the real backend: every kind of product can be ordered and is
-// priced by the server exactly like on the site.
+// The real menu (data/seed.json) through the real backend: served to the site as briefed on 2026-10-06
+// (presentational site), and the public API takes no orders.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { freshBackend, placeOrder, bootstrap, adminSession } from './helpers.mjs';
+import { freshBackend, placeOrder, bootstrap } from './helpers.mjs';
 
 const REAL = JSON.parse(readFileSync(new URL('../../data/seed.json', import.meta.url), 'utf8'));
 const line = (productId, options = [], qty = 1) => ({ productId, qty, options, note: '' });
 
-test('bootstrap serves the real menu with photos, akcije and drinks', () => {
+test('bootstrap serves the real menu: akcije, roštilj, drinks and Extra meso, no photos', () => {
   const emu = freshBackend({ seed: REAL });
   const data = bootstrap(emu);
   assert.deepEqual(data.catalog.categories.map((c) => c.id), ['giros', 'akcije', 'rostilj', 'prilozi', 'pice']);
   assert.equal(data.catalog.products.length, REAL.catalog.products.length);
-  assert.equal(data.catalog.products.find((p) => p.id === 'banjalucki-cevap').image, '/assets/img/menu/banjalucki-cevap.webp');
-  assert.equal(data.business.job_phone_display, '063 877 33 63');
-  assert.equal(data.business.second_location, 'Bulevar kralja Petra I 61, Novi Sad');
+  assert.ok(data.catalog.products.every((p) => !p.image), 'no food photos');
+  assert.equal(data.catalog.products.find((p) => p.id === 'extra-meso').price, 330);
+  assert.equal(data.business.job_phone_display, '');
+  assert.equal(data.business.address_note, 'ispod stadiona „Karađorđe“');
+  assert.equal(data.business.second_location, '', 'the second shop is crossed out in the owner notebook (2026-10-06)');
 });
 
-test('a realistic delivery order from the real menu: giros, akcija, roštilj, sides, drinks', () => {
-  const emu = freshBackend({ seed: REAL, now: '2026-09-30T19:00:00+02:00' });
-  const items = [
-    line('giros-veliki', ['meso-pilece', 'pr-caciki', 'sal-paradajz', 'sal-luk', 'pup-da', 'dod-meso']), // 550 + 330
-    line('giros-mali', ['meso-svinjsko', 'pr-urnebes', 'pak-stiropor'], 2), // 2 × 450
-    line('akcija-giros-veliki', ['meso-mix', 'pr-caciki', 'sal-paradajz', 'sal-luk', 'pup-da']), // 650
-    line('pljeskavica-velika', ['pr-urnebes', 'sal-beli-kupus']), // 450
-    line('kobasica-sa-sirom', []), // 600
-    line('pomfrit', ['uzp-kecap', 'uzp-so']), // 230
-    line('premaz-100', ['pi-tirokafteri']), // 190
-    line('coca-cola', ['pp-flasa']), // 150
-    line('joy', ['joy-visnja']), // 150
-    line('pivo-tuborg') // 250
-  ];
-  const subtotal = 880 + 900 + 650 + 450 + 600 + 230 + 190 + 150 + 150 + 250;
-  const r = placeOrder(emu, { items, clientTotal: subtotal + 250, cash: 5000, when: 'asap' });
-  assert.equal(r.ok, true, JSON.stringify(r.error));
-  assert.equal(r.data.subtotal, subtotal);
-  assert.equal(r.data.total, subtotal + 250);
-  const ticket = emu.state.outbox.find((m) => /NOVA PORUDŽBINA/.test(m.htmlBody || ''));
-  for (const text of ['Giros veliki', 'Meso plus 100 g', 'Bez pite — u ketering stiroporu', 'Kobasica sa sirom', 'Flaša 0,5 l', 'Višnja', 'Pivo Tuborg']) {
-    assert.ok(ticket.htmlBody.includes(text), 'kitchen ticket shows ' + text);
-  }
-  const rows = emu.rows('ORDER_ITEMS');
-  assert.equal(rows.length, items.length);
-  assert.equal(rows.reduce((s, x) => s + x['Line Total'], 0), subtotal);
-});
-
-test('what the server refuses on the real menu: no meat, no Joy flavour, two drink sizes', () => {
-  const emu = freshBackend({ seed: REAL, now: '2026-09-30T19:00:00+02:00' });
-  const pickup = { mode: 'pickup', address: {}, cash: undefined };
-  assert.match(placeOrder(emu, { ...pickup, items: [line('giros-veliki', ['pr-caciki'])], clientTotal: 550 }).error.message, /meso/);
-  assert.match(placeOrder(emu, { ...pickup, items: [line('joy')], clientTotal: 150 }).error.message, /ukus/);
-  assert.match(placeOrder(emu, { ...pickup, items: [line('coca-cola', ['pp-limenka', 'pp-flasa'])], clientTotal: 150 }).error.message, /samo jedan izbor/);
-  assert.equal(emu.rows('ORDERS').length, 0);
-});
-
-test('the shop edits a real product in the admin panel: its photo that ships with the site is kept', () => {
+test('"Učitaj meni iz sajta" replaces an old menu in the sheet with data/seed.json, settings untouched', () => {
   const emu = freshBackend({ seed: REAL });
-  const { call } = adminSession(emu);
-  const p = call('admin.catalog').data.products.find((x) => x.id === 'pljeskavica-velika');
-  const saved = call('admin.product.save', { product: { ...p, price: 460 } });
-  assert.equal(saved.ok, true, JSON.stringify(saved.error));
-  const after = saved.data.catalog.products.find((x) => x.id === 'pljeskavica-velika');
-  assert.deepEqual([after.price, after.image], [460, '/assets/img/menu/pljeskavica.webp']);
-  for (const bad of ['/assets/img/../../x.webp', '/assets/img/a.webp"', 'javascript:alert(1)', '/etc/passwd', 'http://evil.example/x.png']) {
-    assert.equal(call('admin.product.save', { product: { ...p, image: bad } }).error.field, 'image', bad);
-  }
+  const products = emu.sheet('PRODUCTS');
+  const h = products.data[0];
+  const zero = products.data.find((r, i) => i > 0 && r[h.indexOf('id')] === 'coca-cola-zero');
+  zero[h.indexOf('name')] = 'Coca-Cola Zero 0,33 l';
+  products.data.push(h.map((c) => (c === 'id' ? 'stari-proizvod' : c === 'name' ? 'Stari proizvod' : '')));
+  emu.state.cache.clear();
+  const out = emu.run('reloadCatalogFromSeed_');
+  assert.match(JSON.stringify(out), /PRODUCTS: 28/);
+  const data = bootstrap(emu);
+  assert.equal(data.catalog.products.length, REAL.catalog.products.length);
+  assert.equal(data.catalog.products.find((p) => p.id === 'coca-cola-zero').name, 'Coca-Cola Zero');
+  assert.ok(!data.catalog.products.some((p) => p.id === 'stari-proizvod'));
+  assert.equal(data.business.address_note, 'ispod stadiona „Karađorđe“');
+});
+
+test('the public API refuses an order on the real menu: ordering is switched off in SETTINGS', () => {
+  const emu = freshBackend({ seed: REAL, now: '2026-09-30T19:00:00+02:00' });
+  const r = placeOrder(emu, { mode: 'pickup', address: {}, cash: undefined, items: [line('giros-veliki', ['meso-pilece', 'pr-caciki'])], clientTotal: 550 });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'CLOSED');
+  assert.equal(emu.rows('ORDERS').length, 0);
+  assert.equal(emu.state.outbox.length, 0, 'no kitchen ticket');
 });

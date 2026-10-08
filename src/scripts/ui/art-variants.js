@@ -10,6 +10,11 @@ export const ART_VARIANTS = {
   'wrap-mali': { symbol: 'wrap', bg: '#E3EBF6', style: '--art-scale:0.84' },
   'wrap-veg': { symbol: 'wrap', bg: '#E5EEDD', style: '--meat:#F7C84A;--meat-2:#D69A1E;--veg-b:#8DBF55' },
   plate: { symbol: 'plate', bg: '#E3EBF6' },
+  pljeskavica: { symbol: 'pljeskavica', bg: '#FDF0D8' },
+  cevapi: { symbol: 'cevapi', bg: '#F2EBDD', style: '--art-scale:1.15' },
+  kobasica: { symbol: 'kobasica', bg: '#FBE4DF', style: '--art-scale:1.15' },
+  meat: { symbol: 'meat', bg: '#E3EBF6' },
+  raznj: { symbol: 'raznj', bg: '#F2EBDD' },
   box: { symbol: 'box', bg: '#F2EBDD' },
   'bundle-1': { symbol: 'bundle-1', bg: '#FDF0D8' },
   'bundle-2': { symbol: 'bundle-2', bg: '#E3EBF6' },
@@ -31,7 +36,7 @@ export const ART_VARIANTS = {
   bag: { symbol: 'bag', bg: '#F2EBDD' }
 };
 
-const CATEGORY_FALLBACK = { giros: 'wrap', porcije: 'plate', paketi: 'bundle-1', akcije: 'bundle-1', rostilj: 'plate', prilozi: 'fries', salate: 'salad', sosovi: 'sauce-white', pice: 'can-red' };
+const CATEGORY_FALLBACK = { giros: 'wrap', porcije: 'plate', paketi: 'bundle-1', akcije: 'bundle-1', rostilj: 'pljeskavica', prilozi: 'fries', salate: 'salad', sosovi: 'sauce-white', pice: 'can-red' };
 
 export function artFor(product) {
   return ART_VARIANTS[product.art] || ART_VARIANTS[CATEGORY_FALLBACK[product.categoryId]] || ART_VARIANTS.bag;

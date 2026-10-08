@@ -263,20 +263,20 @@
   height: 100%;
 }
 
+/* The logo sits still in the middle; only the text ring turns (data-spin on .stamp__ring). */
 .stamp__core {
   position: absolute;
-  inset: 26%;
+  inset: 25%;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--gold);
+  background: #fff;
   box-shadow: 0 0 0 3px var(--ink);
-  color: var(--ink);
 }
 
-.stamp__core svg {
-  width: 56%;
-  height: 56%;
+.stamp__core img {
+  width: auto;
+  height: 74%;
 }
 
 @media (max-width: 1023px) {

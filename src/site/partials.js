@@ -1,8 +1,8 @@
-// Build-time partials: header, mobile navigation, footer, order bar.
+// Build-time partials: header, mobile navigation, footer.
 import { esc, iconSvg, hoursRows, mapsUrl } from '../scripts/ui/render.js';
 
 export const NAV = [
-  { href: '/meni/', label: 'Meni', note: 'poruči' },
+  { href: '/meni/', label: 'Meni', note: 'i cene' },
   { href: '/o-nama/', label: 'O nama', note: 'od 2021.' },
   { href: '/dostava/', label: 'Dostava', note: 'i preuzimanje' },
   { href: '/kontakt/', label: 'Kontakt', note: 'lokacija' },
@@ -10,8 +10,8 @@ export const NAV = [
 ];
 
 export function brand(ctx, { tag = 'a' } = {}) {
-  const inner = `<img class="brand__mark" src="/assets/img/logo-112.png" alt="" width="48" height="56"><span class="brand__word">Grčki Giros<small>Novi Sad · 2021</small></span>`;
-  return tag === 'a' ? `<a class="brand" href="/" aria-label="Grčki Giros — početna">${inner}</a>` : `<span class="brand">${inner}</span>`;
+  const inner = `<img class="brand__mark" src="/assets/img/logo-112.png" alt="" width="48" height="56"><span class="brand__word">Grčki Giros<span class="brand__tag">Friends &amp; Food</span><small>Novi Sad · 2021</small></span>`;
+  return tag === 'a' ? `<a class="brand" href="/" aria-label="Grčki Giros, početna">${inner}</a>` : `<span class="brand">${inner}</span>`;
 }
 
 export function header(ctx) {
@@ -25,8 +25,8 @@ export function header(ctx) {
     </nav>
     <div class="site-header__actions">
       <span class="status-pill" data-status-pill><span class="status-pill__dot"></span><span data-status-text>${esc(ctx.statusText)}</span></span>
-      <a class="btn btn--gold btn--sm header-cta" href="/meni/" data-magnetic="6"><span class="btn__label">Naruči</span>${iconSvg(a, 'arrow', 'btn__icon')}</a>
-      <button type="button" class="cart-button" data-cart-open aria-label="Korpa je prazna">${iconSvg(a, 'bag')}<span class="cart-button__count" data-cart-count>0</span></button>
+      <a class="btn btn--gold btn--sm header-cta" href="tel:${esc(ctx.business.phone_e164)}" data-track="header" data-magnetic="6"><span class="btn__label">Pozovite</span>${iconSvg(a, 'phone', 'btn__icon')}</a>
+      <a class="header-call" href="tel:${esc(ctx.business.phone_e164)}" data-track="header" aria-label="Pozovite ${esc(ctx.business.phone_display)}">${iconSvg(a, 'phone')}</a>
       <button type="button" class="nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="mobile-nav" aria-label="Otvori meni"><span></span><span></span></button>
     </div>
   </div>
@@ -44,10 +44,6 @@ export function header(ctx) {
 </div>`;
 }
 
-export function orderBar() {
-  return `<div class="order-bar" data-order-bar data-menu-href="/meni/"><a class="order-bar__cta" href="/meni/" data-order-bar-link><span class="order-bar__label">Naruči online<span class="order-bar__meta">Pravi grčki giros</span></span></a></div>`;
-}
-
 export function footer(ctx) {
   const b = ctx.business;
   const a = ctx.assets;
@@ -55,12 +51,12 @@ export function footer(ctx) {
   <div class="container">
     <div class="footer-grid">
       <div>
-        <p class="footer-lead">Grčki, ali domaćinski. Pita stiže iz Atine.</p>
+        <p class="footer-lead">Grčki, ali domaćinski.</p>
         <a class="footer-phone" href="tel:${esc(b.phone_e164)}" data-track="footer">${esc(b.phone_display)}</a>
-        <p style="margin-top:0.4rem">Porudžbine telefonom i online</p>
+        <p style="margin-top:0.4rem">Porudžbine telefonom</p>
       </div>
       <div>
-        <h2>Lokal</h2>
+        <h2>Lokacija</h2>
         <p>${esc(b.address_street)}${b.address_note ? ` <span class="small">(${esc(b.address_note)})</span>` : ''}<br>${esc(b.postal_code)} ${esc(b.address_city)}</p>
         <p style="margin-top:0.8rem"><a class="social" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener">${iconSvg(a, 'map')}Otvori u mapama</a></p>
         ${b.instagram_url ? `<p style="margin-top:0.4rem"><a class="social" href="${esc(b.instagram_url)}" target="_blank" rel="noopener">${iconSvg(a, 'instagram')}Instagram</a></p>` : ''}
@@ -74,7 +70,7 @@ export function footer(ctx) {
       <div>
         <h2>Sajt</h2>
         <ul role="list">
-          <li><a href="/meni/">Meni i poručivanje</a></li>
+          <li><a href="/meni/">Meni i cene</a></li>
           <li><a href="/dostava/">Dostava i česta pitanja</a></li>
           <li><a href="/o-nama/">O nama</a></li>
           <li><a href="/kontakt/">Kontakt</a></li>
